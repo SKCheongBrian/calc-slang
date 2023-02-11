@@ -9,15 +9,15 @@ import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.misc.*;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast"})
-public class CalcLexer extends Lexer {
+public class CLexer extends Lexer {
 	static { RuntimeMetaData.checkVersion("4.9.2", RuntimeMetaData.VERSION); }
 
 	protected static final DFA[] _decisionToDFA;
 	protected static final PredictionContextCache _sharedContextCache =
 		new PredictionContextCache();
 	public static final int
-		T__0=1, T__1=2, T__2=3, T__3=4, POW=5, MUL=6, DIV=7, ADD=8, SUB=9, ASSIGN=10, 
-		SEMI=11, INT=12, NUMBER=13, WHITESPACE=14, IDENTIFIER=15;
+		T__0=1, T__1=2, T__2=3, T__3=4, POW=5, MUL=6, DIV=7, ADD=8, SUB=9, NUMBER=10, 
+		WHITESPACE=11;
 	public static String[] channelNames = {
 		"DEFAULT_TOKEN_CHANNEL", "HIDDEN"
 	};
@@ -28,24 +28,22 @@ public class CalcLexer extends Lexer {
 
 	private static String[] makeRuleNames() {
 		return new String[] {
-			"T__0", "T__1", "T__2", "T__3", "POW", "MUL", "DIV", "ADD", "SUB", "ASSIGN", 
-			"SEMI", "INT", "NUMBER", "WHITESPACE", "IDENTIFIER", "IDENTIFIER_NON_DIGIT", 
-			"NON_DIGIT", "DIGIT"
+			"T__0", "T__1", "T__2", "T__3", "POW", "MUL", "DIV", "ADD", "SUB", "NUMBER", 
+			"WHITESPACE"
 		};
 	}
 	public static final String[] ruleNames = makeRuleNames();
 
 	private static String[] makeLiteralNames() {
 		return new String[] {
-			null, "'('", "')'", "','", "'void'", "'^'", "'*'", "'/'", "'+'", "'-'", 
-			"'='", "';'", "'int'"
+			null, "'('", "')'", "'void'", "'int'", "'^'", "'*'", "'/'", "'+'", "'-'"
 		};
 	}
 	private static final String[] _LITERAL_NAMES = makeLiteralNames();
 	private static String[] makeSymbolicNames() {
 		return new String[] {
-			null, null, null, null, null, "POW", "MUL", "DIV", "ADD", "SUB", "ASSIGN", 
-			"SEMI", "INT", "NUMBER", "WHITESPACE", "IDENTIFIER"
+			null, null, null, null, null, "POW", "MUL", "DIV", "ADD", "SUB", "NUMBER", 
+			"WHITESPACE"
 		};
 	}
 	private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();
@@ -83,7 +81,7 @@ public class CalcLexer extends Lexer {
 	}
 
 
-	public CalcLexer(CharStream input) {
+	public CLexer(CharStream input) {
 		super(input);
 		_interp = new LexerATNSimulator(this,_ATN,_decisionToDFA,_sharedContextCache);
 	}
@@ -107,30 +105,23 @@ public class CalcLexer extends Lexer {
 	public ATN getATN() { return _ATN; }
 
 	public static final String _serializedATN =
-		"\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\2\21^\b\1\4\2\t\2\4"+
+		"\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\2\r<\b\1\4\2\t\2\4"+
 		"\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7\4\b\t\b\4\t\t\t\4\n\t\n\4\13\t"+
-		"\13\4\f\t\f\4\r\t\r\4\16\t\16\4\17\t\17\4\20\t\20\4\21\t\21\4\22\t\22"+
-		"\4\23\t\23\3\2\3\2\3\3\3\3\3\4\3\4\3\5\3\5\3\5\3\5\3\5\3\6\3\6\3\7\3\7"+
-		"\3\b\3\b\3\t\3\t\3\n\3\n\3\13\3\13\3\f\3\f\3\r\3\r\3\r\3\r\3\16\6\16F"+
-		"\n\16\r\16\16\16G\3\17\6\17K\n\17\r\17\16\17L\3\17\3\17\3\20\3\20\3\20"+
-		"\7\20T\n\20\f\20\16\20W\13\20\3\21\3\21\3\22\3\22\3\23\3\23\2\2\24\3\3"+
-		"\5\4\7\5\t\6\13\7\r\b\17\t\21\n\23\13\25\f\27\r\31\16\33\17\35\20\37\21"+
-		"!\2#\2%\2\3\2\5\3\2\62;\5\2\13\f\17\17\"\"\5\2C\\aac|\2^\2\3\3\2\2\2\2"+
-		"\5\3\2\2\2\2\7\3\2\2\2\2\t\3\2\2\2\2\13\3\2\2\2\2\r\3\2\2\2\2\17\3\2\2"+
-		"\2\2\21\3\2\2\2\2\23\3\2\2\2\2\25\3\2\2\2\2\27\3\2\2\2\2\31\3\2\2\2\2"+
-		"\33\3\2\2\2\2\35\3\2\2\2\2\37\3\2\2\2\3\'\3\2\2\2\5)\3\2\2\2\7+\3\2\2"+
-		"\2\t-\3\2\2\2\13\62\3\2\2\2\r\64\3\2\2\2\17\66\3\2\2\2\218\3\2\2\2\23"+
-		":\3\2\2\2\25<\3\2\2\2\27>\3\2\2\2\31@\3\2\2\2\33E\3\2\2\2\35J\3\2\2\2"+
-		"\37P\3\2\2\2!X\3\2\2\2#Z\3\2\2\2%\\\3\2\2\2\'(\7*\2\2(\4\3\2\2\2)*\7+"+
-		"\2\2*\6\3\2\2\2+,\7.\2\2,\b\3\2\2\2-.\7x\2\2./\7q\2\2/\60\7k\2\2\60\61"+
-		"\7f\2\2\61\n\3\2\2\2\62\63\7`\2\2\63\f\3\2\2\2\64\65\7,\2\2\65\16\3\2"+
-		"\2\2\66\67\7\61\2\2\67\20\3\2\2\289\7-\2\29\22\3\2\2\2:;\7/\2\2;\24\3"+
-		"\2\2\2<=\7?\2\2=\26\3\2\2\2>?\7=\2\2?\30\3\2\2\2@A\7k\2\2AB\7p\2\2BC\7"+
-		"v\2\2C\32\3\2\2\2DF\t\2\2\2ED\3\2\2\2FG\3\2\2\2GE\3\2\2\2GH\3\2\2\2H\34"+
-		"\3\2\2\2IK\t\3\2\2JI\3\2\2\2KL\3\2\2\2LJ\3\2\2\2LM\3\2\2\2MN\3\2\2\2N"+
-		"O\b\17\2\2O\36\3\2\2\2PU\5!\21\2QT\5!\21\2RT\5%\23\2SQ\3\2\2\2SR\3\2\2"+
-		"\2TW\3\2\2\2US\3\2\2\2UV\3\2\2\2V \3\2\2\2WU\3\2\2\2XY\5#\22\2Y\"\3\2"+
-		"\2\2Z[\t\4\2\2[$\3\2\2\2\\]\t\2\2\2]&\3\2\2\2\7\2GLSU\3\b\2\2";
+		"\13\4\f\t\f\3\2\3\2\3\3\3\3\3\4\3\4\3\4\3\4\3\4\3\5\3\5\3\5\3\5\3\6\3"+
+		"\6\3\7\3\7\3\b\3\b\3\t\3\t\3\n\3\n\3\13\6\13\62\n\13\r\13\16\13\63\3\f"+
+		"\6\f\67\n\f\r\f\16\f8\3\f\3\f\2\2\r\3\3\5\4\7\5\t\6\13\7\r\b\17\t\21\n"+
+		"\23\13\25\f\27\r\3\2\4\3\2\62;\5\2\13\f\17\17\"\"\2=\2\3\3\2\2\2\2\5\3"+
+		"\2\2\2\2\7\3\2\2\2\2\t\3\2\2\2\2\13\3\2\2\2\2\r\3\2\2\2\2\17\3\2\2\2\2"+
+		"\21\3\2\2\2\2\23\3\2\2\2\2\25\3\2\2\2\2\27\3\2\2\2\3\31\3\2\2\2\5\33\3"+
+		"\2\2\2\7\35\3\2\2\2\t\"\3\2\2\2\13&\3\2\2\2\r(\3\2\2\2\17*\3\2\2\2\21"+
+		",\3\2\2\2\23.\3\2\2\2\25\61\3\2\2\2\27\66\3\2\2\2\31\32\7*\2\2\32\4\3"+
+		"\2\2\2\33\34\7+\2\2\34\6\3\2\2\2\35\36\7x\2\2\36\37\7q\2\2\37 \7k\2\2"+
+		" !\7f\2\2!\b\3\2\2\2\"#\7k\2\2#$\7p\2\2$%\7v\2\2%\n\3\2\2\2&\'\7`\2\2"+
+		"\'\f\3\2\2\2()\7,\2\2)\16\3\2\2\2*+\7\61\2\2+\20\3\2\2\2,-\7-\2\2-\22"+
+		"\3\2\2\2./\7/\2\2/\24\3\2\2\2\60\62\t\2\2\2\61\60\3\2\2\2\62\63\3\2\2"+
+		"\2\63\61\3\2\2\2\63\64\3\2\2\2\64\26\3\2\2\2\65\67\t\3\2\2\66\65\3\2\2"+
+		"\2\678\3\2\2\28\66\3\2\2\289\3\2\2\29:\3\2\2\2:;\b\f\2\2;\30\3\2\2\2\5"+
+		"\2\638\3\b\2\2";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());
 	static {
