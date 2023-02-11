@@ -11,6 +11,8 @@ import { AdditionContext } from './CalcParser'
 import { SubtractionContext } from './CalcParser'
 import { StartContext } from './CalcParser'
 import { ExpressionContext } from './CalcParser'
+import { DeclarationSpecifierContext } from './CalcParser'
+import { TypeSpecifierContext } from './CalcParser'
 
 /**
  * This interface defines a complete generic visitor for a parse tree produced
@@ -89,4 +91,18 @@ export interface CalcVisitor<Result> extends ParseTreeVisitor<Result> {
    * @return the visitor result
    */
   visitExpression?: (ctx: ExpressionContext) => Result
+
+  /**
+   * Visit a parse tree produced by `CalcParser.declarationSpecifier`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitDeclarationSpecifier?: (ctx: DeclarationSpecifierContext) => Result
+
+  /**
+   * Visit a parse tree produced by `CalcParser.typeSpecifier`.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  visitTypeSpecifier?: (ctx: TypeSpecifierContext) => Result
 }

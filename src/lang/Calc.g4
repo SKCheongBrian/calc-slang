@@ -25,3 +25,12 @@ expression
    | left=expression operator=ADD right=expression  # Addition
    | left=expression operator=SUB right=expression  # Subtraction
    ;
+
+declarationSpecifier
+   : typeSpecifier
+   ;
+
+typeSpecifier
+   : ('void'
+   | 'int')
+   ;

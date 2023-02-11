@@ -11,6 +11,8 @@ import { AdditionContext } from './CalcParser'
 import { SubtractionContext } from './CalcParser'
 import { StartContext } from './CalcParser'
 import { ExpressionContext } from './CalcParser'
+import { DeclarationSpecifierContext } from './CalcParser'
+import { TypeSpecifierContext } from './CalcParser'
 
 /**
  * This interface defines a complete listener for a parse tree produced by
@@ -129,4 +131,26 @@ export interface CalcListener extends ParseTreeListener {
    * @param ctx the parse tree
    */
   exitExpression?: (ctx: ExpressionContext) => void
+
+  /**
+   * Enter a parse tree produced by `CalcParser.declarationSpecifier`.
+   * @param ctx the parse tree
+   */
+  enterDeclarationSpecifier?: (ctx: DeclarationSpecifierContext) => void
+  /**
+   * Exit a parse tree produced by `CalcParser.declarationSpecifier`.
+   * @param ctx the parse tree
+   */
+  exitDeclarationSpecifier?: (ctx: DeclarationSpecifierContext) => void
+
+  /**
+   * Enter a parse tree produced by `CalcParser.typeSpecifier`.
+   * @param ctx the parse tree
+   */
+  enterTypeSpecifier?: (ctx: TypeSpecifierContext) => void
+  /**
+   * Exit a parse tree produced by `CalcParser.typeSpecifier`.
+   * @param ctx the parse tree
+   */
+  exitTypeSpecifier?: (ctx: TypeSpecifierContext) => void
 }

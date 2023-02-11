@@ -203,6 +203,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
 // tslint:enable:object-literal-shorthand
 
 export function* evaluate(node: es.Node, context: Context) {
+  console.log(node)
   const result = yield* evaluators[node.type](node, context)
   yield* leave(context)
   return result
