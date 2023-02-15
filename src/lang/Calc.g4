@@ -10,88 +10,45 @@ ADD: '+';
 SUB: '-';
 ASSIGN: '=';
 SEMI: ';';
-INT : 'int';
+INT: 'int';
 NUMBER: [0-9]+;
 WHITESPACE: [ \r\n\t]+ -> skip;
-IDENTIFIER
-    :   IDENTIFIER_NON_DIGIT
-        (   IDENTIFIER_NON_DIGIT
-        |   DIGIT
-        )*
-    ;
+IDENTIFIER:
+	IDENTIFIER_NON_DIGIT (IDENTIFIER_NON_DIGIT | DIGIT)*;
 
-fragment
-IDENTIFIER_NON_DIGIT
-    :   NON_DIGIT
-    //|   // other implementation-defined characters...
-    ;
+fragment IDENTIFIER_NON_DIGIT:
+	NON_DIGIT; //|   // other implementation-defined characters...
 
-fragment
-NON_DIGIT
-    :   [a-zA-Z_]
-    ;
+fragment NON_DIGIT: [a-zA-Z_];
 
-fragment
-DIGIT
-    :   [0-9]
-    ;
+fragment DIGIT: [0-9];
 
 /*
  * Productions
  */
-start : declaration;
 
-expression
-   : NUMBER                                         # Number
-   | '(' inner=expression ')'                       # Parentheses
-   | left=expression operator=POW right=expression  # Power
-   | left=expression operator=MUL right=expression  # Multiplication
-   | left=expression operator=DIV right=expression  # Division
-   | left=expression operator=ADD right=expression  # Addition
-   | left=expression operator=SUB right=expression  # Subtraction
-   ;
+declaration:
+	declSpec = declarationSpecifier initDecl = initDeclarator ';';
 
-declaration
-   : declarationSpecifiers initDeclaratorList? ';'
-   ;
+declarationSpecifier: typeSpec = typeSpecifier;
 
-declarationSpecifiers
-   : declarationSpecifier+
-   ;
+typeSpecifier: type = ('void' | 'int');
 
-declarationSpecifier
-   : typeSpecifier
-   ;
+initDeclarator: decl = declarator (ASSIGN init = initializer)?;
 
-initDeclaratorList
-   : initDeclarator (',' initDeclarator)*
-   ;
+declarator: dirDecl = directDeclarator;
 
-initDeclarator
-   : declarator ('=' initializer)?
-   ;
+directDeclarator: id = IDENTIFIER;
 
-initializer
-   : assignmentExpression
-   ;
-    
-assignmentExpression
-   : NUMBER 
-   ;
+initializer: expr = assignmentExpression;
 
-typeSpecifier
-   : ('void'
-   | 'int')
-   ;
+assignmentExpression: number = NUMBER;
 
-declarator
-   : directDeclarator
-   ;
-
-directDeclarator
-   : IDENTIFIER
-   ;
-
-assignmentOperator
-   : '='
-   ;
+expression:
+	NUMBER													# Number
+	| '(' inner = expression ')'							# Parentheses
+	| left = expression operator = POW right = expression	# Power
+	| left = expression operator = MUL right = expression	# Multiplication
+	| left = expression operator = DIV right = expression	# Division
+	| left = expression operator = ADD right = expression	# Addition
+	| left = expression operator = SUB right = expression	# Subtraction;

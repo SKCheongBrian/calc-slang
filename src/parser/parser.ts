@@ -1,5 +1,5 @@
 /* tslint:disable:max-classes-per-file */
-import { CharStreams, CommonTokenStream } from 'antlr4ts'
+import { CharStreams, CommonTokenStream, ParserRuleContext } from 'antlr4ts'
 import { ErrorNode } from 'antlr4ts/tree/ErrorNode'
 import { ParseTree } from 'antlr4ts/tree/ParseTree'
 import { RuleNode } from 'antlr4ts/tree/RuleNode'
@@ -16,11 +16,19 @@ import {
   NumberContext,
   ParenthesesContext,
   PowerContext,
-  StartContext,
-  SubtractionContext
+  SubtractionContext,
+  DeclarationContext,
+  DeclarationSpecifierContext,
+  TypeSpecifierContext,
+  InitDeclaratorContext,
+  DeclaratorContext,
+  DirectDeclaratorContext,
+  InitializerContext,
+  AssignmentExpressionContext,
 } from '../lang/CalcParser'
 import { CalcVisitor } from '../lang/CalcVisitor'
 import { Context, ErrorSeverity, ErrorType, SourceError } from '../types'
+import { variableDeclarator } from '../utils/astCreator'
 import { stripIndent } from '../utils/formatters'
 
 export class DisallowedConstructError implements SourceError {
@@ -108,7 +116,7 @@ export class TrailingCommaError implements SourceError {
   }
 }
 
-function contextToLocation(ctx: ExpressionContext): es.SourceLocation {
+function contextToLocation(ctx: ParserRuleContext): es.SourceLocation {
   return {
     start: {
       line: ctx.start.line,
@@ -120,6 +128,36 @@ function contextToLocation(ctx: ExpressionContext): es.SourceLocation {
     }
   }
 }
+
+class DeclarationGenerator implements CalcVisitor<es.Declaration> {
+  visitDeclaration(ctx: DeclarationContext): es.Declaration {
+    const varDeclarator: es.VariableDeclarator = {
+      type: "VariableDeclarator",
+      id: {
+        type: "Identifier",
+        name: ctx._initDecl._decl._dirDecl._id.text as string
+      }
+    }
+    return {
+      type: 'VariableDeclaration',
+      declarations: [varDeclarator],
+      kind: "let"
+    }
+  }
+  visit(tree: ParseTree): es.Declaration {
+    return tree.accept(this)
+  }
+  visitChildren(node: RuleNode): es.Declaration {
+    throw new Error('Method not implemented.')
+  }
+  visitTerminal(node: TerminalNode): es.Declaration {
+    return node.accept(this)
+  }
+  visitErrorNode(node: ErrorNode): es.Declaration {
+    throw new Error('Method not implemented.')
+  }
+}
+
 class ExpressionGenerator implements CalcVisitor<es.Expression> {
   visitNumber(ctx: NumberContext): es.Expression {
     return {
@@ -181,7 +219,6 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
   }
 
   visitExpression?: ((ctx: ExpressionContext) => es.Expression) | undefined
-  visitStart?: ((ctx: StartContext) => es.Expression) | undefined
 
   visit(tree: ParseTree): es.Expression {
     return tree.accept(this)
@@ -217,20 +254,17 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
   }
 }
 
-function convertExpression(expression: ExpressionContext): es.Expression {
-  const generator = new ExpressionGenerator()
-  return expression.accept(generator)
+function convertDeclaration(declaration: DeclarationContext): es.Declaration {
+  const generator = new DeclarationGenerator()
+  return declaration.accept(generator)
 }
 
-function convertSource(expression: ExpressionContext): es.Program {
+function convertSource(declaration: DeclarationContext): es.Program {
   return {
     type: 'Program',
     sourceType: 'script',
     body: [
-      {
-        type: 'ExpressionStatement',
-        expression: convertExpression(expression)
-      }
+      convertDeclaration(declaration)
     ]
   }
 }
@@ -245,7 +279,7 @@ export function parse(source: string, context: Context) {
     const parser = new CalcParser(tokenStream)
     parser.buildParseTree = true
     try {
-      const tree = parser.expression()
+      const tree = parser.declaration()
       program = convertSource(tree)
     } catch (error) {
       if (error instanceof FatalSyntaxError) {
