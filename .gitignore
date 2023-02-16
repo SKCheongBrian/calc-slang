@@ -14,3 +14,7 @@ coverage/
 .vscode/
 tsconfig.tsbuildinfo
 test-report.html
+src/lang/Calc.interp
+src/lang/Calc.tokens
+src/lang/CalcLexer.interp
+src/lang/CalcLexer.tokens

@@ -26,12 +26,6 @@ fragment DIGIT: [0-9];
 /*
  * Productions
  */
-start: statement*;
-
-statement
-	: expression
-	| declaration
-	;
 
 declaration:
 	declSpec = declarationSpecifier initDecl = initDeclarator ';';
