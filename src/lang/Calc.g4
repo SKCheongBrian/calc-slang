@@ -9,8 +9,11 @@ DIV: '/';
 ADD: '+';
 SUB: '-';
 ASSIGN: '=';
+OPEN_PARENTHESIS: '(';
+CLOSED_PARENTHESIS: ')';
 SEMI: ';';
 INT: 'int';
+VOID: 'void';
 NUMBER: [0-9]+;
 WHITESPACE: [ \r\n\t]+ -> skip;
 IDENTIFIER:
@@ -28,17 +31,14 @@ fragment DIGIT: [0-9];
  */
 start: statement*;
 
-statement
-	: expression
-	| declaration
-	;
+statement: expressionStatement | declaration;
 
 declaration:
-	declSpec = declarationSpecifier initDecl = initDeclarator ';';
+	declSpec = declarationSpecifier initDecl = initDeclarator SEMI;
 
 declarationSpecifier: typeSpec = typeSpecifier;
 
-typeSpecifier: type = ('void' | 'int');
+typeSpecifier: type = (VOID | INT);
 
 initDeclarator: decl = declarator (ASSIGN init = initializer)?;
 
@@ -50,11 +50,13 @@ initializer: expr = assignmentExpression;
 
 assignmentExpression: number = NUMBER;
 
+expressionStatement: expression SEMI;
+
 expression:
-	NUMBER													# Number
-	| '(' inner = expression ')'							# Parentheses
-	| left = expression operator = POW right = expression	# Power
-	| left = expression operator = MUL right = expression	# Multiplication
-	| left = expression operator = DIV right = expression	# Division
-	| left = expression operator = ADD right = expression	# Addition
-	| left = expression operator = SUB right = expression	# Subtraction;
+	NUMBER														# Number
+	| OPEN_PARENTHESIS inner = expression CLOSED_PARENTHESIS	# Parentheses
+	| left = expression operator = POW right = expression		# Power
+	| left = expression operator = MUL right = expression		# Multiplication
+	| left = expression operator = DIV right = expression		# Division
+	| left = expression operator = ADD right = expression		# Addition
+	| left = expression operator = SUB right = expression		# Subtraction;

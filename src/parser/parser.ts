@@ -9,22 +9,25 @@ import * as es from 'estree'
 import { CalcLexer } from '../lang/CalcLexer'
 import {
   AdditionContext,
+  AssignmentExpressionContext,
   CalcParser,
+  DeclarationContext,
+  DeclarationSpecifierContext,
+  DeclaratorContext,
+  DirectDeclaratorContext,
   DivisionContext,
   ExpressionContext,
+  ExpressionStatementContext,
+  InitDeclaratorContext,
+  InitializerContext,
   MultiplicationContext,
   NumberContext,
   ParenthesesContext,
   PowerContext,
+  StartContext,
+  StatementContext,
   SubtractionContext,
-  DeclarationContext,
-  DeclarationSpecifierContext,
-  TypeSpecifierContext,
-  InitDeclaratorContext,
-  DeclaratorContext,
-  DirectDeclaratorContext,
-  InitializerContext,
-  AssignmentExpressionContext,
+  TypeSpecifierContext
 } from '../lang/CalcParser'
 import { CalcVisitor } from '../lang/CalcVisitor'
 import { Context, ErrorSeverity, ErrorType, SourceError } from '../types'
@@ -129,32 +132,132 @@ function contextToLocation(ctx: ParserRuleContext): es.SourceLocation {
   }
 }
 
+class StartGenerator implements CalcVisitor<es.Statement[]> {
+  visitDeclaration(ctx: DeclarationContext): Array<es.Statement> {
+    const generator: DeclarationGenerator = new DeclarationGenerator()
+    return [ctx.accept(generator)]
+  }
+
+  visitExpressionStatement(ctx: ExpressionStatementContext): es.Statement[] {
+    const generator: ExpressionStatementGenerator = new ExpressionStatementGenerator()
+    return [ctx.accept(generator)]
+  }
+
+  visit(tree: ParseTree): es.Statement[] {
+    return tree.accept(this)
+  }
+
+  visitChildren(node: RuleNode): es.Statement[] {
+    const statements: es.Statement[] = []
+    for (let i = 0; i < node.childCount; i++) {
+      statements.push(...node.getChild(i).accept(this))
+    }
+    return statements
+  }
+
+  visitTerminal(node: TerminalNode): es.Statement[] {
+    throw new Error('Method not implemented.')
+  }
+
+  visitErrorNode(node: ErrorNode): es.Statement[] {
+    throw new FatalSyntaxError(
+      {
+        start: {
+          line: node.symbol.line,
+          column: node.symbol.charPositionInLine
+        },
+        end: {
+          line: node.symbol.line,
+          column: node.symbol.charPositionInLine + 1
+        }
+      },
+      `invalid syntax ${node.text}`
+    )
+  }
+}
+
 class DeclarationGenerator implements CalcVisitor<es.Declaration> {
   visitDeclaration(ctx: DeclarationContext): es.Declaration {
     const varDeclarator: es.VariableDeclarator = {
-      type: "VariableDeclarator",
+      type: 'VariableDeclarator',
       id: {
-        type: "Identifier",
+        type: 'Identifier',
         name: ctx._initDecl._decl._dirDecl._id.text as string
       }
     }
     return {
       type: 'VariableDeclaration',
       declarations: [varDeclarator],
-      kind: "let"
+      kind: 'let'
     }
   }
+
   visit(tree: ParseTree): es.Declaration {
     return tree.accept(this)
   }
+
   visitChildren(node: RuleNode): es.Declaration {
     throw new Error('Method not implemented.')
   }
+
   visitTerminal(node: TerminalNode): es.Declaration {
     return node.accept(this)
   }
+
   visitErrorNode(node: ErrorNode): es.Declaration {
-    throw new Error('Method not implemented.')
+    throw new FatalSyntaxError(
+      {
+        start: {
+          line: node.symbol.line,
+          column: node.symbol.charPositionInLine
+        },
+        end: {
+          line: node.symbol.line,
+          column: node.symbol.charPositionInLine + 1
+        }
+      },
+      `invalid syntax ${node.text}`
+    )
+  }
+}
+
+class ExpressionStatementGenerator implements CalcVisitor<es.ExpressionStatement> {
+  visitExpressioStatement?:
+    | ((ctx: ExpressionStatementContext) => es.ExpressionStatement)
+    | undefined
+
+  visit(tree: ParseTree): es.ExpressionStatement {
+    return tree.accept(this)
+  }
+
+  visitChildren(node: RuleNode): es.ExpressionStatement {
+    const generator: ExpressionGenerator = new ExpressionGenerator()
+    // First child is an expression
+    const expression: es.Expression = node.getChild(0).accept(generator)
+    return {
+      type: 'ExpressionStatement',
+      expression
+    }
+  }
+
+  visitTerminal(node: TerminalNode): es.ExpressionStatement {
+    return node.accept(this)
+  }
+
+  visitErrorNode(node: ErrorNode): es.ExpressionStatement {
+    throw new FatalSyntaxError(
+      {
+        start: {
+          line: node.symbol.line,
+          column: node.symbol.charPositionInLine
+        },
+        end: {
+          line: node.symbol.line,
+          column: node.symbol.charPositionInLine + 1
+        }
+      },
+      `invalid syntax ${node.text}`
+    )
   }
 }
 
@@ -254,18 +357,16 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
   }
 }
 
-function convertDeclaration(declaration: DeclarationContext): es.Declaration {
-  const generator = new DeclarationGenerator()
-  return declaration.accept(generator)
+function convertStart(start: StartContext): Array<es.Statement> {
+  const generator = new StartGenerator()
+  return start.accept(generator)
 }
 
-function convertSource(declaration: DeclarationContext): es.Program {
+function convertSource(start: StartContext): es.Program {
   return {
     type: 'Program',
     sourceType: 'script',
-    body: [
-      convertDeclaration(declaration)
-    ]
+    body: convertStart(start)
   }
 }
 
@@ -279,7 +380,7 @@ export function parse(source: string, context: Context) {
     const parser = new CalcParser(tokenStream)
     parser.buildParseTree = true
     try {
-      const tree = parser.declaration()
+      const tree = parser.start()
       program = convertSource(tree)
     } catch (error) {
       if (error instanceof FatalSyntaxError) {
