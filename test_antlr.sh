@@ -1,10 +1,12 @@
 #!/bin/zsh
 
-echo "antler"
+echo "Running antlr..."
 yarn antlr4ts
+echo "antlr complete!"
 
-echo "building..."
+echo "Building backend..."
 yarn build
+echo "Backend successfully built!"
 
 cd dist
 
@@ -14,8 +16,12 @@ yarn link
 
 cd ../../CS4215-frontend
 
+echo "Linking to frontend..."
 yarn unlink "calc-slang"
-
 yarn link "calc-slang"
+echo "Frontend successfully built!..."
 
 cd ../calc-slang
+
+echo "Backend successfully built and linked!"
+echo "========================================"
