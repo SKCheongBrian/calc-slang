@@ -46,9 +46,9 @@ declarator: dirDecl = directDeclarator;
 
 directDeclarator: id = IDENTIFIER;
 
-initializer: expr = assignmentExpression;
+initializer: assignExpr = assignmentExpression;
 
-assignmentExpression: number = NUMBER;
+assignmentExpression: expr = expression;
 
 expressionStatement: expression SEMI;
 
