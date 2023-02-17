@@ -1,7 +1,7 @@
-import { Value } from './../types';
 /* tslint:disable:max-classes-per-file */
 import * as es from 'estree'
 import { isUndefined } from 'lodash'
+import { createGlobalEnvironment } from '../createContext'
 
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
 import { is_undefined } from '../stdlib/misc'
@@ -56,20 +56,42 @@ function* leave(context: Context) {
   yield context
 }
 
-const currEnv = (c: Context) => c.runtime.environments[0]
+/* -------------------------------------------------------------------------- */
+/*                                  Variable                                  */
+/* -------------------------------------------------------------------------- */
 
-const getVar = (c: Context, name: string) => {
-  let env: Environment | null = currEnv(c)
+const makeVar = (context: Context, symbol: string, val: any) => {
+  const env = currEnv(context)
+        console.log("context:-----")
+        console.log(context)
+        console.log("-------------")
+        console.log("env:---------")
+        console.log(env)
+        console.log("-------------")
+        Object.defineProperty(env.head, symbol, {
+          value: val,
+          writable: true
+        })
+}
+
+const getVar = (context: Context, name: string) => {
+  let env: Environment | null = currEnv(context)
   while (env) {
     if (env.head.hasOwnProperty(name)) {
-      console.log("PEEPEEEEEEEE")
-      console.log(env.head[name])
+      console.log("from env head(env mappings):-----")
+      console.log(env.head)
+      console.log("-------------------")
       return env.head[name]
     }
     env = env.tail
   }
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                 Environment                                */
+/* -------------------------------------------------------------------------- */
+
+const currEnv = (c: Context) => c.runtime.environments[0]
 const popEnvironment = (context: Context) => context.runtime.environments.shift()
 export const pushEnvironment = (context: Context, environment: Environment) => {
   context.runtime.environments.unshift(environment)
@@ -126,7 +148,6 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
-  // TODO: idt this is correct
   Identifier: function* (node: es.Identifier, context: Context) {
     const name = node.name
     return getVar(context, name)
@@ -177,12 +198,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
       const init = (declaration.init == null || isUndefined(declaration.init))
           ? undefined
           : yield* actualValue(declaration.init, context)
-      // TODO make this into a function i think V
-      const env = currEnv(context)
-      Object.defineProperty(env.head, symbol, {
-        value: init,
-        writable: true
-      })
+      makeVar(context, symbol, init)
     }
     return undefined
   },
@@ -230,6 +246,9 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   Program: function* (node: es.BlockStatement, context: Context) {
+    context.numberOfOuterEnvironments++
+    const env = createGlobalEnvironment()
+    pushEnvironment(context, env)
     const result = yield* forceIt(yield* evaluateBlockSatement(context, node), context);
     return result;
   }
@@ -237,7 +256,9 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
 // tslint:enable:object-literal-shorthand
 
 export function* evaluate(node: es.Node, context: Context) {
+  console.log("current node:--------")
   console.log(node)
+  console.log("---------------------")
   const result = yield* evaluators[node.type](node, context)
   yield* leave(context)
   return result
