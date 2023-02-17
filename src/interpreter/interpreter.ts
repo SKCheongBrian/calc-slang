@@ -1,8 +1,8 @@
 /* tslint:disable:max-classes-per-file */
 import * as es from 'estree'
 import { isUndefined } from 'lodash'
-import { createGlobalEnvironment } from '../createContext'
 
+import { createGlobalEnvironment } from '../createContext'
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
 import { is_undefined } from '../stdlib/misc'
 import { Context, Environment, Value } from '../types'
@@ -62,25 +62,25 @@ function* leave(context: Context) {
 
 const makeVar = (context: Context, symbol: string, val: any) => {
   const env = currEnv(context)
-        console.log("context:-----")
-        console.log(context)
-        console.log("-------------")
-        console.log("env:---------")
-        console.log(env)
-        console.log("-------------")
-        Object.defineProperty(env.head, symbol, {
-          value: val,
-          writable: true
-        })
+  console.log('context:-----')
+  console.log(context)
+  console.log('-------------')
+  console.log('env:---------')
+  console.log(env)
+  console.log('-------------')
+  Object.defineProperty(env.head, symbol, {
+    value: val,
+    writable: true
+  })
 }
 
 const getVar = (context: Context, name: string) => {
   let env: Environment | null = currEnv(context)
   while (env) {
     if (env.head.hasOwnProperty(name)) {
-      console.log("from env head(env mappings):-----")
+      console.log('from env head(env mappings):-----')
       console.log(env.head)
-      console.log("-------------------")
+      console.log('-------------------')
       return env.head[name]
     }
     env = env.tail
@@ -191,7 +191,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
 
   VariableDeclaration: function* (node: es.VariableDeclaration, context: Context) {
     const len = node.declarations.length
-    for (var i = 0; i < len; i++) {
+    for (let i = 0; i < len; i++) {
       const declaration = node.declarations[i]
       const identifier = declaration.id as es.Identifier
       const symbol = identifier.name
@@ -256,9 +256,9 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
 // tslint:enable:object-literal-shorthand
 
 export function* evaluate(node: es.Node, context: Context) {
-  console.log("current node:--------")
+  console.log('current node:--------')
   console.log(node)
-  console.log("---------------------")
+  console.log('---------------------')
   const result = yield* evaluators[node.type](node, context)
   yield* leave(context)
   return result
