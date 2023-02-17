@@ -6,11 +6,13 @@ grammar Calc;
 POW: '^';
 MUL: '*';
 DIV: '/';
+MODULO: '%';
 ADD: '+';
 SUB: '-';
 ASSIGN: '=';
 OPEN_PARENTHESIS: '(';
 CLOSED_PARENTHESIS: ')';
+COMMA: ',';
 SEMI: ';';
 INT: 'int';
 VOID: 'void';
@@ -34,11 +36,13 @@ start: statement*;
 statement: expressionStatement | declaration;
 
 declaration:
-	declSpec = declarationSpecifier initDecl = initDeclarator SEMI;
+	declSpec = declarationSpecifier initDecls = initDeclaratorList SEMI;
 
 declarationSpecifier: typeSpec = typeSpecifier;
 
 typeSpecifier: type = (VOID | INT);
+
+initDeclaratorList: initDeclarator (COMMA initDeclarator)*;
 
 initDeclarator: decl = declarator (ASSIGN init = initializer)?;
 
@@ -54,9 +58,11 @@ expressionStatement: expression SEMI;
 
 expression:
 	NUMBER														# Number
+	| IDENTIFIER												# Identifier
 	| OPEN_PARENTHESIS inner = expression CLOSED_PARENTHESIS	# Parentheses
 	| left = expression operator = POW right = expression		# Power
 	| left = expression operator = MUL right = expression		# Multiplication
 	| left = expression operator = DIV right = expression		# Division
+	| left = expression operator = MODULO right = expression	# Modulo
 	| left = expression operator = ADD right = expression		# Addition
 	| left = expression operator = SUB right = expression		# Subtraction;
