@@ -9,26 +9,19 @@ import * as es from 'estree'
 import { CalcLexer } from '../lang/CalcLexer'
 import {
   AdditionContext,
-  AssignmentExpressionContext,
   CalcParser,
   DeclarationContext,
-  DeclarationSpecifierContext,
-  DeclaratorContext,
-  DirectDeclaratorContext,
   DivisionContext,
   ExpressionContext,
   ExpressionStatementContext,
+  IdentifierContext,
   InitDeclaratorContext,
-  InitDeclaratorListContext,
-  InitializerContext,
   MultiplicationContext,
   NumberContext,
   ParenthesesContext,
   PowerContext,
   StartContext,
-  StatementContext,
   SubtractionContext,
-  TypeSpecifierContext
 } from '../lang/CalcParser'
 import { CalcVisitor } from '../lang/CalcVisitor'
 import { Context, ErrorSeverity, ErrorType, SourceError } from '../types'
@@ -225,7 +218,7 @@ class DeclarationGenerator implements CalcVisitor<es.Declaration> {
 
 class InitDeclaratorGenerator implements CalcVisitor<es.VariableDeclarator> {
   visitInitDeclarator?: ((ctx: InitDeclaratorContext) => es.VariableDeclarator) | undefined
-  
+
   visit(tree: ParseTree): es.VariableDeclarator {
     return tree.accept(this)
   }
@@ -263,7 +256,6 @@ class InitDeclaratorGenerator implements CalcVisitor<es.VariableDeclarator> {
       `invalid syntax ${node.text}`
     )
   }
-  
 }
 
 class ExpressionStatementGenerator implements CalcVisitor<es.ExpressionStatement> {
@@ -315,9 +307,19 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
       loc: contextToLocation(ctx)
     }
   }
+
+  visitIdentifier(ctx: IdentifierContext): es.Expression {
+    return {
+      type: 'Identifier',
+      name: ctx.text,
+      loc: contextToLocation(ctx)
+    }
+  }
+
   visitParentheses(ctx: ParenthesesContext): es.Expression {
     return this.visit(ctx.expression())
   }
+
   visitPower(ctx: PowerContext): es.Expression {
     return {
       type: 'BinaryExpression',

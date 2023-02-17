@@ -57,6 +57,7 @@ expressionStatement: expression SEMI;
 
 expression:
 	NUMBER														# Number
+	| IDENTIFIER												# Identifier
 	| OPEN_PARENTHESIS inner = expression CLOSED_PARENTHESIS	# Parentheses
 	| left = expression operator = POW right = expression		# Power
 	| left = expression operator = MUL right = expression		# Multiplication
