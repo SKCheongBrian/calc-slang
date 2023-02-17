@@ -6,6 +6,7 @@ grammar Calc;
 POW: '^';
 MUL: '*';
 DIV: '/';
+MODULO: '%';
 ADD: '+';
 SUB: '-';
 ASSIGN: '=';
@@ -62,5 +63,6 @@ expression:
 	| left = expression operator = POW right = expression		# Power
 	| left = expression operator = MUL right = expression		# Multiplication
 	| left = expression operator = DIV right = expression		# Division
+	| left = expression operator = MODULO right = expression	# Modulo
 	| left = expression operator = ADD right = expression		# Addition
 	| left = expression operator = SUB right = expression		# Subtraction;
