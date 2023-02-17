@@ -11,6 +11,7 @@ SUB: '-';
 ASSIGN: '=';
 OPEN_PARENTHESIS: '(';
 CLOSED_PARENTHESIS: ')';
+COMMA: ',';
 SEMI: ';';
 INT: 'int';
 VOID: 'void';
@@ -34,11 +35,13 @@ start: statement*;
 statement: expressionStatement | declaration;
 
 declaration:
-	declSpec = declarationSpecifier initDecl = initDeclarator SEMI;
+	declSpec = declarationSpecifier initDecls = initDeclaratorList SEMI;
 
 declarationSpecifier: typeSpec = typeSpecifier;
 
 typeSpecifier: type = (VOID | INT);
+
+initDeclaratorList: initDeclarator (COMMA initDeclarator)*;
 
 initDeclarator: decl = declarator (ASSIGN init = initializer)?;
 

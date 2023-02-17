@@ -19,6 +19,7 @@ import {
   ExpressionContext,
   ExpressionStatementContext,
   InitDeclaratorContext,
+  InitDeclaratorListContext,
   InitializerContext,
   MultiplicationContext,
   NumberContext,
@@ -178,22 +179,17 @@ class StartGenerator implements CalcVisitor<es.Statement[]> {
 
 class DeclarationGenerator implements CalcVisitor<es.Declaration> {
   visitDeclaration(ctx: DeclarationContext): es.Declaration {
-    const initDecl = ctx._initDecl
-    const name: string = initDecl._decl._dirDecl._id.text as string
-    const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
-    // First child is an expression
-    const expression: es.Expression = initDecl._init?._assignExpr._expr.accept(exprGenerator)
-    const varDeclarator: es.VariableDeclarator = {
-      type: 'VariableDeclarator',
-      id: {
-        type: 'Identifier',
-        name
-      },
-      init: expression
+    const initDecls = ctx._initDecls
+    const initDeclGenerator = new InitDeclaratorGenerator()
+    const varDeclarators: es.VariableDeclarator[] = []
+    for (let i = 0; i < initDecls.childCount; i++) {
+      const child: ParseTree = initDecls.getChild(i)
+      if (child instanceof TerminalNode) continue
+      varDeclarators.push(initDecls.getChild(i).accept(initDeclGenerator))
     }
     return {
       type: 'VariableDeclaration',
-      declarations: [varDeclarator],
+      declarations: varDeclarators,
       kind: 'let'
     }
   }
@@ -225,6 +221,49 @@ class DeclarationGenerator implements CalcVisitor<es.Declaration> {
       `invalid syntax ${node.text}`
     )
   }
+}
+
+class InitDeclaratorGenerator implements CalcVisitor<es.VariableDeclarator> {
+  visitInitDeclarator?: ((ctx: InitDeclaratorContext) => es.VariableDeclarator) | undefined
+  
+  visit(tree: ParseTree): es.VariableDeclarator {
+    return tree.accept(this)
+  }
+
+  visitChildren(node: InitDeclaratorContext): es.VariableDeclarator {
+    const name: string = node._decl._dirDecl._id.text as string
+    const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
+    const expression: es.Expression = node._init?._assignExpr._expr.accept(exprGenerator)
+    return {
+      type: 'VariableDeclarator',
+      id: {
+        type: 'Identifier',
+        name
+      },
+      init: expression
+    }
+  }
+
+  visitTerminal(node: TerminalNode): es.VariableDeclarator {
+    return node.accept(this)
+  }
+
+  visitErrorNode(node: ErrorNode): es.VariableDeclarator {
+    throw new FatalSyntaxError(
+      {
+        start: {
+          line: node.symbol.line,
+          column: node.symbol.charPositionInLine
+        },
+        end: {
+          line: node.symbol.line,
+          column: node.symbol.charPositionInLine + 1
+        }
+      },
+      `invalid syntax ${node.text}`
+    )
+  }
+  
 }
 
 class ExpressionStatementGenerator implements CalcVisitor<es.ExpressionStatement> {
@@ -332,6 +371,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
   visit(tree: ParseTree): es.Expression {
     return tree.accept(this)
   }
+
   visitChildren(node: RuleNode): es.Expression {
     const expressions: es.Expression[] = []
     for (let i = 0; i < node.childCount; i++) {
@@ -342,6 +382,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
       expressions
     }
   }
+
   visitTerminal(node: TerminalNode): es.Expression {
     return node.accept(this)
   }
