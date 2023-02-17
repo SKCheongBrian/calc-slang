@@ -1,7 +1,10 @@
+import { Value } from './../types';
 /* tslint:disable:max-classes-per-file */
 import * as es from 'estree'
+import { isUndefined } from 'lodash'
 
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
+import { is_undefined } from '../stdlib/misc'
 import { Context, Environment, Value } from '../types'
 import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
 import * as rttc from '../utils/rttc'
@@ -51,6 +54,20 @@ function* leave(context: Context) {
   context.runtime.break = false
   context.runtime.nodes.shift()
   yield context
+}
+
+const currEnv = (c: Context) => c.runtime.environments[0]
+
+const getVar = (c: Context, name: string) => {
+  let env: Environment | null = currEnv(c)
+  while (env) {
+    if (env.head.hasOwnProperty(name)) {
+      console.log("PEEPEEEEEEEE")
+      console.log(env.head[name])
+      return env.head[name]
+    }
+    env = env.tail
+  }
 }
 
 const popEnvironment = (context: Context) => context.runtime.environments.shift()
@@ -109,8 +126,10 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
+  // TODO: idt this is correct
   Identifier: function* (node: es.Identifier, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    const name = node.name
+    return getVar(context, name)
   },
 
   CallExpression: function* (node: es.CallExpression, context: Context) {
@@ -150,7 +169,22 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   VariableDeclaration: function* (node: es.VariableDeclaration, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    const len = node.declarations.length
+    for (var i = 0; i < len; i++) {
+      const declaration = node.declarations[i]
+      const identifier = declaration.id as es.Identifier
+      const symbol = identifier.name
+      const init = (declaration.init == null || isUndefined(declaration.init))
+          ? undefined
+          : yield* actualValue(declaration.init, context)
+      // TODO make this into a function i think V
+      const env = currEnv(context)
+      Object.defineProperty(env.head, symbol, {
+        value: init,
+        writable: true
+      })
+    }
+    return undefined
   },
 
   ContinueStatement: function* (_node: es.ContinueStatement, _context: Context) {
