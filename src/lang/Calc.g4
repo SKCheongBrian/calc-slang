@@ -20,6 +20,7 @@ OPEN_PARENTHESIS: '(';
 CLOSED_PARENTHESIS: ')';
 COMMA: ',';
 QUESTION: '?';
+EXCLAM: '!';
 COLON: ':';
 SEMI: ';';
 INT: 'int';
@@ -68,6 +69,9 @@ expression:
 	NUMBER																	# Number
 	| IDENTIFIER															# Identifier
 	| OPEN_PARENTHESIS inner = expression CLOSED_PARENTHESIS				# Parentheses
+	| operator = ADD argument = expression									# Positive
+	| operator = SUB argument = expression									# Negative
+	| operator = EXCLAM argument = expression								# Factorial
 	| operator = INC argument = expression									# IncrementPrefix
 	| operator = DEC argument = expression									# DecrementPrefix
 	| argument = expression operator = INC									# IncrementPostfix

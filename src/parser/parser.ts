@@ -17,14 +17,17 @@ import {
   DivisionContext,
   ExpressionContext,
   ExpressionStatementContext,
+  FactorialContext,
   IdentifierContext,
   IncrementPostfixContext,
   IncrementPrefixContext,
   InitDeclaratorContext,
   ModuloContext,
   MultiplicationContext,
+  NegativeContext,
   NumberContext,
   ParenthesesContext,
+  PositiveContext,
   PowerContext,
   StartContext,
   SubtractionContext
@@ -432,6 +435,36 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
       operator: '--',
       argument: this.visit(ctx._argument),
       prefix: false,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitPositive(ctx: PositiveContext): es.Expression {
+    return {
+      type: 'UnaryExpression',
+      operator: '+',
+      argument: this.visit(ctx._argument),
+      prefix: true,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitNegative(ctx: NegativeContext): es.Expression {
+    return {
+      type: 'UnaryExpression',
+      operator: '-',
+      argument: this.visit(ctx._argument),
+      prefix: true,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitFactorial(ctx: FactorialContext): es.Expression {
+    return {
+      type: 'UnaryExpression',
+      operator: '!',
+      argument: this.visit(ctx._argument),
+      prefix: true,
       loc: contextToLocation(ctx)
     }
   }
