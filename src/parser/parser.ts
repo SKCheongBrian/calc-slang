@@ -10,6 +10,7 @@ import { CalcLexer } from '../lang/CalcLexer'
 import {
   AdditionContext,
   CalcParser,
+  ConditionalContext,
   DeclarationContext,
   DivisionContext,
   ExpressionContext,
@@ -377,6 +378,16 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
       operator: '-',
       left: this.visit(ctx._left),
       right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitConditional(ctx: ConditionalContext): es.Expression {
+    return {
+      type: 'ConditionalExpression',
+      test: this.visit(ctx._test),
+      consequent: this.visit(ctx._cons),
+      alternate: this.visit(ctx._alt),
       loc: contextToLocation(ctx)
     }
   }

@@ -10,9 +10,15 @@ MODULO: '%';
 ADD: '+';
 SUB: '-';
 ASSIGN: '=';
+BITWISE_AND: '&';
+BITWISE_OR: '|';
+LOGICAL_AND: '&&';
+LOGICAL_OR: '||';
 OPEN_PARENTHESIS: '(';
 CLOSED_PARENTHESIS: ')';
 COMMA: ',';
+QUESTION: '?';
+COLON: ':';
 SEMI: ';';
 INT: 'int';
 VOID: 'void';
@@ -57,12 +63,13 @@ assignmentExpression: expr = expression;
 expressionStatement: expression SEMI;
 
 expression:
-	NUMBER														# Number
-	| IDENTIFIER												# Identifier
-	| OPEN_PARENTHESIS inner = expression CLOSED_PARENTHESIS	# Parentheses
-	| left = expression operator = POW right = expression		# Power
-	| left = expression operator = MUL right = expression		# Multiplication
-	| left = expression operator = DIV right = expression		# Division
-	| left = expression operator = MODULO right = expression	# Modulo
-	| left = expression operator = ADD right = expression		# Addition
-	| left = expression operator = SUB right = expression		# Subtraction;
+	NUMBER																	# Number
+	| IDENTIFIER															# Identifier
+	| OPEN_PARENTHESIS inner = expression CLOSED_PARENTHESIS				# Parentheses
+	| left = expression operator = POW right = expression					# Power
+	| left = expression operator = MUL right = expression					# Multiplication
+	| left = expression operator = DIV right = expression					# Division
+	| left = expression operator = MODULO right = expression				# Modulo
+	| left = expression operator = ADD right = expression					# Addition
+	| left = expression operator = SUB right = expression					# Subtraction
+	| test = expression QUESTION cons = expression COLON alt = expression	# Conditional;
