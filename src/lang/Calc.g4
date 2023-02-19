@@ -9,6 +9,8 @@ DIV: '/';
 MODULO: '%';
 ADD: '+';
 SUB: '-';
+INC: '++';
+DEC: '--';
 ASSIGN: '=';
 BITWISE_AND: '&';
 BITWISE_OR: '|';
@@ -66,6 +68,10 @@ expression:
 	NUMBER																	# Number
 	| IDENTIFIER															# Identifier
 	| OPEN_PARENTHESIS inner = expression CLOSED_PARENTHESIS				# Parentheses
+	| operator = INC argument = expression									# IncrementPrefix
+	| operator = DEC argument = expression									# DecrementPrefix
+	| argument = expression operator = INC									# IncrementPostfix
+	| argument = expression operator = DEC									# DecrementPostfix
 	| left = expression operator = POW right = expression					# Power
 	| left = expression operator = MUL right = expression					# Multiplication
 	| left = expression operator = DIV right = expression					# Division

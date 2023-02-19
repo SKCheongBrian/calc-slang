@@ -12,10 +12,14 @@ import {
   CalcParser,
   ConditionalContext,
   DeclarationContext,
+  DecrementPostfixContext,
+  DecrementPrefixContext,
   DivisionContext,
   ExpressionContext,
   ExpressionStatementContext,
   IdentifierContext,
+  IncrementPostfixContext,
+  IncrementPrefixContext,
   InitDeclaratorContext,
   ModuloContext,
   MultiplicationContext,
@@ -388,6 +392,46 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
       test: this.visit(ctx._test),
       consequent: this.visit(ctx._cons),
       alternate: this.visit(ctx._alt),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitIncrementPrefix(ctx: IncrementPrefixContext): es.Expression {
+    return {
+      type: 'UpdateExpression',
+      operator: '++',
+      argument: this.visit(ctx._argument),
+      prefix: true,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitDecrementPrefix(ctx: DecrementPrefixContext): es.Expression {
+    return {
+      type: 'UpdateExpression',
+      operator: '--',
+      argument: this.visit(ctx._argument),
+      prefix: true,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitIncrementPostfix(ctx: IncrementPostfixContext): es.Expression {
+    return {
+      type: 'UpdateExpression',
+      operator: '++',
+      argument: this.visit(ctx._argument),
+      prefix: false,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitDecrementPostfix(ctx: DecrementPostfixContext): es.Expression {
+    return {
+      type: 'UpdateExpression',
+      operator: '--',
+      argument: this.visit(ctx._argument),
+      prefix: false,
       loc: contextToLocation(ctx)
     }
   }
