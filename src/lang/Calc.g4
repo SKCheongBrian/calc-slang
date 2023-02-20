@@ -27,6 +27,8 @@ SHL: '<<';
 SHR: '>>';
 OPEN_PARENTHESIS: '(';
 CLOSED_PARENTHESIS: ')';
+LEFT_BRACE: '{';
+RIGHT_BRACE: '}';
 COMMA: ',';
 QUESTION: '?';
 EXCLAM: '!';
@@ -51,7 +53,19 @@ fragment DIGIT: [0-9];
  */
 start: statement*;
 
-statement: expressionStatement | declaration;
+statement:
+	compoundStatement
+	| declaration
+	| expressionStatement;
+
+// Compound statement
+
+compoundStatement:
+	LEFT_BRACE blockItems = blockItemList? RIGHT_BRACE;
+
+blockItemList: statement+;
+
+// Declaration
 
 declaration:
 	declSpec = declarationSpecifier initDecls = initDeclaratorList SEMI;
@@ -71,6 +85,8 @@ directDeclarator: id = IDENTIFIER;
 initializer: assignExpr = assignmentExpression;
 
 assignmentExpression: expr = expression;
+
+// Expression statement
 
 expressionStatement: expression SEMI;
 

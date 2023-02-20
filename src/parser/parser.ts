@@ -14,6 +14,7 @@ import {
   BitwiseOrContext,
   BitwiseXorContext,
   CalcParser,
+  CompoundStatementContext,
   ConditionalContext,
   DeclarationContext,
   DecrementPostfixContext,
@@ -149,6 +150,13 @@ function contextToLocation(ctx: ParserRuleContext): es.SourceLocation {
 }
 
 class StartGenerator implements CalcVisitor<es.Statement[]> {
+  visitCompoundStatement(ctx: CompoundStatementContext): Array<es.Statement> {
+    return [{
+      type: 'BlockStatement',
+      body: ctx._blockItems ? this.visit(ctx._blockItems) : []
+    }]
+  }
+
   visitDeclaration(ctx: DeclarationContext): Array<es.Statement> {
     const generator: DeclarationGenerator = new DeclarationGenerator()
     return [ctx.accept(generator)]
@@ -158,6 +166,8 @@ class StartGenerator implements CalcVisitor<es.Statement[]> {
     const generator: ExpressionStatementGenerator = new ExpressionStatementGenerator()
     return [ctx.accept(generator)]
   }
+
+  visitStart?: ((ctx: StartContext) => es.Statement[]) | undefined
 
   visit(tree: ParseTree): es.Statement[] {
     return tree.accept(this)
