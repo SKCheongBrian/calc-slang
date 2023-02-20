@@ -9,28 +9,49 @@ import * as es from 'estree'
 import { CalcLexer } from '../lang/CalcLexer'
 import {
   AdditionContext,
+  BitwiseAndContext,
+  BitwiseComplementContext,
+  BitwiseOrContext,
+  BitwiseXorContext,
+  BreakStatementContext,
   CalcParser,
+  CompoundStatementContext,
   ConditionalContext,
+  ContinueStatementContext,
   DeclarationContext,
   DecrementPostfixContext,
   DecrementPrefixContext,
   DivisionContext,
+  DoWhileStatementContext,
+  EqualsContext,
   ExpressionContext,
   ExpressionStatementContext,
   FactorialContext,
+  GreaterThanOrEqualsContext,
   IdentifierContext,
+  IfStatementContext,
   IncrementPostfixContext,
   IncrementPrefixContext,
   InitDeclaratorContext,
+  LessThanOrEqualsContext,
+  LogicalAndContext,
+  LogicalOrContext,
   ModuloContext,
   MultiplicationContext,
   NegativeContext,
+  NotEqualsContext,
   NumberContext,
   ParenthesesContext,
   PositiveContext,
-  PowerContext,
+  ReturnStatementContext,
+  ShiftLeftContext,
+  ShiftRightContext,
   StartContext,
-  SubtractionContext
+  StatementContext,
+  StrictlyGreaterThanContext,
+  StrictlyLessThanContext,
+  SubtractionContext,
+  WhileStatementContext
 } from '../lang/CalcParser'
 import { CalcVisitor } from '../lang/CalcVisitor'
 import { Context, ErrorSeverity, ErrorType, SourceError } from '../types'
@@ -136,24 +157,17 @@ function contextToLocation(ctx: ParserRuleContext): es.SourceLocation {
 }
 
 class StartGenerator implements CalcVisitor<es.Statement[]> {
-  visitDeclaration(ctx: DeclarationContext): Array<es.Statement> {
-    const generator: DeclarationGenerator = new DeclarationGenerator()
-    return [ctx.accept(generator)]
-  }
-
-  visitExpressionStatement(ctx: ExpressionStatementContext): es.Statement[] {
-    const generator: ExpressionStatementGenerator = new ExpressionStatementGenerator()
-    return [ctx.accept(generator)]
-  }
+  visitStart?: ((ctx: StartContext) => es.Statement[]) | undefined
 
   visit(tree: ParseTree): es.Statement[] {
     return tree.accept(this)
   }
 
   visitChildren(node: RuleNode): es.Statement[] {
+    const stmtGenerator: StatementGenerator = new StatementGenerator()
     const statements: es.Statement[] = []
     for (let i = 0; i < node.childCount; i++) {
-      statements.push(...node.getChild(i).accept(this))
+      statements.push(node.getChild(i).accept(stmtGenerator))
     }
     return statements
   }
@@ -163,6 +177,114 @@ class StartGenerator implements CalcVisitor<es.Statement[]> {
   }
 
   visitErrorNode(node: ErrorNode): es.Statement[] {
+    throw new FatalSyntaxError(
+      {
+        start: {
+          line: node.symbol.line,
+          column: node.symbol.charPositionInLine
+        },
+        end: {
+          line: node.symbol.line,
+          column: node.symbol.charPositionInLine + 1
+        }
+      },
+      `invalid syntax ${node.text}`
+    )
+  }
+}
+
+class StatementGenerator implements CalcVisitor<es.Statement> {
+  // Compound statement =======================================
+  visitCompoundStatement(ctx: CompoundStatementContext): es.Statement {
+    const startGenerator: StartGenerator = new StartGenerator()
+    return {
+      type: 'BlockStatement',
+      body: ctx._blockItems?.accept(startGenerator) ?? []
+    }
+  }
+
+  // Declaration =======================================
+  visitDeclaration(ctx: DeclarationContext): es.Statement {
+    const generator: DeclarationGenerator = new DeclarationGenerator()
+    return ctx.accept(generator)
+  }
+
+  // Expression statement =======================================
+  visitExpressionStatement(ctx: ExpressionStatementContext): es.Statement {
+    const generator: ExpressionStatementGenerator = new ExpressionStatementGenerator()
+    return ctx.accept(generator)
+  }
+
+  // Selection statements =======================================
+
+  visitIfStatement(ctx: IfStatementContext): es.Statement {
+    const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
+    return {
+      type: 'IfStatement',
+      test: ctx._test.accept(exprGenerator),
+      consequent: this.visit(ctx._cons),
+      alternate: ctx._alt ? this.visit(ctx._alt) : undefined
+    }
+  }
+
+  // Iteration statements =======================================
+
+  visitWhileStatement(ctx: WhileStatementContext): es.Statement {
+    const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
+    return {
+      type: 'WhileStatement',
+      test: ctx._test.accept(exprGenerator),
+      body: this.visit(ctx._body)
+    }
+  }
+
+  visitDoWhileStatement(ctx: DoWhileStatementContext): es.Statement {
+    const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
+    return {
+      type: 'DoWhileStatement',
+      body: this.visit(ctx._body),
+      test: ctx._test.accept(exprGenerator)
+    }
+  }
+
+  // Jump statements =======================================
+
+  visitContinueStatement(ctx: ContinueStatementContext): es.Statement {
+    return {
+      type: 'ContinueStatement'
+    }
+  }
+
+  visitBreakStatement(ctx: BreakStatementContext): es.Statement {
+    return {
+      type: 'BreakStatement'
+    }
+  }
+
+  visitReturnStatement(ctx: ReturnStatementContext): es.Statement {
+    const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
+    return {
+      type: 'ReturnStatement',
+      argument: ctx._argument?.accept(exprGenerator)
+    }
+  }
+
+  visitStatement?: ((ctx: StatementContext) => es.Statement) | undefined
+
+  visit(tree: ParseTree): es.Statement {
+    return tree.accept(this)
+  }
+
+  visitChildren(node: RuleNode): es.Statement {
+    // First child is the statement
+    return this.visit(node.getChild(0))
+  }
+
+  visitTerminal(node: TerminalNode): es.Statement {
+    throw new Error('Method not implemented.')
+  }
+
+  visitErrorNode(node: ErrorNode): es.Statement {
     throw new FatalSyntaxError(
       {
         start: {
@@ -329,15 +451,95 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     return this.visit(ctx.expression())
   }
 
-  visitPower(ctx: PowerContext): es.Expression {
+  // Update expressions =======================================
+
+  visitIncrementPrefix(ctx: IncrementPrefixContext): es.Expression {
     return {
-      type: 'BinaryExpression',
-      operator: '^',
-      left: this.visit(ctx._left),
-      right: this.visit(ctx._right),
+      type: 'UpdateExpression',
+      operator: '++',
+      argument: this.visit(ctx._argument),
+      prefix: true,
       loc: contextToLocation(ctx)
     }
   }
+
+  visitDecrementPrefix(ctx: DecrementPrefixContext): es.Expression {
+    return {
+      type: 'UpdateExpression',
+      operator: '--',
+      argument: this.visit(ctx._argument),
+      prefix: true,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitIncrementPostfix(ctx: IncrementPostfixContext): es.Expression {
+    return {
+      type: 'UpdateExpression',
+      operator: '++',
+      argument: this.visit(ctx._argument),
+      prefix: false,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitDecrementPostfix(ctx: DecrementPostfixContext): es.Expression {
+    return {
+      type: 'UpdateExpression',
+      operator: '--',
+      argument: this.visit(ctx._argument),
+      prefix: false,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  // (Unary) arithmetic expressions =======================================
+
+  visitPositive(ctx: PositiveContext): es.Expression {
+    return {
+      type: 'UnaryExpression',
+      operator: '+',
+      argument: this.visit(ctx._argument),
+      prefix: true,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitNegative(ctx: NegativeContext): es.Expression {
+    return {
+      type: 'UnaryExpression',
+      operator: '-',
+      argument: this.visit(ctx._argument),
+      prefix: true,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  // (Unary) bitwise expression =======================================
+
+  visitBitwiseComplement(ctx: BitwiseComplementContext): es.Expression {
+    return {
+      type: 'UnaryExpression',
+      operator: '~',
+      argument: this.visit(ctx._argument),
+      prefix: true,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  // (Unary) logical expression =======================================
+
+  visitFactorial(ctx: FactorialContext): es.Expression {
+    return {
+      type: 'UnaryExpression',
+      operator: '!',
+      argument: this.visit(ctx._argument),
+      prefix: true,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  // (Binary) arithmetic expressions =======================================
 
   visitMultiplication(ctx: MultiplicationContext): es.Expression {
     return {
@@ -389,6 +591,146 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
+  // Shift expressions =======================================
+
+  visitShiftLeft(ctx: ShiftLeftContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '<<',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitShiftRight(ctx: ShiftRightContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '>>',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  // Relation expressions =======================================
+
+  visitEquals(ctx: EqualsContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '==',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitNotEquals(ctx: NotEqualsContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '!=',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitStrictlyLessThan(ctx: StrictlyLessThanContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '<',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitLessThanOrEquals(ctx: LessThanOrEqualsContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '<=',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitStrictlyGreaterThan(ctx: StrictlyGreaterThanContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '>',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitGreaterThanOrEquals(ctx: GreaterThanOrEqualsContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '>=',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  // (Binary) bitwise expressions =======================================
+
+  visitBitwiseOr(ctx: BitwiseOrContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '|',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitBitwiseXor(ctx: BitwiseXorContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '^',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitBitwiseAnd(ctx: BitwiseAndContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '&',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  // (Binary) logical expressions =======================================
+
+  visitLogicalAnd(ctx: LogicalAndContext): es.Expression {
+    return {
+      type: 'LogicalExpression',
+      operator: '&&',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitLogicalOr(ctx: LogicalOrContext): es.Expression {
+    return {
+      type: 'LogicalExpression',
+      operator: '||',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  // Conditional expression =======================================
+
   visitConditional(ctx: ConditionalContext): es.Expression {
     return {
       type: 'ConditionalExpression',
@@ -399,75 +741,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitIncrementPrefix(ctx: IncrementPrefixContext): es.Expression {
-    return {
-      type: 'UpdateExpression',
-      operator: '++',
-      argument: this.visit(ctx._argument),
-      prefix: true,
-      loc: contextToLocation(ctx)
-    }
-  }
-
-  visitDecrementPrefix(ctx: DecrementPrefixContext): es.Expression {
-    return {
-      type: 'UpdateExpression',
-      operator: '--',
-      argument: this.visit(ctx._argument),
-      prefix: true,
-      loc: contextToLocation(ctx)
-    }
-  }
-
-  visitIncrementPostfix(ctx: IncrementPostfixContext): es.Expression {
-    return {
-      type: 'UpdateExpression',
-      operator: '++',
-      argument: this.visit(ctx._argument),
-      prefix: false,
-      loc: contextToLocation(ctx)
-    }
-  }
-
-  visitDecrementPostfix(ctx: DecrementPostfixContext): es.Expression {
-    return {
-      type: 'UpdateExpression',
-      operator: '--',
-      argument: this.visit(ctx._argument),
-      prefix: false,
-      loc: contextToLocation(ctx)
-    }
-  }
-
-  visitPositive(ctx: PositiveContext): es.Expression {
-    return {
-      type: 'UnaryExpression',
-      operator: '+',
-      argument: this.visit(ctx._argument),
-      prefix: true,
-      loc: contextToLocation(ctx)
-    }
-  }
-
-  visitNegative(ctx: NegativeContext): es.Expression {
-    return {
-      type: 'UnaryExpression',
-      operator: '-',
-      argument: this.visit(ctx._argument),
-      prefix: true,
-      loc: contextToLocation(ctx)
-    }
-  }
-
-  visitFactorial(ctx: FactorialContext): es.Expression {
-    return {
-      type: 'UnaryExpression',
-      operator: '!',
-      argument: this.visit(ctx._argument),
-      prefix: true,
-      loc: contextToLocation(ctx)
-    }
-  }
+  // ==============================================================
 
   visitExpression?: ((ctx: ExpressionContext) => es.Expression) | undefined
 
