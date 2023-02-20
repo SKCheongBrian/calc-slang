@@ -37,6 +37,8 @@ import {
   NumberContext,
   ParenthesesContext,
   PositiveContext,
+  ShiftLeftContext,
+  ShiftRightContext,
   StartContext,
   StrictlyGreaterThanContext,
   StrictlyLessThanContext,
@@ -449,6 +451,28 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     return {
       type: 'BinaryExpression',
       operator: '-',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  // Shift expressions =======================================
+
+  visitShiftLeft(ctx: ShiftLeftContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '<<',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitShiftRight(ctx: ShiftRightContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '>>',
       left: this.visit(ctx._left),
       right: this.visit(ctx._right),
       loc: contextToLocation(ctx)

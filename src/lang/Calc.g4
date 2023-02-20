@@ -22,6 +22,8 @@ BITWISE_XOR: '^';
 BITWISE_OR: '|';
 LOGICAL_AND: '&&';
 LOGICAL_OR: '||';
+SHL: '<<';
+SHR: '>>';
 OPEN_PARENTHESIS: '(';
 CLOSED_PARENTHESIS: ')';
 COMMA: ',';
@@ -95,6 +97,10 @@ expression:
 	| left = expression operator = MODULO right = expression	# Modulo
 	| left = expression operator = MUL right = expression		# Multiplication
 	| left = expression operator = DIV right = expression		# Division
+
+	// Shift expressions
+	| left = expression operator = SHL right = expression	# ShiftLeft
+	| left = expression operator = SHR right = expression	# ShiftRight
 
 	// Relational expressions
 	| left = expression operator = EQ right = expression	# Equals
