@@ -96,11 +96,11 @@ expression:
 	| operator = EXCLAM argument = expression # Factorial
 
 	// (Binary) arithmetic expressions
-	| left = expression operator = ADD right = expression		# Addition
-	| left = expression operator = SUB right = expression		# Subtraction
-	| left = expression operator = MODULO right = expression	# Modulo
 	| left = expression operator = MUL right = expression		# Multiplication
 	| left = expression operator = DIV right = expression		# Division
+	| left = expression operator = MODULO right = expression	# Modulo
+	| left = expression operator = ADD right = expression		# Addition
+	| left = expression operator = SUB right = expression		# Subtraction
 
 	// Shift expressions
 	| left = expression operator = SHL right = expression	# ShiftLeft
