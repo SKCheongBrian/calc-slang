@@ -68,16 +68,18 @@ expression:
 	NUMBER																	# Number
 	| IDENTIFIER															# Identifier
 	| OPEN_PARENTHESIS inner = expression CLOSED_PARENTHESIS				# Parentheses
-	| operator = ADD argument = expression									# Positive
-	| operator = SUB argument = expression									# Negative
-	| operator = EXCLAM argument = expression								# Factorial
-	| operator = INC argument = expression									# IncrementPrefix
-	| operator = DEC argument = expression									# DecrementPrefix
-	| argument = expression operator = INC									# IncrementPostfix
-	| argument = expression operator = DEC									# DecrementPostfix
+	| test = expression QUESTION cons = expression COLON alt = expression	# Conditional
+	| left = expression operator = LOGICAL_AND right = expression			# LogicalAnd
+	| left = expression operator = LOGICAL_OR right = expression			# LogicalOr
 	| left = expression operator = MUL right = expression					# Multiplication
 	| left = expression operator = DIV right = expression					# Division
 	| left = expression operator = MODULO right = expression				# Modulo
 	| left = expression operator = ADD right = expression					# Addition
 	| left = expression operator = SUB right = expression					# Subtraction
-	| test = expression QUESTION cons = expression COLON alt = expression	# Conditional;
+	| argument = expression operator = INC									# IncrementPostfix
+	| argument = expression operator = DEC									# DecrementPostfix
+	| operator = ADD argument = expression									# Positive
+	| operator = SUB argument = expression									# Negative
+	| operator = EXCLAM argument = expression								# Factorial
+	| operator = INC argument = expression									# IncrementPrefix
+	| operator = DEC argument = expression									# DecrementPrefix;

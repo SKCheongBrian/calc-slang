@@ -22,6 +22,8 @@ import {
   IncrementPostfixContext,
   IncrementPrefixContext,
   InitDeclaratorContext,
+  LogicalAndContext,
+  LogicalOrContext,
   ModuloContext,
   MultiplicationContext,
   NegativeContext,
@@ -372,6 +374,26 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     return {
       type: 'BinaryExpression',
       operator: '-',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitLogicalAnd(ctx: LogicalAndContext): es.Expression {
+    return {
+      type: 'LogicalExpression',
+      operator: '&&',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitLogicalOr(ctx: LogicalOrContext): es.Expression {
+    return {
+      type: 'LogicalExpression',
+      operator: '||',
       left: this.visit(ctx._left),
       right: this.visit(ctx._right),
       loc: contextToLocation(ctx)
