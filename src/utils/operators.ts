@@ -1,4 +1,4 @@
-import { BinaryOperator, UnaryOperator } from 'estree'
+import { BinaryOperator, UnaryOperator, UpdateOperator } from 'estree'
 
 import { LazyBuiltIn } from '../createContext'
 import {
@@ -148,6 +148,15 @@ export function evaluateUnaryExpression(operator: UnaryOperator, value: any) {
     return typeof value
   } else {
     return +value
+  }
+}
+
+export function evaluateUpdateExpression(operator: UpdateOperator, value: any) {
+  switch (operator) {
+    case '++':
+      return value + 1
+    case '--':
+      return value - 1
   }
 }
 

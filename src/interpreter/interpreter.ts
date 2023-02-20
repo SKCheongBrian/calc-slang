@@ -6,7 +6,7 @@ import { createGlobalEnvironment } from '../createContext'
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
 import { is_undefined } from '../stdlib/misc'
 import { Context, Environment, Value } from '../types'
-import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
+import { evaluateBinaryExpression, evaluateUnaryExpression, evaluateUpdateExpression } from '../utils/operators'
 import * as rttc from '../utils/rttc'
 
 class Thunk {
@@ -169,6 +169,28 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
       return handleRuntimeError(context, error)
     }
     return evaluateUnaryExpression(node.operator, value)
+  },
+
+  /**
+   * Will return the new updated value if prefix is true else will return the old value
+   * currently only used for "++" and "--" operators
+   * @param node the update expression node
+   * @param context current context
+   * @returns value after applying the operator
+   */
+  UpdateExpression: function* (node: es.UpdateExpression, context: Context) {
+    const value = yield* actualValue(node.argument, context)
+    console.log("------------------------")
+    console.log("value" + value)
+    console.log("------------------------")
+
+    const error = rttc.checkUpdateExpression(node, node.operator, value)
+    if (error) {
+      return handleRuntimeError(context, error)
+    }
+    const final_value = evaluateUpdateExpression(node.operator, value)
+    makeVar(context, (node.argument as es.Identifier).name, final_value)
+    return node.prefix ? final_value : value
   },
 
   BinaryExpression: function* (node: es.BinaryExpression, context: Context) {

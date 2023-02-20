@@ -55,6 +55,14 @@ export const checkUnaryExpression = (node: es.Node, operator: es.UnaryOperator, 
   }
 }
 
+export function checkUpdateExpression(node: es.UpdateExpression, operator: string, value: any) {
+  if ((operator === '++' || operator === '--') && !isNumber(value)) {
+    return new TypeError(node, '', 'number', typeOf(value))
+  } else {
+    return undefined
+  }
+}
+
 export const checkBinaryExpression = (
   node: es.Node,
   operator: es.BinaryOperator,
