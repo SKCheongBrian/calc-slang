@@ -22,6 +22,7 @@ import {
   DecrementPostfixContext,
   DecrementPrefixContext,
   DivisionContext,
+  DoWhileStatementContext,
   EqualsContext,
   ExpressionContext,
   ExpressionStatementContext,
@@ -49,7 +50,8 @@ import {
   StatementContext,
   StrictlyGreaterThanContext,
   StrictlyLessThanContext,
-  SubtractionContext
+  SubtractionContext,
+  WhileStatementContext
 } from '../lang/CalcParser'
 import { CalcVisitor } from '../lang/CalcVisitor'
 import { Context, ErrorSeverity, ErrorType, SourceError } from '../types'
@@ -192,59 +194,79 @@ class StartGenerator implements CalcVisitor<es.Statement[]> {
 }
 
 class StatementGenerator implements CalcVisitor<es.Statement> {
-  // Compound statement
+  // Compound statement =======================================
   visitCompoundStatement(ctx: CompoundStatementContext): es.Statement {
     const startGenerator: StartGenerator = new StartGenerator()
     return {
-        type: 'BlockStatement',
-        body: ctx._blockItems?.accept(startGenerator) ?? []
-      }
+      type: 'BlockStatement',
+      body: ctx._blockItems?.accept(startGenerator) ?? []
+    }
   }
 
-  // Declaration
+  // Declaration =======================================
   visitDeclaration(ctx: DeclarationContext): es.Statement {
     const generator: DeclarationGenerator = new DeclarationGenerator()
     return ctx.accept(generator)
   }
 
-  // Expression statement
+  // Expression statement =======================================
   visitExpressionStatement(ctx: ExpressionStatementContext): es.Statement {
     const generator: ExpressionStatementGenerator = new ExpressionStatementGenerator()
     return ctx.accept(generator)
   }
 
-  // Selection statements
+  // Selection statements =======================================
 
   visitIfStatement(ctx: IfStatementContext): es.Statement {
     const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
     return {
-        type: 'IfStatement',
-        test: ctx._test.accept(exprGenerator),
-        consequent: this.visit(ctx._cons),
-        alternate: ctx._alt ? this.visit(ctx._alt) : undefined
-      }
+      type: 'IfStatement',
+      test: ctx._test.accept(exprGenerator),
+      consequent: this.visit(ctx._cons),
+      alternate: ctx._alt ? this.visit(ctx._alt) : undefined
+    }
   }
 
-  // Jump statements
+  // Iteration statements =======================================
+
+  visitWhileStatement(ctx: WhileStatementContext): es.Statement {
+    const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
+    return {
+      type: 'WhileStatement',
+      test: ctx._test.accept(exprGenerator),
+      body: this.visit(ctx._body)
+    }
+  }
+
+  visitDoWhileStatement(ctx: DoWhileStatementContext): es.Statement {
+    const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
+    return {
+      type: 'DoWhileStatement',
+      body: this.visit(ctx._body),
+      test: ctx._test.accept(exprGenerator)
+    }
+  }
+
+  // Jump statements =======================================
 
   visitContinueStatement(ctx: ContinueStatementContext): es.Statement {
     return {
-        type: 'ContinueStatement'
-      }
+      type: 'ContinueStatement'
+    }
   }
 
   visitBreakStatement(ctx: BreakStatementContext): es.Statement {
     return {
-        type: 'BreakStatement'
-      }
+      type: 'BreakStatement'
+    }
   }
 
   visitReturnStatement(ctx: ReturnStatementContext): es.Statement {
     const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
     return {
-        type: 'ReturnStatement',
-        argument: ctx._argument?.accept(exprGenerator)
-      }
+      type: 'ReturnStatement',
+      argument: ctx._argument?.accept(exprGenerator)
+    }
   }
 
   visitStatement?: ((ctx: StatementContext) => es.Statement) | undefined

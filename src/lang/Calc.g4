@@ -47,6 +47,9 @@ DEFAULT: 'default';
 IF: 'if';
 ELSE: 'else';
 SWITCH: 'switch';
+WHILE: 'while';
+DO: 'do';
+FOR: 'for';
 CONTINUE: 'continue';
 BREAK: 'break';
 RETURN: 'return';
@@ -75,22 +78,24 @@ statement:
 	| declaration
 	| expressionStatement
 	| selectionStatement
+	| iterationStatement
 	| jumpStatement;
 
-// Labeled statement
+// Labeled statement =======================================
 
 labeledStatement:
+	// TODO
 	CASE test = expression COLON body = statement	# CaseStatement
 	| DEFAULT COLON body = statement				# DefaultStatement;
 
-// Compound statement
+// Compound statement =======================================
 
 compoundStatement:
 	LEFT_BRACE blockItems = blockItemList? RIGHT_BRACE;
 
 blockItemList: statement+;
 
-// Declaration
+// Declaration =======================================
 
 declaration:
 	declSpec = declarationSpecifier initDecls = initDeclaratorList SEMI;
@@ -111,7 +116,7 @@ initializer: assignExpr = assignmentExpression;
 
 assignmentExpression: expr = expression;
 
-// Expression statement
+// Expression statement =======================================
 
 expressionStatement: expression SEMI;
 
@@ -167,18 +172,28 @@ expression:
 	// Conditional expression
 	| test = expression QUESTION cons = expression COLON alt = expression # Conditional;
 
-// Selection statement
+// Selection statement =======================================
 
 selectionStatement:
 	IF OPEN_PARENTHESIS test = expression CLOSED_PARENTHESIS cons = statement (
 		ELSE alt = statement
-	)?																					# IfStatement
-	| SWITCH OPEN_PARENTHESIS disc = expression CLOSED_PARENTHESIS cases = statement	#
+	)? # IfStatement
+	// TODO
+	| SWITCH OPEN_PARENTHESIS disc = expression CLOSED_PARENTHESIS cases = statement #
 		SwitchCaseStatement;
 
-// Jump statements
+// Iteration statements =======================================
+
+iterationStatement:
+	WHILE OPEN_PARENTHESIS test = expression CLOSED_PARENTHESIS body = statement			# WhileStatement
+	| DO body = statement WHILE OPEN_PARENTHESIS test = expression CLOSED_PARENTHESIS SEMI	#
+		DoWhileStatement
+	// TODO
+	| FOR OPEN_PARENTHESIS SEMI SEMI CLOSED_PARENTHESIS body = statement # ForStatement;
+
+// Jump statements =======================================
 
 jumpStatement:
 	CONTINUE SEMI							# ContinueStatement
 	| BREAK SEMI							# BreakStatement
-	| RETURN (argument = expression)? SEMI	# ReturnStatement;
+	| RETURN argument = expression? SEMI	# ReturnStatement;
