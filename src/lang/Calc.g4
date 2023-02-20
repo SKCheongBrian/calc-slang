@@ -10,6 +10,12 @@ ADD: '+';
 SUB: '-';
 INC: '++';
 DEC: '--';
+EQ: '==';
+NEQ: '!=';
+SLT: '<';
+SGT: '>';
+LTE: '<=';
+GTE: '>=';
 ASSIGN: '=';
 BITWISE_AND: '&';
 BITWISE_OR: '|';
@@ -65,21 +71,34 @@ assignmentExpression: expr = expression;
 expressionStatement: expression SEMI;
 
 expression:
-	NUMBER																	# Number
-	| IDENTIFIER															# Identifier
-	| OPEN_PARENTHESIS inner = expression CLOSED_PARENTHESIS				# Parentheses
-	| test = expression QUESTION cons = expression COLON alt = expression	# Conditional
-	| left = expression operator = LOGICAL_AND right = expression			# LogicalAnd
-	| left = expression operator = LOGICAL_OR right = expression			# LogicalOr
-	| left = expression operator = MUL right = expression					# Multiplication
-	| left = expression operator = DIV right = expression					# Division
-	| left = expression operator = MODULO right = expression				# Modulo
-	| left = expression operator = ADD right = expression					# Addition
-	| left = expression operator = SUB right = expression					# Subtraction
-	| argument = expression operator = INC									# IncrementPostfix
-	| argument = expression operator = DEC									# DecrementPostfix
-	| operator = ADD argument = expression									# Positive
-	| operator = SUB argument = expression									# Negative
-	| operator = EXCLAM argument = expression								# Factorial
-	| operator = INC argument = expression									# IncrementPrefix
-	| operator = DEC argument = expression									# DecrementPrefix;
+	NUMBER														# Number
+	| IDENTIFIER												# Identifier
+	| OPEN_PARENTHESIS inner = expression CLOSED_PARENTHESIS	# Parentheses
+	// Update expressions
+	| argument = expression operator = INC	# IncrementPostfix
+	| argument = expression operator = DEC	# DecrementPostfix
+	| operator = INC argument = expression	# IncrementPrefix
+	| operator = DEC argument = expression	# DecrementPrefix
+	// (Unary) arithmetic expressions
+	| operator = ADD argument = expression	# Positive
+	| operator = SUB argument = expression	# Negative
+	// (Binary) arithmetic expressions
+	| left = expression operator = ADD right = expression		# Addition
+	| left = expression operator = SUB right = expression		# Subtraction
+	| left = expression operator = MODULO right = expression	# Modulo
+	| left = expression operator = MUL right = expression		# Multiplication
+	| left = expression operator = DIV right = expression		# Division
+	// Relational expressions
+	| left = expression operator = EQ right = expression	# Equals
+	| left = expression operator = NEQ right = expression	# NotEquals
+	| left = expression operator = SLT right = expression	# StrictlyLessThan
+	| left = expression operator = LTE right = expression	# LessThanOrEquals
+	| left = expression operator = SGT right = expression	# StrictlyGreaterThan
+	| left = expression operator = GTE right = expression	# GreaterThanOrEquals
+	// (Unary) logical expression
+	| operator = EXCLAM argument = expression # Factorial
+	// (Binary) logical expressions
+	| left = expression operator = LOGICAL_OR right = expression	# LogicalOr
+	| left = expression operator = LOGICAL_AND right = expression	# LogicalAnd
+	// Conditional expression
+	| test = expression QUESTION cons = expression COLON alt = expression # Conditional;

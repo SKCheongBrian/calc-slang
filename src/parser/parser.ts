@@ -15,22 +15,28 @@ import {
   DecrementPostfixContext,
   DecrementPrefixContext,
   DivisionContext,
+  EqualsContext,
   ExpressionContext,
   ExpressionStatementContext,
   FactorialContext,
+  GreaterThanOrEqualsContext,
   IdentifierContext,
   IncrementPostfixContext,
   IncrementPrefixContext,
   InitDeclaratorContext,
+  LessThanOrEqualsContext,
   LogicalAndContext,
   LogicalOrContext,
   ModuloContext,
   MultiplicationContext,
   NegativeContext,
+  NotEqualsContext,
   NumberContext,
   ParenthesesContext,
   PositiveContext,
   StartContext,
+  StrictlyGreaterThanContext,
+  StrictlyLessThanContext,
   SubtractionContext
 } from '../lang/CalcParser'
 import { CalcVisitor } from '../lang/CalcVisitor'
@@ -330,6 +336,72 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     return this.visit(ctx.expression())
   }
 
+  // Update expressions =======================================
+
+  visitIncrementPrefix(ctx: IncrementPrefixContext): es.Expression {
+    return {
+      type: 'UpdateExpression',
+      operator: '++',
+      argument: this.visit(ctx._argument),
+      prefix: true,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitDecrementPrefix(ctx: DecrementPrefixContext): es.Expression {
+    return {
+      type: 'UpdateExpression',
+      operator: '--',
+      argument: this.visit(ctx._argument),
+      prefix: true,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitIncrementPostfix(ctx: IncrementPostfixContext): es.Expression {
+    return {
+      type: 'UpdateExpression',
+      operator: '++',
+      argument: this.visit(ctx._argument),
+      prefix: false,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitDecrementPostfix(ctx: DecrementPostfixContext): es.Expression {
+    return {
+      type: 'UpdateExpression',
+      operator: '--',
+      argument: this.visit(ctx._argument),
+      prefix: false,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  // (Unary) arithmetic expressions =======================================
+
+  visitPositive(ctx: PositiveContext): es.Expression {
+    return {
+      type: 'UnaryExpression',
+      operator: '+',
+      argument: this.visit(ctx._argument),
+      prefix: true,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitNegative(ctx: NegativeContext): es.Expression {
+    return {
+      type: 'UnaryExpression',
+      operator: '-',
+      argument: this.visit(ctx._argument),
+      prefix: true,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  // (Binary) arithmetic expressions =======================================
+
   visitMultiplication(ctx: MultiplicationContext): es.Expression {
     return {
       type: 'BinaryExpression',
@@ -380,6 +452,82 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
+  // Relation expressions =======================================
+
+  visitEquals(ctx: EqualsContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '==',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitNotEquals(ctx: NotEqualsContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '!=',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitStrictlyLessThan(ctx: StrictlyLessThanContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '<',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitLessThanOrEquals(ctx: LessThanOrEqualsContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '<=',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitStrictlyGreaterThan(ctx: StrictlyGreaterThanContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '>',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitGreaterThanOrEquals(ctx: GreaterThanOrEqualsContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '>=',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  // (Unary) logical expression =======================================
+
+  visitFactorial(ctx: FactorialContext): es.Expression {
+    return {
+      type: 'UnaryExpression',
+      operator: '!',
+      argument: this.visit(ctx._argument),
+      prefix: true,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  // (Binary) logical expressions =======================================
+
   visitLogicalAnd(ctx: LogicalAndContext): es.Expression {
     return {
       type: 'LogicalExpression',
@@ -400,6 +548,8 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
+  // Conditional expression =======================================
+
   visitConditional(ctx: ConditionalContext): es.Expression {
     return {
       type: 'ConditionalExpression',
@@ -410,75 +560,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitIncrementPrefix(ctx: IncrementPrefixContext): es.Expression {
-    return {
-      type: 'UpdateExpression',
-      operator: '++',
-      argument: this.visit(ctx._argument),
-      prefix: true,
-      loc: contextToLocation(ctx)
-    }
-  }
-
-  visitDecrementPrefix(ctx: DecrementPrefixContext): es.Expression {
-    return {
-      type: 'UpdateExpression',
-      operator: '--',
-      argument: this.visit(ctx._argument),
-      prefix: true,
-      loc: contextToLocation(ctx)
-    }
-  }
-
-  visitIncrementPostfix(ctx: IncrementPostfixContext): es.Expression {
-    return {
-      type: 'UpdateExpression',
-      operator: '++',
-      argument: this.visit(ctx._argument),
-      prefix: false,
-      loc: contextToLocation(ctx)
-    }
-  }
-
-  visitDecrementPostfix(ctx: DecrementPostfixContext): es.Expression {
-    return {
-      type: 'UpdateExpression',
-      operator: '--',
-      argument: this.visit(ctx._argument),
-      prefix: false,
-      loc: contextToLocation(ctx)
-    }
-  }
-
-  visitPositive(ctx: PositiveContext): es.Expression {
-    return {
-      type: 'UnaryExpression',
-      operator: '+',
-      argument: this.visit(ctx._argument),
-      prefix: true,
-      loc: contextToLocation(ctx)
-    }
-  }
-
-  visitNegative(ctx: NegativeContext): es.Expression {
-    return {
-      type: 'UnaryExpression',
-      operator: '-',
-      argument: this.visit(ctx._argument),
-      prefix: true,
-      loc: contextToLocation(ctx)
-    }
-  }
-
-  visitFactorial(ctx: FactorialContext): es.Expression {
-    return {
-      type: 'UnaryExpression',
-      operator: '!',
-      argument: this.visit(ctx._argument),
-      prefix: true,
-      loc: contextToLocation(ctx)
-    }
-  }
+  // ==============================================================
 
   visitExpression?: ((ctx: ExpressionContext) => es.Expression) | undefined
 
