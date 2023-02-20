@@ -55,7 +55,8 @@
     "prepare": "husky install",
     "publish_sicp_package": "./scripts/publish_sicp_package.sh",
     "test": "jest",
-    "test-coverage": "jest --coverage"
+    "test-coverage": "jest --coverage",
+    "update": "bash ./test_antlr.sh"
   },
   "repository": {
     "type": "git",
