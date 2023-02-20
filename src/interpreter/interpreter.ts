@@ -1,11 +1,11 @@
 /* tslint:disable:max-classes-per-file */
 import * as es from 'estree'
-import { isUndefined } from 'lodash'
+import { isUndefined, uniqueId } from 'lodash'
 
 import { createGlobalEnvironment } from '../createContext'
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
 import { is_undefined } from '../stdlib/misc'
-import { Context, Environment, Value } from '../types'
+import { Context, Environment, Frame, Value } from '../types'
 import {
   evaluateBinaryExpression,
   evaluateUnaryExpression,
@@ -100,6 +100,15 @@ const popEnvironment = (context: Context) => context.runtime.environments.shift(
 export const pushEnvironment = (context: Context, environment: Environment) => {
   context.runtime.environments.unshift(environment)
   context.runtime.environmentTree.insert(environment)
+}
+
+export const createBlockEnv = (context: Context, name = 'blockEnvironment', head: Frame = {}): Environment => {
+  return {
+    name,
+    tail: currEnv(context),
+    head,
+    id: uniqueId()
+  }
 }
 
 export type Evaluator<T extends es.Node> = (node: T, context: Context) => IterableIterator<Value>
@@ -268,7 +277,11 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
 
 
   BlockStatement: function* (node: es.BlockStatement, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    const env = createBlockEnv(context, 'blockEnvironment')
+    pushEnvironment(context, env)
+    const result = yield* evaluateBlockSatement(context, node)
+    popEnvironment(context)
+    return result
   },
 
   Program: function* (node: es.BlockStatement, context: Context) {
