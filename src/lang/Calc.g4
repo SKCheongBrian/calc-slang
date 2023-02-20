@@ -3,7 +3,6 @@ grammar Calc;
 /*
  * Tokens (terminal)
  */
-POW: '^';
 MUL: '*';
 DIV: '/';
 MODULO: '%';
@@ -76,7 +75,6 @@ expression:
 	| operator = DEC argument = expression									# DecrementPrefix
 	| argument = expression operator = INC									# IncrementPostfix
 	| argument = expression operator = DEC									# DecrementPostfix
-	| left = expression operator = POW right = expression					# Power
 	| left = expression operator = MUL right = expression					# Multiplication
 	| left = expression operator = DIV right = expression					# Division
 	| left = expression operator = MODULO right = expression				# Modulo

@@ -28,7 +28,6 @@ import {
   NumberContext,
   ParenthesesContext,
   PositiveContext,
-  PowerContext,
   StartContext,
   SubtractionContext
 } from '../lang/CalcParser'
@@ -327,16 +326,6 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
 
   visitParentheses(ctx: ParenthesesContext): es.Expression {
     return this.visit(ctx.expression())
-  }
-
-  visitPower(ctx: PowerContext): es.Expression {
-    return {
-      type: 'BinaryExpression',
-      operator: '^',
-      left: this.visit(ctx._left),
-      right: this.visit(ctx._right),
-      loc: contextToLocation(ctx)
-    }
   }
 
   visitMultiplication(ctx: MultiplicationContext): es.Expression {
