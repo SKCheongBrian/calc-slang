@@ -20,6 +20,7 @@ ASSIGN: '=';
 BITWISE_AND: '&';
 BITWISE_XOR: '^';
 BITWISE_OR: '|';
+BITWISE_CMPL: '~';
 LOGICAL_AND: '&&';
 LOGICAL_OR: '||';
 SHL: '<<';
@@ -88,6 +89,9 @@ expression:
 	| operator = ADD argument = expression	# Positive
 	| operator = SUB argument = expression	# Negative
 
+	// (Unary) bitwise expression
+	| operator = BITWISE_CMPL argument = expression # BitwiseComplement
+
 	// (Unary) logical expression
 	| operator = EXCLAM argument = expression # Factorial
 
@@ -110,7 +114,7 @@ expression:
 	| left = expression operator = SGT right = expression	# StrictlyGreaterThan
 	| left = expression operator = GTE right = expression	# GreaterThanOrEquals
 
-	// Bitwise expressions
+	// (Binary) bitwise expressions
 	| left = expression operator = BITWISE_OR right = expression	# BitwiseOr
 	| left = expression operator = BITWISE_XOR right = expression	# BitwiseXor
 	| left = expression operator = BITWISE_AND right = expression	# BitwiseAnd

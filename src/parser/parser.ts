@@ -10,6 +10,7 @@ import { CalcLexer } from '../lang/CalcLexer'
 import {
   AdditionContext,
   BitwiseAndContext,
+  BitwiseComplementContext,
   BitwiseOrContext,
   BitwiseXorContext,
   CalcParser,
@@ -405,6 +406,30 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
+  // (Unary) bitwise expression =======================================
+
+  visitBitwiseComplement(ctx: BitwiseComplementContext): es.Expression {
+    return {
+      type: 'UnaryExpression',
+      operator: '~',
+      argument: this.visit(ctx._argument),
+      prefix: true,
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  // (Unary) logical expression =======================================
+
+  visitFactorial(ctx: FactorialContext): es.Expression {
+    return {
+      type: 'UnaryExpression',
+      operator: '!',
+      argument: this.visit(ctx._argument),
+      prefix: true,
+      loc: contextToLocation(ctx)
+    }
+  }
+
   // (Binary) arithmetic expressions =======================================
 
   visitMultiplication(ctx: MultiplicationContext): es.Expression {
@@ -541,7 +566,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  // Bitwise expressions =======================================
+  // (Binary) bitwise expressions =======================================
 
   visitBitwiseOr(ctx: BitwiseOrContext): es.Expression {
     return {
@@ -569,18 +594,6 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
       operator: '&',
       left: this.visit(ctx._left),
       right: this.visit(ctx._right),
-      loc: contextToLocation(ctx)
-    }
-  }
-
-  // (Unary) logical expression =======================================
-
-  visitFactorial(ctx: FactorialContext): es.Expression {
-    return {
-      type: 'UnaryExpression',
-      operator: '!',
-      argument: this.visit(ctx._argument),
-      prefix: true,
       loc: contextToLocation(ctx)
     }
   }
