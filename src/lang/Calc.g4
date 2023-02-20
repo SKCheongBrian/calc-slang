@@ -18,6 +18,7 @@ LTE: '<=';
 GTE: '>=';
 ASSIGN: '=';
 BITWISE_AND: '&';
+BITWISE_XOR: '^';
 BITWISE_OR: '|';
 LOGICAL_AND: '&&';
 LOGICAL_OR: '||';
@@ -74,20 +75,27 @@ expression:
 	NUMBER														# Number
 	| IDENTIFIER												# Identifier
 	| OPEN_PARENTHESIS inner = expression CLOSED_PARENTHESIS	# Parentheses
+
 	// Update expressions
 	| argument = expression operator = INC	# IncrementPostfix
 	| argument = expression operator = DEC	# DecrementPostfix
 	| operator = INC argument = expression	# IncrementPrefix
 	| operator = DEC argument = expression	# DecrementPrefix
+
 	// (Unary) arithmetic expressions
 	| operator = ADD argument = expression	# Positive
 	| operator = SUB argument = expression	# Negative
+
+	// (Unary) logical expression
+	| operator = EXCLAM argument = expression # Factorial
+
 	// (Binary) arithmetic expressions
 	| left = expression operator = ADD right = expression		# Addition
 	| left = expression operator = SUB right = expression		# Subtraction
 	| left = expression operator = MODULO right = expression	# Modulo
 	| left = expression operator = MUL right = expression		# Multiplication
 	| left = expression operator = DIV right = expression		# Division
+
 	// Relational expressions
 	| left = expression operator = EQ right = expression	# Equals
 	| left = expression operator = NEQ right = expression	# NotEquals
@@ -95,10 +103,15 @@ expression:
 	| left = expression operator = LTE right = expression	# LessThanOrEquals
 	| left = expression operator = SGT right = expression	# StrictlyGreaterThan
 	| left = expression operator = GTE right = expression	# GreaterThanOrEquals
-	// (Unary) logical expression
-	| operator = EXCLAM argument = expression # Factorial
+
+	// Bitwise expressions
+	| left = expression operator = BITWISE_OR right = expression	# BitwiseOr
+	| left = expression operator = BITWISE_XOR right = expression	# BitwiseXor
+	| left = expression operator = BITWISE_AND right = expression	# BitwiseAnd
+
 	// (Binary) logical expressions
 	| left = expression operator = LOGICAL_OR right = expression	# LogicalOr
 	| left = expression operator = LOGICAL_AND right = expression	# LogicalAnd
+
 	// Conditional expression
 	| test = expression QUESTION cons = expression COLON alt = expression # Conditional;

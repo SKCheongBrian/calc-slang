@@ -9,6 +9,9 @@ import * as es from 'estree'
 import { CalcLexer } from '../lang/CalcLexer'
 import {
   AdditionContext,
+  BitwiseAndContext,
+  BitwiseOrContext,
+  BitwiseXorContext,
   CalcParser,
   ConditionalContext,
   DeclarationContext,
@@ -508,6 +511,38 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     return {
       type: 'BinaryExpression',
       operator: '>=',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  // Bitwise expressions =======================================
+
+  visitBitwiseOr(ctx: BitwiseOrContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '|',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitBitwiseXor(ctx: BitwiseXorContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '^',
+      left: this.visit(ctx._left),
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitBitwiseAnd(ctx: BitwiseAndContext): es.Expression {
+    return {
+      type: 'BinaryExpression',
+      operator: '&',
       left: this.visit(ctx._left),
       right: this.visit(ctx._right),
       loc: contextToLocation(ctx)
