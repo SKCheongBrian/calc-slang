@@ -46,6 +46,7 @@ import {
   ShiftLeftContext,
   ShiftRightContext,
   StartContext,
+  StatementContext,
   StrictlyGreaterThanContext,
   StrictlyLessThanContext,
   SubtractionContext
@@ -154,62 +155,6 @@ function contextToLocation(ctx: ParserRuleContext): es.SourceLocation {
 }
 
 class StartGenerator implements CalcVisitor<es.Statement[]> {
-  // Compound statement
-  visitCompoundStatement(ctx: CompoundStatementContext): Array<es.Statement> {
-    return [
-      {
-        type: 'BlockStatement',
-        body: ctx._blockItems ? this.visit(ctx._blockItems) : []
-      }
-    ]
-  }
-
-  // Declaration
-  visitDeclaration(ctx: DeclarationContext): Array<es.Statement> {
-    const generator: DeclarationGenerator = new DeclarationGenerator()
-    return [ctx.accept(generator)]
-  }
-
-  // Expression statement
-  visitExpressionStatement(ctx: ExpressionStatementContext): es.Statement[] {
-    const generator: ExpressionStatementGenerator = new ExpressionStatementGenerator()
-    return [ctx.accept(generator)]
-  }
-
-  // Selection statements
-
-  visitIfStatement(ctx: IfStatementContext): es.Statement[] {
-    const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
-    return [{
-      type: 'IfStatement',
-      test: ctx._test.accept(exprGenerator),
-      consequent: this.visit(ctx._cons)[0],
-      alternate: ctx._alt ? this.visit(ctx._alt)[0] : undefined
-    }]
-  }
-
-  // Jump statements
-
-  visitContinueStatement(ctx: ContinueStatementContext): es.Statement[] {
-    return [{
-      type: 'ContinueStatement'
-    }]
-  }
-
-  visitBreakStatement(ctx: BreakStatementContext): es.Statement[] {
-    return [{
-      type: 'BreakStatement'
-    }]
-  }
-
-  visitReturnStatement(ctx: ReturnStatementContext): es.Statement[] {
-    const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
-    return [{
-      type: 'ReturnStatement',
-      argument: ctx._argument?.accept(exprGenerator)
-    }]
-  }
-
   visitStart?: ((ctx: StartContext) => es.Statement[]) | undefined
 
   visit(tree: ParseTree): es.Statement[] {
@@ -217,9 +162,10 @@ class StartGenerator implements CalcVisitor<es.Statement[]> {
   }
 
   visitChildren(node: RuleNode): es.Statement[] {
+    const stmtGenerator: StatementGenerator = new StatementGenerator()
     const statements: es.Statement[] = []
     for (let i = 0; i < node.childCount; i++) {
-      statements.push(...node.getChild(i).accept(this))
+      statements.push(node.getChild(i).accept(stmtGenerator))
     }
     return statements
   }
@@ -229,6 +175,94 @@ class StartGenerator implements CalcVisitor<es.Statement[]> {
   }
 
   visitErrorNode(node: ErrorNode): es.Statement[] {
+    throw new FatalSyntaxError(
+      {
+        start: {
+          line: node.symbol.line,
+          column: node.symbol.charPositionInLine
+        },
+        end: {
+          line: node.symbol.line,
+          column: node.symbol.charPositionInLine + 1
+        }
+      },
+      `invalid syntax ${node.text}`
+    )
+  }
+}
+
+class StatementGenerator implements CalcVisitor<es.Statement> {
+  // Compound statement
+  visitCompoundStatement(ctx: CompoundStatementContext): es.Statement {
+    const startGenerator: StartGenerator = new StartGenerator()
+    return {
+        type: 'BlockStatement',
+        body: ctx._blockItems?.accept(startGenerator) ?? []
+      }
+  }
+
+  // Declaration
+  visitDeclaration(ctx: DeclarationContext): es.Statement {
+    const generator: DeclarationGenerator = new DeclarationGenerator()
+    return ctx.accept(generator)
+  }
+
+  // Expression statement
+  visitExpressionStatement(ctx: ExpressionStatementContext): es.Statement {
+    const generator: ExpressionStatementGenerator = new ExpressionStatementGenerator()
+    return ctx.accept(generator)
+  }
+
+  // Selection statements
+
+  visitIfStatement(ctx: IfStatementContext): es.Statement {
+    const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
+    return {
+        type: 'IfStatement',
+        test: ctx._test.accept(exprGenerator),
+        consequent: this.visit(ctx._cons),
+        alternate: ctx._alt ? this.visit(ctx._alt) : undefined
+      }
+  }
+
+  // Jump statements
+
+  visitContinueStatement(ctx: ContinueStatementContext): es.Statement {
+    return {
+        type: 'ContinueStatement'
+      }
+  }
+
+  visitBreakStatement(ctx: BreakStatementContext): es.Statement {
+    return {
+        type: 'BreakStatement'
+      }
+  }
+
+  visitReturnStatement(ctx: ReturnStatementContext): es.Statement {
+    const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
+    return {
+        type: 'ReturnStatement',
+        argument: ctx._argument?.accept(exprGenerator)
+      }
+  }
+
+  visitStatement?: ((ctx: StatementContext) => es.Statement) | undefined
+
+  visit(tree: ParseTree): es.Statement {
+    return tree.accept(this)
+  }
+
+  visitChildren(node: RuleNode): es.Statement {
+    // First child is the statement
+    return this.visit(node.getChild(0))
+  }
+
+  visitTerminal(node: TerminalNode): es.Statement {
+    throw new Error('Method not implemented.')
+  }
+
+  visitErrorNode(node: ErrorNode): es.Statement {
     throw new FatalSyntaxError(
       {
         start: {
