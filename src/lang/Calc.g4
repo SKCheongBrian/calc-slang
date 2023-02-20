@@ -3,6 +3,8 @@ grammar Calc;
 /*
  * Tokens (terminal)
  */
+
+// Symbols
 MUL: '*';
 DIV: '/';
 MODULO: '%';
@@ -34,8 +36,19 @@ QUESTION: '?';
 EXCLAM: '!';
 COLON: ':';
 SEMI: ';';
+
+// Types
 INT: 'int';
 VOID: 'void';
+
+// Keywords
+CASE: 'case';
+DEFAULT: 'default';
+IF: 'if';
+ELSE: 'else';
+SWITCH: 'switch';
+
+// Fragments
 NUMBER: [0-9]+;
 WHITESPACE: [ \r\n\t]+ -> skip;
 IDENTIFIER:
@@ -54,9 +67,17 @@ fragment DIGIT: [0-9];
 start: statement*;
 
 statement:
-	compoundStatement
+	labeledStatement
+	| compoundStatement
 	| declaration
-	| expressionStatement;
+	| expressionStatement
+	| selectionStatement;
+
+// Labeled statement
+
+labeledStatement:
+	CASE test = expression COLON body = statement	# CaseStatement
+	| DEFAULT COLON body = statement				# DefaultStatement;
 
 // Compound statement
 
@@ -141,3 +162,12 @@ expression:
 
 	// Conditional expression
 	| test = expression QUESTION cons = expression COLON alt = expression # Conditional;
+
+// Selection statement
+
+selectionStatement:
+	IF OPEN_PARENTHESIS test = expression CLOSED_PARENTHESIS cons = statement (
+		ELSE alt = statement
+	)?																					# IfStatement
+	| SWITCH OPEN_PARENTHESIS disc = expression CLOSED_PARENTHESIS cases = statement	#
+		SwitchCaseStatement;

@@ -26,6 +26,7 @@ import {
   FactorialContext,
   GreaterThanOrEqualsContext,
   IdentifierContext,
+  IfStatementContext,
   IncrementPostfixContext,
   IncrementPrefixContext,
   InitDeclaratorContext,
@@ -150,21 +151,38 @@ function contextToLocation(ctx: ParserRuleContext): es.SourceLocation {
 }
 
 class StartGenerator implements CalcVisitor<es.Statement[]> {
+  // Compound statement
   visitCompoundStatement(ctx: CompoundStatementContext): Array<es.Statement> {
-    return [{
-      type: 'BlockStatement',
-      body: ctx._blockItems ? this.visit(ctx._blockItems) : []
-    }]
+    return [
+      {
+        type: 'BlockStatement',
+        body: ctx._blockItems ? this.visit(ctx._blockItems) : []
+      }
+    ]
   }
 
+  // Declaration
   visitDeclaration(ctx: DeclarationContext): Array<es.Statement> {
     const generator: DeclarationGenerator = new DeclarationGenerator()
     return [ctx.accept(generator)]
   }
 
+  // Expression statement
   visitExpressionStatement(ctx: ExpressionStatementContext): es.Statement[] {
     const generator: ExpressionStatementGenerator = new ExpressionStatementGenerator()
     return [ctx.accept(generator)]
+  }
+
+  // Selection statements
+  
+  visitIfStatement(ctx: IfStatementContext): es.Statement[] {
+    const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
+    return [{
+      type: 'IfStatement',
+      test: ctx._test.accept(exprGenerator),
+      consequent: this.visit(ctx._cons)[0],
+      alternate: ctx._alt ? this.visit(ctx._alt)[0] : undefined
+    }]
   }
 
   visitStart?: ((ctx: StartContext) => es.Statement[]) | undefined
