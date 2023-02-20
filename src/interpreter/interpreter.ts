@@ -6,7 +6,11 @@ import { createGlobalEnvironment } from '../createContext'
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
 import { is_undefined } from '../stdlib/misc'
 import { Context, Environment, Value } from '../types'
-import { evaluateBinaryExpression, evaluateUnaryExpression, evaluateUpdateExpression } from '../utils/operators'
+import {
+  evaluateBinaryExpression,
+  evaluateUnaryExpression,
+  evaluateUpdateExpression
+} from '../utils/operators'
 import * as rttc from '../utils/rttc'
 
 class Thunk {
