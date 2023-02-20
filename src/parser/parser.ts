@@ -13,9 +13,11 @@ import {
   BitwiseComplementContext,
   BitwiseOrContext,
   BitwiseXorContext,
+  BreakStatementContext,
   CalcParser,
   CompoundStatementContext,
   ConditionalContext,
+  ContinueStatementContext,
   DeclarationContext,
   DecrementPostfixContext,
   DecrementPrefixContext,
@@ -40,6 +42,7 @@ import {
   NumberContext,
   ParenthesesContext,
   PositiveContext,
+  ReturnStatementContext,
   ShiftLeftContext,
   ShiftRightContext,
   StartContext,
@@ -174,7 +177,7 @@ class StartGenerator implements CalcVisitor<es.Statement[]> {
   }
 
   // Selection statements
-  
+
   visitIfStatement(ctx: IfStatementContext): es.Statement[] {
     const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
     return [{
@@ -182,6 +185,28 @@ class StartGenerator implements CalcVisitor<es.Statement[]> {
       test: ctx._test.accept(exprGenerator),
       consequent: this.visit(ctx._cons)[0],
       alternate: ctx._alt ? this.visit(ctx._alt)[0] : undefined
+    }]
+  }
+
+  // Jump statements
+
+  visitContinueStatement(ctx: ContinueStatementContext): es.Statement[] {
+    return [{
+      type: 'ContinueStatement'
+    }]
+  }
+
+  visitBreakStatement(ctx: BreakStatementContext): es.Statement[] {
+    return [{
+      type: 'BreakStatement'
+    }]
+  }
+
+  visitReturnStatement(ctx: ReturnStatementContext): es.Statement[] {
+    const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
+    return [{
+      type: 'ReturnStatement',
+      argument: ctx._argument?.accept(exprGenerator)
     }]
   }
 

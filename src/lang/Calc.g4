@@ -47,6 +47,9 @@ DEFAULT: 'default';
 IF: 'if';
 ELSE: 'else';
 SWITCH: 'switch';
+CONTINUE: 'continue';
+BREAK: 'break';
+RETURN: 'return';
 
 // Fragments
 NUMBER: [0-9]+;
@@ -71,7 +74,8 @@ statement:
 	| compoundStatement
 	| declaration
 	| expressionStatement
-	| selectionStatement;
+	| selectionStatement
+	| jumpStatement;
 
 // Labeled statement
 
@@ -171,3 +175,10 @@ selectionStatement:
 	)?																					# IfStatement
 	| SWITCH OPEN_PARENTHESIS disc = expression CLOSED_PARENTHESIS cases = statement	#
 		SwitchCaseStatement;
+
+// Jump statements
+
+jumpStatement:
+	CONTINUE SEMI							# ContinueStatement
+	| BREAK SEMI							# BreakStatement
+	| RETURN (argument = expression)? SEMI	# ReturnStatement;
