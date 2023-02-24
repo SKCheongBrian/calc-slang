@@ -24,8 +24,10 @@ import {
   ConditionalContext,
   ContinueStatementContext,
   DeclarationContext,
+  DeclaratorContext,
   DecrementPostfixContext,
   DecrementPrefixContext,
+  DirectDeclaratorContext,
   DivisionAssignmentContext,
   DivisionContext,
   DoWhileStatementContext,
@@ -33,6 +35,7 @@ import {
   ExpressionContext,
   ExpressionStatementContext,
   FactorialContext,
+  FunctionDefinitionContext,
   GreaterThanOrEqualsContext,
   IdentifierContext,
   IfStatementContext,
@@ -49,6 +52,7 @@ import {
   NegativeContext,
   NotEqualsContext,
   NumberContext,
+  ParameterDeclarationContext,
   ParenthesesContext,
   PositiveContext,
   ReturnStatementContext,
@@ -205,6 +209,41 @@ class StartGenerator implements CalcVisitor<es.Statement[]> {
 }
 
 class StatementGenerator implements CalcVisitor<es.Statement> {
+  // Function definition =======================================
+  visitFunctionDefinition(ctx: FunctionDefinitionContext): es.Statement {
+    const dirDecl: DirectDeclaratorContext = ctx._decl._dirDecl
+
+    // Parse id
+    const id: es.Identifier = {
+      type: 'Identifier',
+      name: dirDecl._dirDecl._id.text as string
+    }
+
+    // Parse params
+    const params: es.Pattern[] = []
+    const paramList = dirDecl._params
+    if (paramList) {
+      for (let i = 0; i < paramList.childCount; i += 2) {
+        const paramDecl = paramList.getChild(i) as ParameterDeclarationContext
+        const paramId: es.Identifier = {
+          type: 'Identifier',
+          name: paramDecl._decl._dirDecl._id.text as string
+        }
+        params.push(paramId)
+      }
+    }
+
+    // Parse body
+    const body: es.BlockStatement = this.visit(ctx._body) as es.BlockStatement
+
+    return {
+      type: 'FunctionDeclaration',
+      id,
+      params,
+      body
+    }
+  }
+
   // Compound statement =======================================
   visitCompoundStatement(ctx: CompoundStatementContext): es.Statement {
     const startGenerator: StartGenerator = new StartGenerator()

@@ -87,7 +87,7 @@ fragment DIGIT: [0-9];
 /*
  * Productions
  */
-start: statement*;
+start: (statement | functionDefinition)*;
 
 statement:
 	labeledStatement
@@ -97,6 +97,16 @@ statement:
 	| selectionStatement
 	| iterationStatement
 	| jumpStatement;
+
+// Function definition =======================================
+
+functionDefinition:
+	declSpec = declarationSpecifier decl = declarator body = compoundStatement;
+
+parameterList:
+	parameterDeclaration (COMMA parameterDeclaration)*;
+
+parameterDeclaration: declarationSpecifier decl = declarator;
 
 // Labeled statement =======================================
 
@@ -127,7 +137,10 @@ initDeclarator: decl = declarator (ASSIGN init = initializer)?;
 
 declarator: dirDecl = directDeclarator;
 
-directDeclarator: id = IDENTIFIER;
+directDeclarator:
+	id = IDENTIFIER
+	// Function definition
+	| dirDecl = directDeclarator OPEN_PARENTHESIS params = parameterList? CLOSED_PARENTHESIS;
 
 initializer: assignExpr = assignmentExpression;
 
