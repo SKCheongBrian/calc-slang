@@ -24,7 +24,6 @@ import {
   ConditionalContext,
   ContinueStatementContext,
   DeclarationContext,
-  DeclaratorContext,
   DecrementPostfixContext,
   DecrementPrefixContext,
   DirectDeclaratorContext,
