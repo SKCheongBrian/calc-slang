@@ -8,10 +8,15 @@ import * as es from 'estree'
 
 import { CalcLexer } from '../lang/CalcLexer'
 import {
+  AdditionAssignmentContext,
   AdditionContext,
+  AssignmentContext,
+  BitwiseAndAssignmentContext,
   BitwiseAndContext,
   BitwiseComplementContext,
+  BitwiseOrAssignmentContext,
   BitwiseOrContext,
+  BitwiseXorAssignmentContext,
   BitwiseXorContext,
   BreakStatementContext,
   CalcParser,
@@ -21,6 +26,7 @@ import {
   DeclarationContext,
   DecrementPostfixContext,
   DecrementPrefixContext,
+  DivisionAssignmentContext,
   DivisionContext,
   DoWhileStatementContext,
   EqualsContext,
@@ -36,7 +42,9 @@ import {
   LessThanOrEqualsContext,
   LogicalAndContext,
   LogicalOrContext,
+  ModuloAssignmentContext,
   ModuloContext,
+  MultiplicationAssignmentContext,
   MultiplicationContext,
   NegativeContext,
   NotEqualsContext,
@@ -44,12 +52,15 @@ import {
   ParenthesesContext,
   PositiveContext,
   ReturnStatementContext,
+  ShiftLeftAssignmentContext,
   ShiftLeftContext,
+  ShiftRightAssignmentContext,
   ShiftRightContext,
   StartContext,
   StatementContext,
   StrictlyGreaterThanContext,
   StrictlyLessThanContext,
+  SubtractionAssignmentContext,
   SubtractionContext,
   WhileStatementContext
 } from '../lang/CalcParser'
@@ -268,6 +279,8 @@ class StatementGenerator implements CalcVisitor<es.Statement> {
       argument: ctx._argument?.accept(exprGenerator)
     }
   }
+
+  // ==============================================================
 
   visitStatement?: ((ctx: StatementContext) => es.Statement) | undefined
 
@@ -737,6 +750,151 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
       test: this.visit(ctx._test),
       consequent: this.visit(ctx._cons),
       alternate: this.visit(ctx._alt),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  // Assignment expressions =======================================
+
+  visitAssignment(ctx: AssignmentContext): es.Expression {
+    return {
+      type: 'AssignmentExpression',
+      operator: '=',
+      left: {
+        type: 'Identifier',
+        name: ctx._left.text as string
+      },
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitAdditionAssignment(ctx: AdditionAssignmentContext): es.Expression {
+    return {
+      type: 'AssignmentExpression',
+      operator: '+=',
+      left: {
+        type: 'Identifier',
+        name: ctx._left.text as string
+      },
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitSubtractionAssignment(ctx: SubtractionAssignmentContext): es.Expression {
+    return {
+      type: 'AssignmentExpression',
+      operator: '-=',
+      left: {
+        type: 'Identifier',
+        name: ctx._left.text as string
+      },
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitMultiplicationAssignment(ctx: MultiplicationAssignmentContext): es.Expression {
+    return {
+      type: 'AssignmentExpression',
+      operator: '*=',
+      left: {
+        type: 'Identifier',
+        name: ctx._left.text as string
+      },
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitDivisionAssignment(ctx: DivisionAssignmentContext): es.Expression {
+    return {
+      type: 'AssignmentExpression',
+      operator: '/=',
+      left: {
+        type: 'Identifier',
+        name: ctx._left.text as string
+      },
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitModuloAssignment(ctx: ModuloAssignmentContext): es.Expression {
+    return {
+      type: 'AssignmentExpression',
+      operator: '%=',
+      left: {
+        type: 'Identifier',
+        name: ctx._left.text as string
+      },
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitShiftLeftAssignment(ctx: ShiftLeftAssignmentContext): es.Expression {
+    return {
+      type: 'AssignmentExpression',
+      operator: '<<=',
+      left: {
+        type: 'Identifier',
+        name: ctx._left.text as string
+      },
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitShiftRightAssignment(ctx: ShiftRightAssignmentContext): es.Expression {
+    return {
+      type: 'AssignmentExpression',
+      operator: '>>=',
+      left: {
+        type: 'Identifier',
+        name: ctx._left.text as string
+      },
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitBitwiseOrAssignment(ctx: BitwiseOrAssignmentContext): es.Expression {
+    return {
+      type: 'AssignmentExpression',
+      operator: '|=',
+      left: {
+        type: 'Identifier',
+        name: ctx._left.text as string
+      },
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitBitwiseXorAssignment(ctx: BitwiseXorAssignmentContext): es.Expression {
+    return {
+      type: 'AssignmentExpression',
+      operator: '^=',
+      left: {
+        type: 'Identifier',
+        name: ctx._left.text as string
+      },
+      right: this.visit(ctx._right),
+      loc: contextToLocation(ctx)
+    }
+  }
+
+  visitBitwiseAndAssignment(ctx: BitwiseAndAssignmentContext): es.Expression {
+    return {
+      type: 'AssignmentExpression',
+      operator: '&=',
+      left: {
+        type: 'Identifier',
+        name: ctx._left.text as string
+      },
+      right: this.visit(ctx._right),
       loc: contextToLocation(ctx)
     }
   }
