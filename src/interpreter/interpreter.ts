@@ -102,7 +102,11 @@ export const pushEnvironment = (context: Context, environment: Environment) => {
   context.runtime.environmentTree.insert(environment)
 }
 
-export const createBlockEnv = (context: Context, name = 'blockEnvironment', head: Frame = {}): Environment => {
+export const createBlockEnv = (
+  context: Context,
+  name = 'blockEnvironment',
+  head: Frame = {}
+): Environment => {
   return {
     name,
     tail: currEnv(context),
