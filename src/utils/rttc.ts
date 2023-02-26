@@ -48,8 +48,8 @@ const isArray = (v: Value) => typeOf(v) === 'array'
 export const checkUnaryExpression = (node: es.Node, operator: es.UnaryOperator, value: Value) => {
   if ((operator === '+' || operator === '-') && !isNumber(value)) {
     return new TypeError(node, '', 'number', typeOf(value))
-  } else if (operator === '!' && !isBool(value)) {
-    return new TypeError(node, '', 'boolean', typeOf(value))
+  } else if (operator === '!' && !isNumber(value)) {
+    return new TypeError(node, '', 'number', typeOf(value))
   } else {
     return undefined
   }
