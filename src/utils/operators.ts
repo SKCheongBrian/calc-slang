@@ -195,17 +195,17 @@ export function evaluateBinaryExpression(operator: BinaryOperator, left: any, ri
     case '%':
       return left % right
     case '===':
-      return left === right
+      return left === right ? 1 : 0
     case '!==':
-      return left !== right
+      return left !== right ? 1 : 0
     case '<=':
-      return left <= right
+      return left <= right ? 1 : 0
     case '<':
-      return left < right
+      return left < right ? 1 : 0
     case '>':
-      return left > right
+      return left > right ? 1 : 0
     case '>=':
-      return left >= right
+      return left >= right ? 1 : 0
     default:
       return undefined
   }
