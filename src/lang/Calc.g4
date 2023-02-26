@@ -7,26 +7,43 @@ grammar Calc;
 // Symbols
 MUL: '*';
 DIV: '/';
-MODULO: '%';
+MOD: '%';
 ADD: '+';
 SUB: '-';
+
 INC: '++';
 DEC: '--';
+
 EQ: '==';
 NEQ: '!=';
 SLT: '<';
 SGT: '>';
 LTE: '<=';
 GTE: '>=';
+
 ASSIGN: '=';
+ASSIGN_ADD: '+=';
+ASSIGN_SUB: '-=';
+ASSIGN_MUL: '*=';
+ASSIGN_DIV: '/=';
+ASSIGN_MOD: '%=';
+ASSIGN_SHL: '<<=';
+ASSIGN_SHR: '>>=';
+ASSIGN_OR: '|=';
+ASSIGN_XOR: '^=';
+ASSIGN_AND: '&=';
+
 BITWISE_AND: '&';
 BITWISE_XOR: '^';
 BITWISE_OR: '|';
 BITWISE_CMPL: '~';
+
 LOGICAL_AND: '&&';
 LOGICAL_OR: '||';
+
 SHL: '<<';
 SHR: '>>';
+
 OPEN_PARENTHESIS: '(';
 CLOSED_PARENTHESIS: ')';
 LEFT_BRACE: '{';
@@ -70,7 +87,7 @@ fragment DIGIT: [0-9];
 /*
  * Productions
  */
-start: statement*;
+start: (statement | functionDefinition)*;
 
 statement:
 	labeledStatement
@@ -80,6 +97,16 @@ statement:
 	| selectionStatement
 	| iterationStatement
 	| jumpStatement;
+
+// Function definition =======================================
+
+functionDefinition:
+	declSpec = declarationSpecifier decl = declarator body = compoundStatement;
+
+parameterList:
+	parameterDeclaration (COMMA parameterDeclaration)*;
+
+parameterDeclaration: declarationSpecifier decl = declarator;
 
 // Labeled statement =======================================
 
@@ -110,7 +137,10 @@ initDeclarator: decl = declarator (ASSIGN init = initializer)?;
 
 declarator: dirDecl = directDeclarator;
 
-directDeclarator: id = IDENTIFIER;
+directDeclarator:
+	id = IDENTIFIER
+	// Function definition
+	| dirDecl = directDeclarator OPEN_PARENTHESIS params = parameterList? CLOSED_PARENTHESIS;
 
 initializer: assignExpr = assignmentExpression;
 
@@ -142,11 +172,11 @@ expression:
 	| operator = EXCLAM argument = expression # Factorial
 
 	// (Binary) arithmetic expressions
-	| left = expression operator = MUL right = expression		# Multiplication
-	| left = expression operator = DIV right = expression		# Division
-	| left = expression operator = MODULO right = expression	# Modulo
-	| left = expression operator = ADD right = expression		# Addition
-	| left = expression operator = SUB right = expression		# Subtraction
+	| left = expression operator = MUL right = expression	# Multiplication
+	| left = expression operator = DIV right = expression	# Division
+	| left = expression operator = MOD right = expression	# Modulo
+	| left = expression operator = ADD right = expression	# Addition
+	| left = expression operator = SUB right = expression	# Subtraction
 
 	// Shift expressions
 	| left = expression operator = SHL right = expression	# ShiftLeft
@@ -170,9 +200,22 @@ expression:
 	| left = expression operator = LOGICAL_AND right = expression	# LogicalAnd
 
 	// Conditional expression
-	| test = expression QUESTION cons = expression COLON alt = expression # Conditional;
+	| test = expression QUESTION cons = expression COLON alt = expression # Conditional
 
-// Selection statement =======================================
+	// Assignment expressions
+	| left = IDENTIFIER operator = ASSIGN right = expression		# Assignment
+	| left = IDENTIFIER operator = ASSIGN_ADD right = expression	# AdditionAssignment
+	| left = IDENTIFIER operator = ASSIGN_SUB right = expression	# SubtractionAssignment
+	| left = IDENTIFIER operator = ASSIGN_MUL right = expression	# MultiplicationAssignment
+	| left = IDENTIFIER operator = ASSIGN_DIV right = expression	# DivisionAssignment
+	| left = IDENTIFIER operator = ASSIGN_MOD right = expression	# ModuloAssignment
+	| left = IDENTIFIER operator = ASSIGN_SHL right = expression	# ShiftLeftAssignment
+	| left = IDENTIFIER operator = ASSIGN_SHR right = expression	# ShiftRightAssignment
+	| left = IDENTIFIER operator = ASSIGN_OR right = expression		# BitwiseOrAssignment
+	| left = IDENTIFIER operator = ASSIGN_XOR right = expression	# BitwiseXorAssignment
+	| left = IDENTIFIER operator = ASSIGN_AND right = expression	# BitwiseAndAssignment;
+
+// Selection statements =======================================
 
 selectionStatement:
 	IF OPEN_PARENTHESIS test = expression CLOSED_PARENTHESIS cons = statement (
