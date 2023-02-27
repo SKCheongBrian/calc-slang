@@ -1,11 +1,9 @@
-import { DoWhileStatementContext } from './../lang/CalcParser';
-import { UndefinedVariable } from './../errors/errors';
 /* tslint:disable:max-classes-per-file */
 import * as es from 'estree'
-import * as errors from '../errors/errors'
 import { isUndefined, reduce, uniqueId } from 'lodash'
 
 import { createGlobalEnvironment } from '../createContext'
+import * as errors from '../errors/errors'
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
 import { is_undefined } from '../stdlib/misc'
 import { Context, Environment, Frame, Value } from '../types'
@@ -15,6 +13,8 @@ import {
   evaluateUpdateExpression
 } from '../utils/operators'
 import * as rttc from '../utils/rttc'
+import { UndefinedVariable } from './../errors/errors'
+import { DoWhileStatementContext } from './../lang/CalcParser'
 
 class Thunk {
   public value: Value
@@ -47,8 +47,8 @@ function isFalse(v: any) {
 export function* actualValue(exp: es.Node, context: Context): Value {
   const evalResult = yield* evaluate(exp, context)
   const forced = yield* forceIt(evalResult, context)
-  console.log("-------------------")
-  console.log("actual Value: " + forced)
+  console.log('-------------------')
+  console.log('actual Value: ' + forced)
   return forced
 }
 
