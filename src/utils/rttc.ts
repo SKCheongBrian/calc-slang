@@ -41,7 +41,7 @@ const isNumber = (v: Value) => typeOf(v) === 'number'
 // tslint:disable-next-line:no-bitwise
 const isArrayIndex = (v: Value) => isNumber(v) && v >>> 0 === v && v < 2 ** 32 - 1
 const isString = (v: Value) => typeOf(v) === 'string'
-const isBool = (v: Value) => typeOf(v) === 'boolean'
+// const isBool = (v: Value) => typeOf(v) === 'boolean'
 const isObject = (v: Value) => typeOf(v) === 'object'
 const isArray = (v: Value) => typeOf(v) === 'array'
 
@@ -101,7 +101,7 @@ export const checkBinaryExpression = (
 }
 
 export const checkIfStatement = (node: es.Node, test: Value) => {
-  return isBool(test) ? undefined : new TypeError(node, ' as condition', 'boolean', typeOf(test))
+  return isNumber(test) ? undefined : new TypeError(node, ' as condition', 'number', typeOf(test))
 }
 
 export const checkMemberAccess = (node: es.Node, obj: Value, prop: Value) => {
