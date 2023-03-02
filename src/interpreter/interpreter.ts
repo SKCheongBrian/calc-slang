@@ -256,7 +256,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   ConditionalExpression: function* (node: es.ConditionalExpression, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    return yield* this.IfStatement(node, context)
   },
 
   LogicalExpression: function* (node: es.LogicalExpression, context: Context) {
