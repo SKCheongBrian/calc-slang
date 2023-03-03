@@ -156,8 +156,7 @@ expression:
 	| OPEN_PARENTHESIS inner = expression CLOSED_PARENTHESIS	# Parentheses
 
 	// (Function) call expression
-	| id = IDENTIFIER OPEN_PARENTHESIS args = argumentExpressionList? CLOSED_PARENTHESIS #
-		CallExpression
+	| id = IDENTIFIER OPEN_PARENTHESIS args = argumentExpressionList? CLOSED_PARENTHESIS # Call
 
 	// Update expressions
 	| argument = expression operator = INC	# IncrementPostfix

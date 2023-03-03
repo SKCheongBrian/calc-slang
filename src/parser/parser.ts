@@ -20,7 +20,7 @@ import {
   BitwiseXorContext,
   BreakStatementContext,
   CalcParser,
-  CallExpressionContext,
+  CallContext,
   CompoundStatementContext,
   ConditionalContext,
   ContinueStatementContext,
@@ -505,7 +505,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
 
   // Call expression =======================================
 
-  visitCallExpression(ctx: CallExpressionContext): es.Expression {
+  visitCallExpression(ctx: CallContext): es.Expression {
     // Parse callee
     const callee: es.Identifier = {
       type: 'Identifier',
@@ -525,7 +525,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
       type: 'CallExpression',
       optional: false,
       callee,
-      arguments: args,
+      arguments: args
     }
   }
 
