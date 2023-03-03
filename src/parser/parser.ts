@@ -505,7 +505,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
 
   // Call expression =======================================
 
-  visitCallExpression(ctx: CallContext): es.Expression {
+  visitCall(ctx: CallContext): es.Expression {
     // Parse callee
     const callee: es.Identifier = {
       type: 'Identifier',
