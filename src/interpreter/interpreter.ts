@@ -1,3 +1,4 @@
+import { Identifier } from 'estree';
 /* tslint:disable:max-classes-per-file */
 import * as es from 'estree'
 import { isUndefined, reduce, uniqueId } from 'lodash'
@@ -15,6 +16,7 @@ import {
 import * as rttc from '../utils/rttc'
 import { UndefinedVariable } from './../errors/errors'
 import { DoWhileStatementContext } from './../lang/CalcParser'
+import Closure from './closure'
 
 class Thunk {
   public value: Value
@@ -70,7 +72,7 @@ function* reduceIf(
   context: Context
 ): IterableIterator<null | es.Node> {
   const test = yield* actualValue(node.test, context)
-  return test == 0 ? node.alternate : node.consequent
+  return isFalse(test) ? node.alternate : node.consequent
 }
 
 function* leave(context: Context) {
@@ -340,7 +342,12 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   FunctionDeclaration: function* (node: es.FunctionDeclaration, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    const id = node.id
+    if (id === null) {
+      throw new Error("This should have been caught during parsing.")
+    }
+    const closure = new Closure(node.params as Identifier[], node.body, currEnv(context), context)
+    makeVar(context, id.name, closure)
   },
 
   IfStatement: function* (node: es.IfStatement | es.ConditionalExpression, context: Context) {
