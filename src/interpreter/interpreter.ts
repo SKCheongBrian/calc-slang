@@ -1,13 +1,13 @@
-import { createEmptyContext } from './../createContext';
-import { BinaryOperator } from 'estree';
+import { BinaryOperator } from 'estree'
 /* tslint:disable:max-classes-per-file */
 import * as es from 'estree'
-import { createGlobalEnvironment } from '../createContext'
 
+import { createGlobalEnvironment } from '../createContext'
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
 import { Context, Environment, Value } from '../types'
 import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
 import * as rttc from '../utils/rttc'
+import { createEmptyContext } from './../createContext'
 
 class Thunk {
   public value: Value
@@ -224,25 +224,23 @@ export function* evaluate(node: es.Node, _: Context) {
   let i: number = 0
   while (i < step_limit) {
     if (A.length === 0) break
-    console.log("A before popping")
+    console.log('A before popping')
     console.log(A.slice(0))
     const cmd = A.pop()
-    console.log("A after popping")
+    console.log('A after popping')
     console.log(A.slice(0))
     console.log(cmd)
     console.log(i)
     console.log(S.slice(0))
-    if (evaluators.hasOwnProperty(cmd.type))
-      yield* evaluators[cmd.type](cmd, context)
-    else
-      throw new Error("unknown command")
-    console.log("A after executing command")
+    if (evaluators.hasOwnProperty(cmd.type)) yield* evaluators[cmd.type](cmd, context)
+    else throw new Error('unknown command')
+    console.log('A after executing command')
     console.log(A.slice(0))
-    console.log("---------------")
+    console.log('---------------')
     i++
   }
   if (i === step_limit) {
-    throw new Error("step limit exceeded")
+    throw new Error('step limit exceeded')
   }
   console.log(S.slice(0))
   return S[0]
