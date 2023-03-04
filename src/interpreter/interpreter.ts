@@ -1,22 +1,15 @@
-import { Identifier } from 'estree'
+import { BinaryOperator } from 'estree'
 /* tslint:disable:max-classes-per-file */
 import * as es from 'estree'
-import { isUndefined, reduce, uniqueId } from 'lodash'
+import { isUndefined, uniqueId } from 'lodash'
 
 import { createGlobalEnvironment } from '../createContext'
 import * as errors from '../errors/errors'
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
-import { is_undefined } from '../stdlib/misc'
 import { Context, Environment, Frame, Value } from '../types'
-import {
-  evaluateBinaryExpression,
-  evaluateUnaryExpression,
-  evaluateUpdateExpression
-} from '../utils/operators'
+import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
 import * as rttc from '../utils/rttc'
-import { UndefinedVariable } from './../errors/errors'
-import { DoWhileStatementContext } from './../lang/CalcParser'
-import Closure from './closure'
+import { createEmptyContext } from './../createContext'
 
 class Thunk {
   public value: Value
@@ -27,32 +20,29 @@ class Thunk {
   }
 }
 
-class BreakValue {}
+let A: any[]
+let S: any[]
 
-function* forceIt(val: any, context: Context): Value {
-  if (val instanceof Thunk) {
-    if (val.isMemoized) return val.value
+// ? Commenting out since it calls evaluate
+// function* forceIt(val: any, context: Context): Value {
+//   if (val instanceof Thunk) {
+//     if (val.isMemoized) return val.value
 
-    pushEnvironment(context, val.env)
-    const evalRes = yield* actualValue(val.exp, context)
-    popEnvironment(context)
-    val.value = evalRes
-    val.isMemoized = true
-    return evalRes
-  } else return val
-}
+//     pushEnvironment(context, val.env)
+//     const evalRes = yield* actualValue(val.exp, context)
+//     popEnvironment(context)
+//     val.value = evalRes
+//     val.isMemoized = true
+//     return evalRes
+//   } else return val
+// }
 
-function isFalse(v: any) {
-  return v === 0
-}
-
-export function* actualValue(exp: es.Node, context: Context): Value {
-  const evalResult = yield* evaluate(exp, context)
-  const forced = yield* forceIt(evalResult, context)
-  console.log('-------------------')
-  console.log('actual Value: ' + forced)
-  return forced
-}
+// ? Commenting out since it calls evaluate
+// export function* actualValue(exp: es.Node, context: Context): Value {
+//   const evalResult = yield* evaluate(exp, context)
+//   const forced = yield* forceIt(evalResult, context)
+//   return forced
+// }
 
 const handleRuntimeError = (context: Context, error: RuntimeSourceError): never => {
   context.errors.push(error)
@@ -67,19 +57,21 @@ function* visit(context: Context, node: es.Node) {
   yield context
 }
 
-function* reduceIf(
-  node: es.IfStatement | es.ConditionalExpression,
-  context: Context
-): IterableIterator<null | es.Node> {
-  const test = yield* actualValue(node.test, context)
-  return isFalse(test) ? node.alternate : node.consequent
-}
-
 function* leave(context: Context) {
   context.runtime.break = false
   context.runtime.nodes.shift()
   yield context
 }
+
+export type Evaluator<T extends es.Node> = (node: T, context: Context) => IterableIterator<Value>
+
+// function* evaluateBlockSatement(context: Context, node: es.BlockStatement) {
+//   let result
+//   for (const statement of node.body) {
+//     result = yield* evaluate(statement, context)
+//   }
+//   return result
+// }
 
 /* -------------------------------------------------------------------------- */
 /*                                  Variable                                  */
@@ -127,10 +119,6 @@ const setVar = (context: Context, name: string, value: any) => {
   return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
 }
 
-/* -------------------------------------------------------------------------- */
-/*                                 Environment                                */
-/* -------------------------------------------------------------------------- */
-
 const currEnv = (c: Context) => c.runtime.environments[0]
 const popEnvironment = (context: Context) => context.runtime.environments.shift()
 export const pushEnvironment = (context: Context, environment: Environment) => {
@@ -151,14 +139,17 @@ export const createBlockEnv = (
   }
 }
 
-export type Evaluator<T extends es.Node> = (node: T, context: Context) => IterableIterator<Value>
-
-function* evaluateBlockSatement(context: Context, node: es.BlockStatement) {
-  let result
-  for (const statement of node.body) {
-    result = yield* evaluate(statement, context)
+const handle_body = (body: any, context: Context) => {
+  if (body.length === 0) {
+    return [[{ type: 'Literal', value: undefined }, context]]
   }
-  return result
+  const res = []
+  let first = true
+  for (const cmd of body) {
+    first ? (first = false) : res.push([{ type: 'Pop_i' }, context])
+    res.push([cmd, context])
+  }
+  return res.reverse()
 }
 
 /**
@@ -174,9 +165,12 @@ function* evaluateBlockSatement(context: Context, node: es.BlockStatement) {
 // tslint:disable:object-literal-shorthand
 // prettier-ignore
 export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
+  Pop_i: function* (node: any, _context: Context) {
+    S.pop()
+  },
   /** Simple Values */
   Literal: function* (node: es.Literal, _context: Context) {
-    return node.value
+    S.push(node.value)
   },
 
   TemplateLiteral: function* (node: es.TemplateLiteral) {
@@ -202,8 +196,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   Identifier: function* (node: es.Identifier, context: Context) {
-    const name = node.name
-    return getVar(context, name)
+    S.push(getVar(context, node.name))
   },
 
   CallExpression: function* (node: es.CallExpression, context: Context) {
@@ -215,52 +208,27 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   UnaryExpression: function* (node: es.UnaryExpression, context: Context) {
-    const value = yield* actualValue(node.argument, context)
-
-    const error = rttc.checkUnaryExpression(node, node.operator, value)
-    if (error) {
-      return handleRuntimeError(context, error)
-    }
-    return evaluateUnaryExpression(node.operator, value)
+    A.push([{ type: "UnaryExpression_i", operator: node.operator }, context], [node.argument, context])
   },
 
-  /**
-   * Will return the new updated value if prefix is true else will return the old value
-   * currently only used for "++" and "--" operators
-   * @param node the update expression node
-   * @param context current context
-   * @returns value after applying the operator
-   */
-  UpdateExpression: function* (node: es.UpdateExpression, context: Context) {
-    const value = yield* actualValue(node.argument, context)
-    console.log("------------------------")
-    console.log("value " + value)
-    console.log("------------------------")
-
-    const error = rttc.checkUpdateExpression(node, node.operator, value)
-    if (error) {
-      return handleRuntimeError(context, error)
-    }
-    const final_value = evaluateUpdateExpression(node.operator, value)
-    console.log("------------------------")
-    console.log("final_value " + final_value)
-    console.log("------------------------")
-    setVar(context, (node.argument as es.Identifier).name, final_value)
-    return node.prefix ? final_value : value
+  UnaryExpression_i: function* (node: any, context: Context) {
+    const result = evaluateUnaryExpression(node.operator, S.pop())
+    S.push(result)
   },
 
   BinaryExpression: function* (node: es.BinaryExpression, context: Context) {
-    const left = yield* actualValue(node.left, context)
-    const right = yield* actualValue(node.right, context)
-    const error = rttc.checkBinaryExpression(node, node.operator, left, right)
-    if (error) {
-      return handleRuntimeError(context, error)
-    }
-    return evaluateBinaryExpression(node.operator, left, right)
+    A.push([{ type: "BinaryExpression_i", operator: node.operator }, context], [node.right, context], [node.left, context])
+  },
+
+  // TODO: I'm not sure the type of node should be here since its a weird one
+  BinaryExpression_i: function* (node: any, context: Context) {
+    const result = evaluateBinaryExpression(node.operator, S.pop(), S.pop())
+    console.log("result: " + result)
+    S.push(result)
   },
 
   ConditionalExpression: function* (node: es.ConditionalExpression, context: Context) {
-    return yield* this.IfStatement(node, context)
+    throw new Error(`not supported yet: ${node.type}`)
   },
 
   LogicalExpression: function* (node: es.LogicalExpression, context: Context) {
@@ -274,11 +242,19 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
       const identifier = declaration.id as es.Identifier
       const symbol = identifier.name
       const init = (declaration.init == null || isUndefined(declaration.init))
-          ? undefined
-          : yield* actualValue(declaration.init, context)
-      makeVar(context, symbol, init)
+        ? undefined
+        : declaration.init
+      A.push(
+        [{type: 'Literal', value: undefined}, context],
+        [{ type: "Pop_i" }, context],
+        [{ type: "VarDec_i", symbol: symbol}, context], 
+        [init, context]
+      )
     }
-    return undefined
+  },
+
+  VarDec_i: function* (node: any, context: Context) {
+    makeVar(context, node.symbol, S[S.length-1])
   },
 
   ContinueStatement: function* (_node: es.ContinueStatement, _context: Context) {
@@ -295,73 +271,23 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
 
 
   AssignmentExpression: function* (node: es.AssignmentExpression, context: Context) {
-    if (node.left.type === "Identifier") {
-      const id = node.left as es.Identifier
-      const name = id.name
-      const value = yield* evaluate(node.right, context)
-      switch (node.operator) {
-        case "=": {
-          setVar(context, name, value)
-          return value
-        }
-        case "+=": {
-          const currVal = getVar(context, name)
-          const newVal = evaluateBinaryExpression("+", currVal, value)
-          setVar(context, name, newVal)
-          return newVal
-        }
-        case "-=": {
-          const currVal = getVar(context, name)
-          const newVal = evaluateBinaryExpression("-", currVal, value)
-          setVar(context, name, newVal)
-          return newVal
-        }
-        case "*=": {
-          const currVal = getVar(context, name)
-          const newVal = evaluateBinaryExpression("*", currVal, value)
-          setVar(context, name, newVal)
-          return newVal
-        }
-        case "/=": {
-          const currVal = getVar(context, name)
-          const newVal = evaluateBinaryExpression("/", currVal, value)
-          setVar(context, name, newVal)
-          return newVal
-        }
-        case "%=": {
-          const currVal = getVar(context, name)
-          const newVal = evaluateBinaryExpression("%", currVal, value)
-          setVar(context, name, newVal)
-          return newVal
-        }
-        // TODO add more of the assignment stuff
-        default: {
-          // ! not sure if this is correctly set
-          return undefined
-        }
-      }
-    }
+    A.push([{ type: "Assignment_i", symbol: node.left }, context], [node.right, context])
+  },
+
+  Assignment_i: function* (node: any, context: Context) {
+    // TODO
   },
 
   FunctionDeclaration: function* (node: es.FunctionDeclaration, context: Context) {
-    const id = node.id
-    if (id === null) {
-      throw new Error("This should have been caught during parsing.")
-    }
-    const closure = new Closure(node.params as Identifier[], node.body, currEnv(context), context)
-    makeVar(context, id.name, closure)
+    throw new Error(`not supported yet: ${node.type}`)
   },
 
   IfStatement: function* (node: es.IfStatement | es.ConditionalExpression, context: Context) {
-    const result = yield* reduceIf(node, context)
-    if (result === null) {
-      return undefined
-    }
-    return yield* evaluate(result, context)
+    throw new Error(`not supported yet: ${node.type}`)
   },
 
   ExpressionStatement: function* (node: es.ExpressionStatement, context: Context) {
-    return yield* evaluate(node.expression, context)
+    A.push([node.expression, context])
   },
 
   ReturnStatement: function* (node: es.ReturnStatement, context: Context) {
@@ -369,57 +295,52 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   WhileStatement: function* (node: es.WhileStatement, context: Context) {
-    let value: any
-    while (
-      ((yield* actualValue(node.test, context)) !== 0) &&
-      !(value instanceof BreakValue)
-    ) {
-      value = yield* actualValue(node.body, context)
-    }
-    if (value instanceof BreakValue) {
-      return undefined
-    }
-    return value
+    throw new Error(`not supported yet: ${node.type}`)
   },
 
-  DoWhileStatement: function* (node: es.DoWhileStatement, context: Context) {
-    let value: any
-    value = yield* actualValue(node.body, context)
-    while (
-      ((yield* actualValue(node.test, context)) !== 0) &&
-      !(value instanceof BreakValue)
-    ) {
-      value = yield* actualValue(node.body, context)
-    }
-    if (value instanceof BreakValue) {
-      return undefined
-    }
-    return value
-  },
 
   BlockStatement: function* (node: es.BlockStatement, context: Context) {
-    const env = createBlockEnv(context, 'blockEnvironment')
-    pushEnvironment(context, env)
-    const result = yield* evaluateBlockSatement(context, node)
-    popEnvironment(context)
-    return result
+    throw new Error(`not supported yet: ${node.type}`)
   },
 
   Program: function* (node: es.BlockStatement, context: Context) {
-    context.numberOfOuterEnvironments++
-    const env = createGlobalEnvironment()
-    pushEnvironment(context, env)
-    const result = yield* forceIt(yield* evaluateBlockSatement(context, node), context);
-    return result;
+    A.push(...handle_body(node.body, context))
   }
 }
 // tslint:enable:object-literal-shorthand
 
+const step_limit = 100
 export function* evaluate(node: es.Node, context: Context) {
-  console.log('current node:--------')
-  console.log(node)
-  console.log('---------------------')
-  const result = yield* evaluators[node.type](node, context)
-  yield* leave(context)
-  return result
+  context.numberOfOuterEnvironments++
+  const env = createGlobalEnvironment()
+  pushEnvironment(context, env)
+  A = [[node, context]]
+  console.log(A.slice(0))
+  S = []
+  // ? idk what this is (talking about the any)
+  let i: number = 0
+  while (i < step_limit) {
+    if (A.length === 0) break
+    console.log('A before popping')
+    console.log(A.slice(0))
+    const curr = A.pop()
+    const cmd = curr[0]
+    const ctxt = curr[1]
+    console.log('A after popping')
+    console.log(A.slice(0))
+    console.log(cmd)
+    console.log(i)
+    console.log(S.slice(0))
+    if (evaluators.hasOwnProperty(cmd.type)) yield* evaluators[cmd.type](cmd, ctxt)
+    else throw new Error('unknown command')
+    console.log('A after executing command')
+    console.log(A.slice(0))
+    console.log('---------------')
+    i++
+  }
+  if (i === step_limit) {
+    throw new Error('step limit exceeded')
+  }
+  console.log(S.slice(0))
+  return S[0]
 }
