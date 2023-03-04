@@ -1,4 +1,4 @@
-import { Identifier } from 'estree';
+import { Identifier } from 'estree'
 /* tslint:disable:max-classes-per-file */
 import * as es from 'estree'
 import { isUndefined, reduce, uniqueId } from 'lodash'
@@ -93,6 +93,7 @@ const makeVar = (context: Context, symbol: string, val: any) => {
   console.log('env:---------')
   console.log(env)
   console.log('-------------')
+  // TODO: map name to address instead value
   Object.defineProperty(env.head, symbol, {
     value: val,
     writable: true
@@ -106,6 +107,7 @@ const getVar = (context: Context, name: string) => {
       console.log('from env head(env mappings):-----')
       console.log(env.head)
       console.log('-------------------')
+      // TODO change to heap look up address
       return env.head[name]
     }
     env = env.tail
