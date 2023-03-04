@@ -20,6 +20,7 @@ import {
   BitwiseXorContext,
   BreakStatementContext,
   CalcParser,
+  CallContext,
   CompoundStatementContext,
   ConditionalContext,
   ContinueStatementContext,
@@ -500,6 +501,32 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
 
   visitParentheses(ctx: ParenthesesContext): es.Expression {
     return this.visit(ctx.expression())
+  }
+
+  // Call expression =======================================
+
+  visitCall(ctx: CallContext): es.Expression {
+    // Parse callee
+    const callee: es.Identifier = {
+      type: 'Identifier',
+      name: ctx._id.text as string
+    }
+
+    // Parse args
+    const args: es.Expression[] = []
+    const argsList = ctx._args
+    if (argsList) {
+      for (let i = 0; i < argsList.childCount; i += 2) {
+        args.push(this.visit(argsList.getChild(i)))
+      }
+    }
+
+    return {
+      type: 'CallExpression',
+      optional: false,
+      callee,
+      arguments: args
+    }
   }
 
   // Update expressions =======================================

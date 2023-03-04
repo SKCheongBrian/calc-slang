@@ -155,6 +155,9 @@ expression:
 	| IDENTIFIER												# Identifier
 	| OPEN_PARENTHESIS inner = expression CLOSED_PARENTHESIS	# Parentheses
 
+	// (Function) call expression
+	| id = IDENTIFIER OPEN_PARENTHESIS args = argumentExpressionList? CLOSED_PARENTHESIS # Call
+
 	// Update expressions
 	| argument = expression operator = INC	# IncrementPostfix
 	| argument = expression operator = DEC	# DecrementPostfix
@@ -214,6 +217,8 @@ expression:
 	| left = IDENTIFIER operator = ASSIGN_OR right = expression		# BitwiseOrAssignment
 	| left = IDENTIFIER operator = ASSIGN_XOR right = expression	# BitwiseXorAssignment
 	| left = IDENTIFIER operator = ASSIGN_AND right = expression	# BitwiseAndAssignment;
+
+argumentExpressionList: expression (COMMA expression)*;
 
 // Selection statements =======================================
 
