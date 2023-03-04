@@ -1,15 +1,15 @@
 import { BinaryOperator } from 'estree'
 /* tslint:disable:max-classes-per-file */
 import * as es from 'estree'
-import * as errors from '../errors/errors'
+import { isUndefined, uniqueId } from 'lodash'
 
 import { createGlobalEnvironment } from '../createContext'
+import * as errors from '../errors/errors'
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
 import { Context, Environment, Frame, Value } from '../types'
 import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
 import * as rttc from '../utils/rttc'
 import { createEmptyContext } from './../createContext'
-import { isUndefined, uniqueId } from 'lodash'
 
 class Thunk {
   public value: Value
@@ -141,13 +141,12 @@ export const createBlockEnv = (
 
 const handle_body = (body: any, context: Context) => {
   if (body.length === 0) {
-    return [[{type: "Literal", value: undefined}, context]]
+    return [[{ type: 'Literal', value: undefined }, context]]
   }
-  let res = []
+  const res = []
   let first = true
-  for (let cmd of body) {
-    first ? first = false
-          : res.push([{type: "Pop_i"}, context])
+  for (const cmd of body) {
+    first ? (first = false) : res.push([{ type: 'Pop_i' }, context])
     res.push([cmd, context])
   }
   return res.reverse()
