@@ -1,13 +1,15 @@
 import { BinaryOperator } from 'estree'
 /* tslint:disable:max-classes-per-file */
 import * as es from 'estree'
+import * as errors from '../errors/errors'
 
 import { createGlobalEnvironment } from '../createContext'
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
-import { Context, Environment, Value } from '../types'
+import { Context, Environment, Frame, Value } from '../types'
 import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
 import * as rttc from '../utils/rttc'
 import { createEmptyContext } from './../createContext'
+import { isUndefined, uniqueId } from 'lodash'
 
 class Thunk {
   public value: Value
@@ -20,7 +22,6 @@ class Thunk {
 
 let A: any[]
 let S: any[]
-let context: Context
 
 // ? Commenting out since it calls evaluate
 // function* forceIt(val: any, context: Context): Value {
@@ -62,12 +63,6 @@ function* leave(context: Context) {
   yield context
 }
 
-const popEnvironment = (context: Context) => context.runtime.environments.shift()
-export const pushEnvironment = (context: Context, environment: Environment) => {
-  context.runtime.environments.unshift(environment)
-  context.runtime.environmentTree.insert(environment)
-}
-
 export type Evaluator<T extends es.Node> = (node: T, context: Context) => IterableIterator<Value>
 
 // function* evaluateBlockSatement(context: Context, node: es.BlockStatement) {
@@ -77,6 +72,86 @@ export type Evaluator<T extends es.Node> = (node: T, context: Context) => Iterab
 //   }
 //   return result
 // }
+
+/* -------------------------------------------------------------------------- */
+/*                                  Variable                                  */
+/* -------------------------------------------------------------------------- */
+
+const makeVar = (context: Context, symbol: string, val: any) => {
+  const env = currEnv(context)
+  console.log('context:-----')
+  console.log(context)
+  console.log('-------------')
+  console.log('env:---------')
+  console.log(env)
+  console.log('-------------')
+  // TODO: map name to address instead value
+  Object.defineProperty(env.head, symbol, {
+    value: val,
+    writable: true
+  })
+}
+
+const getVar = (context: Context, name: string) => {
+  let env: Environment | null = currEnv(context)
+  while (env) {
+    if (env.head.hasOwnProperty(name)) {
+      console.log('from env head(env mappings):-----')
+      console.log(env.head)
+      console.log('-------------------')
+      // TODO change to heap look up address
+      return env.head[name]
+    }
+    env = env.tail
+  }
+}
+
+const setVar = (context: Context, name: string, value: any) => {
+  let env: Environment | null = currEnv(context)
+  // look through environment frames
+  while (env) {
+    if (env.head.hasOwnProperty(name)) {
+      env.head[name] = value
+      return undefined
+    }
+    env = env.tail
+  }
+  return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
+}
+
+const currEnv = (c: Context) => c.runtime.environments[0]
+const popEnvironment = (context: Context) => context.runtime.environments.shift()
+export const pushEnvironment = (context: Context, environment: Environment) => {
+  context.runtime.environments.unshift(environment)
+  context.runtime.environmentTree.insert(environment)
+}
+
+export const createBlockEnv = (
+  context: Context,
+  name = 'blockEnvironment',
+  head: Frame = {}
+): Environment => {
+  return {
+    name,
+    tail: currEnv(context),
+    head,
+    id: uniqueId()
+  }
+}
+
+const handle_body = (body: any, context: Context) => {
+  if (body.length === 0) {
+    return [[{type: "Literal", value: undefined}, context]]
+  }
+  let res = []
+  let first = true
+  for (let cmd of body) {
+    first ? first = false
+          : res.push([{type: "Pop_i"}, context])
+    res.push([cmd, context])
+  }
+  return res.reverse()
+}
 
 /**
  * WARNING: Do not use object literal shorthands, e.g.
@@ -91,6 +166,9 @@ export type Evaluator<T extends es.Node> = (node: T, context: Context) => Iterab
 // tslint:disable:object-literal-shorthand
 // prettier-ignore
 export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
+  Pop_i: function* (node: any, _context: Context) {
+    S.pop()
+  },
   /** Simple Values */
   Literal: function* (node: es.Literal, _context: Context) {
     S.push(node.value)
@@ -119,7 +197,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   Identifier: function* (node: es.Identifier, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    S.push(getVar(context, node.name))
   },
 
   CallExpression: function* (node: es.CallExpression, context: Context) {
@@ -131,7 +209,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   UnaryExpression: function* (node: es.UnaryExpression, context: Context) {
-    A.push({type: "UnaryExpression_i", operator: node.operator}, node.argument)
+    A.push([{ type: "UnaryExpression_i", operator: node.operator }, context], [node.argument, context])
   },
 
   UnaryExpression_i: function* (node: any, context: Context) {
@@ -140,7 +218,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   BinaryExpression: function* (node: es.BinaryExpression, context: Context) {
-    A.push({type: "BinaryExpression_i", operator: node.operator}, node.right, node.left)
+    A.push([{ type: "BinaryExpression_i", operator: node.operator }, context], [node.right, context], [node.left, context])
   },
 
   // TODO: I'm not sure the type of node should be here since its a weird one
@@ -159,7 +237,25 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   VariableDeclaration: function* (node: es.VariableDeclaration, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    const len = node.declarations.length
+    for (let i = 0; i < len; i++) {
+      const declaration = node.declarations[i]
+      const identifier = declaration.id as es.Identifier
+      const symbol = identifier.name
+      const init = (declaration.init == null || isUndefined(declaration.init))
+        ? undefined
+        : declaration.init
+      A.push(
+        [{type: 'Literal', value: undefined}, context],
+        [{ type: "Pop_i" }, context],
+        [{ type: "VarDec_i", symbol: symbol}, context], 
+        [init, context]
+      )
+    }
+  },
+
+  VarDec_i: function* (node: any, context: Context) {
+    makeVar(context, node.symbol, S[S.length-1])
   },
 
   ContinueStatement: function* (_node: es.ContinueStatement, _context: Context) {
@@ -176,7 +272,11 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
 
 
   AssignmentExpression: function* (node: es.AssignmentExpression, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    A.push([{ type: "Assignment_i", symbol: node.left }, context], [node.right, context])
+  },
+
+  Assignment_i: function* (node: any, context: Context) {
+    // TODO
   },
 
   FunctionDeclaration: function* (node: es.FunctionDeclaration, context: Context) {
@@ -188,8 +288,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   ExpressionStatement: function* (node: es.ExpressionStatement, context: Context) {
-    console.log("I AM FUCKING PUSHING: " + node.expression)
-    A.push(node.expression)
+    A.push([node.expression, context])
   },
 
   ReturnStatement: function* (node: es.ReturnStatement, context: Context) {
@@ -206,33 +305,34 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   Program: function* (node: es.BlockStatement, context: Context) {
-    A.push(...node.body)
+    A.push(...handle_body(node.body, context))
   }
 }
 // tslint:enable:object-literal-shorthand
 
 const step_limit = 100
-export function* evaluate(node: es.Node, _: Context) {
-  A = [node]
-  console.log(A.slice(0))
-  S = []
-  // ? idk what this is (talking about the any)
-  context = (createEmptyContext as any)(null, [])
+export function* evaluate(node: es.Node, context: Context) {
   context.numberOfOuterEnvironments++
   const env = createGlobalEnvironment()
   pushEnvironment(context, env)
+  A = [[node, context]]
+  console.log(A.slice(0))
+  S = []
+  // ? idk what this is (talking about the any)
   let i: number = 0
   while (i < step_limit) {
     if (A.length === 0) break
     console.log('A before popping')
     console.log(A.slice(0))
-    const cmd = A.pop()
+    const curr = A.pop()
+    const cmd = curr[0]
+    const ctxt = curr[1]
     console.log('A after popping')
     console.log(A.slice(0))
     console.log(cmd)
     console.log(i)
     console.log(S.slice(0))
-    if (evaluators.hasOwnProperty(cmd.type)) yield* evaluators[cmd.type](cmd, context)
+    if (evaluators.hasOwnProperty(cmd.type)) yield* evaluators[cmd.type](cmd, ctxt)
     else throw new Error('unknown command')
     console.log('A after executing command')
     console.log(A.slice(0))
