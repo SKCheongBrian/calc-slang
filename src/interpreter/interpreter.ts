@@ -275,7 +275,8 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   Assignment_i: function* (node: any, context: Context) {
-    // TODO
+    getVar(context, node.symbol.name)
+    setVar(context, node.symbol.name, S[S.length-1])
   },
 
   FunctionDeclaration: function* (node: es.FunctionDeclaration, context: Context) {
