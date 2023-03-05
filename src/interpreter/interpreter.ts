@@ -93,7 +93,6 @@ const makeVar = (context: Context, symbol: string, val: any) => {
 }
 
 const getVar = (context: Context, name: string) => {
-  console.log("(((((((((((((((((((((( DOING GET VAR")
   let env: Environment | null = currEnv(context)
   while (env) {
     if (env.head.hasOwnProperty(name)) {
@@ -108,7 +107,6 @@ const getVar = (context: Context, name: string) => {
 }
 
 const setVar = (context: Context, name: string, value: any) => {
-  console.log("(((((((((((((((((((((( DOING SET VAR")
   let env: Environment | null = currEnv(context)
   // look through environment frames
   while (env) {
