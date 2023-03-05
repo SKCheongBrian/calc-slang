@@ -194,10 +194,10 @@ export function evaluateBinaryExpression(operator: BinaryOperator, left: any, ri
       return left / right
     case '%':
       return left % right
-    case '===':
-      return left === right ? 1 : 0
-    case '!==':
-      return left !== right ? 1 : 0
+    case '==':
+      return left == right ? 1 : 0
+    case '!=':
+      return left != right ? 1 : 0
     case '<=':
       return left <= right ? 1 : 0
     case '<':
