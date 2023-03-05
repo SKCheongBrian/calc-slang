@@ -149,7 +149,7 @@ const create_unassigned = (locals: any[], context: Context) => {
   const env = currEnv(context)
   for (let i = 0; i < locals.length; i++) {
     const name = locals[i]
-    makeVar(context, name, { type: 'Unassigned' })
+    makeVar(context, name, { type: 'not_initialized' })
   }
 }
 
@@ -281,15 +281,14 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     for (let i = 0; i < len; i++) {
       const declaration = node.declarations[i]
       const identifier = declaration.id as es.Identifier
-      const symbol = identifier.name
+      // const symbol = identifier.name
       const init = (declaration.init == null || isUndefined(declaration.init))
         ? undefined
         : declaration.init
       A.push(
         [{type: 'Literal', value: undefined}, context],
         [{ type: "Pop_i" }, context],
-        [{ type: "VarDec_i", symbol: symbol}, context], 
-        [init, context]
+        [{type: "AssignmentExpression", left: identifier, right: init}, context],
       )
     }
   },
@@ -316,7 +315,8 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   Assignment_i: function* (node: any, context: Context) {
-    getVar(context, node.symbol.name)
+    console.log("LOOK FOR MEEEE")
+    console.log(node)
     setVar(context, node.symbol.name, S[S.length-1])
   },
 
