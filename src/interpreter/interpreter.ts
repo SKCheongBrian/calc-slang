@@ -363,7 +363,21 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   IfStatement: function* (node: es.IfStatement | es.ConditionalExpression, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    A.push(
+        [{type: 'Conditional_i', cons: node.consequent, alt: node.alternate}, context],
+        [node.test, context]
+      )
+    console.log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+    console.log(A)
+    console.log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+  },
+
+  Conditional_i: function* (node: any, context: Context) {
+    console.log("???????????????????????????????????")
+    console.log(S)
+    console.log(A)
+    console.log("???????????????????????????????????")
+    A.push(S.pop() ? node.cons : node.alt)
   },
 
   ExpressionStatement: function* (node: es.ExpressionStatement, context: Context) {
