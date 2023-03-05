@@ -119,8 +119,14 @@ const setVar = (context: Context, name: string, value: any) => {
   return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                 Environment                                */
+/* -------------------------------------------------------------------------- */
+
 const currEnv = (c: Context) => c.runtime.environments[0]
+
 const popEnvironment = (context: Context) => context.runtime.environments.shift()
+
 export const pushEnvironment = (context: Context, environment: Environment) => {
   context.runtime.environments.unshift(environment)
   context.runtime.environmentTree.insert(environment)
@@ -137,6 +143,36 @@ export const createBlockEnv = (
     head,
     id: uniqueId()
   }
+}
+
+const create_unassigned = (locals: any[], context: Context) => {
+  const env = currEnv(context)
+  for (let i = 0; i < locals.length; i++) {
+    const name = locals[i]
+    makeVar(context, name, {type: "Unassigned"})
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                    Body                                    */
+/* -------------------------------------------------------------------------- */
+
+const scan = (body_arr: any) => {
+  const res = []
+  for (let i = 0; i < body_arr.length; i++) {
+    const statement: any = body_arr[i]
+    if (statement.type === "VariableDeclaration") {
+      const len = statement.declarations.length
+      for (let i = 0; i < len; i++) {
+        const declaration = statement.declarations[i]
+        const identifier = declaration.id as es.Identifier
+        res.push(identifier.name)
+      }
+    } else if (statement.type === "FunctionDeclaration") {
+      res.push(statement.id.name)
+    }
+  }
+  return res
 }
 
 const handle_body = (body: any, context: Context) => {
@@ -164,6 +200,11 @@ const handle_body = (body: any, context: Context) => {
  */
 // tslint:disable:object-literal-shorthand
 // prettier-ignore
+
+/* -------------------------------------------------------------------------- */
+/*                                  Microcode                                 */
+/* -------------------------------------------------------------------------- */
+
 export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   Pop_i: function* (node: any, _context: Context) {
     S.pop()
@@ -304,6 +345,12 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   Program: function* (node: es.BlockStatement, context: Context) {
+    const env = createBlockEnv(context, 'programEnvironment')
+    pushEnvironment(context, env)
+    const locals = scan(node.body)
+    console.log("LOCALS:-----------------------")
+    console.log(locals)
+    create_unassigned(locals, context)
     A.push(...handle_body(node.body, context))
   }
 }
