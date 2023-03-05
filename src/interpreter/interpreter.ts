@@ -258,7 +258,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   BinaryExpression: function* (node: es.BinaryExpression, context: Context) {
-    A.push([{ type: "BinaryExpression_i", operator: node.operator }, context], [node.right, context], [node.left, context])
+    A.push([{ type: "BinaryExpression_i", operator: node.operator }, context], [node.left, context], [node.right, context])
   },
 
   // TODO: I'm not sure the type of node should be here since its a weird one
@@ -288,7 +288,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
       A.push(
         [{type: 'Literal', value: undefined}, context],
         [{ type: "Pop_i" }, context],
-        [{type: "AssignmentExpression", left: identifier, right: init}, context],
+        [{type: "AssignmentExpression", left: identifier, right: init, operator: "="}, context],
       )
     }
   },
@@ -311,7 +311,41 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
 
 
   AssignmentExpression: function* (node: es.AssignmentExpression, context: Context) {
-    A.push([{ type: "Assignment_i", symbol: node.left }, context], [node.right, context])
+    A.push([{ type: "Assignment_i", symbol: node.left }, context])
+    console.log(node.operator);
+    
+    switch (node.operator) {
+      case "=": {
+        A.push([node.right, context])
+        break
+      }
+      case "+=": {
+        A.push([{ type: "BinaryExpression", operator: "+", left: node.left, right: node.right}, context])
+        break
+      }
+      case "-=": {
+        A.push([{ type: "BinaryExpression", operator: "-", left: node.left, right: node.right}, context])
+        break
+      }
+      case "*=": {
+        A.push([{ type: "BinaryExpression", operator: "*", left: node.left, right: node.right}, context])
+        break
+      }
+      case "/=": {
+        A.push([{ type: "BinaryExpression", operator: "/", left: node.left, right: node.right}, context])
+        break
+      }
+      case "%=": {
+        A.push([{ type: "BinaryExpression", operator: "%", left: node.left, right: node.right}, context])
+        break
+      }
+      // TODO add more of the assignment stuff
+      default: {
+        // ! not sure if this is correctly set
+        throw new Error(`yo there not such thing amigo`)
+        break
+      }
+    }
   },
 
   Assignment_i: function* (node: any, context: Context) {
