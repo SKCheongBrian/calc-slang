@@ -149,7 +149,7 @@ const create_unassigned = (locals: any[], context: Context) => {
   const env = currEnv(context)
   for (let i = 0; i < locals.length; i++) {
     const name = locals[i]
-    makeVar(context, name, {type: "Unassigned"})
+    makeVar(context, name, { type: 'Unassigned' })
   }
 }
 
@@ -161,14 +161,14 @@ const scan = (body_arr: any) => {
   const res = []
   for (let i = 0; i < body_arr.length; i++) {
     const statement: any = body_arr[i]
-    if (statement.type === "VariableDeclaration") {
+    if (statement.type === 'VariableDeclaration') {
       const len = statement.declarations.length
       for (let i = 0; i < len; i++) {
         const declaration = statement.declarations[i]
         const identifier = declaration.id as es.Identifier
         res.push(identifier.name)
       }
-    } else if (statement.type === "FunctionDeclaration") {
+    } else if (statement.type === 'FunctionDeclaration') {
       res.push(statement.id.name)
     }
   }
