@@ -209,6 +209,10 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   Pop_i: function* (node: any, _context: Context) {
     S.pop()
   },
+
+  Pop_env: function* (node: any, context: Context) {
+    popEnvironment(context)
+  },
   /** Simple Values */
   Literal: function* (node: es.Literal, _context: Context) {
     S.push(node.value)
@@ -376,7 +380,14 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
 
 
   BlockStatement: function* (node: es.BlockStatement, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    const env = createBlockEnv(context, 'blockEnvironment')
+    pushEnvironment(context, env)
+    const locals = scan(node.body)
+    console.log("LOCALS:-----------------------")
+    console.log(locals)
+    create_unassigned(locals, context)
+    A.push([{ type: "Pop_env" }, context])
+    A.push(...handle_body(node.body, context))
   },
 
   Program: function* (node: es.BlockStatement, context: Context) {
