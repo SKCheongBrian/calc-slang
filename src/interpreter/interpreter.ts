@@ -1,3 +1,4 @@
+import { binaryExpression } from './../utils/astCreator';
 import { BinaryOperator } from 'estree'
 /* tslint:disable:max-classes-per-file */
 import * as es from 'estree'
@@ -272,6 +273,32 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     const result = evaluateBinaryExpression(node.operator, S.pop(), S.pop())
     console.log("result: " + result)
     S.push(result)
+  },
+
+  UpdateExpression: function* (node: es.UpdateExpression, context: Context) {
+    if (!node.prefix) {
+      const value = getVar(context, (node.argument as es.Identifier).name)
+      A.push( [{ type: "Pop_i" }, context])
+      S.push(value)
+    }
+    A.push(
+      [
+        { 
+          type: "AssignmentExpression",
+          operator: "=",
+          left: node.argument, 
+          right: {
+            type: "BinaryExpression",
+            operator: "+",
+            left: node.argument,
+            right: {
+              type: "Literal",
+              value: 1
+            }
+          }
+        },
+        context],
+    )
   },
 
   ConditionalExpression: function* (node: es.ConditionalExpression, context: Context) {
