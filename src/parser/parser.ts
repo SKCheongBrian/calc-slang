@@ -316,7 +316,8 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
       type: 'IfStatement',
       test: ctx._test.accept(exprGenerator),
       consequent: this.visit(ctx._cons),
-      alternate: ctx._alt ? this.visit(ctx._alt) : undefined
+      alternate: ctx._alt ? this.visit(ctx._alt) : undefined,
+      // TODO datatype: 
     }
   }
 
@@ -324,19 +325,23 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
 
   visitWhileStatement(ctx: WhileStatementContext): cs.Statement {
     const exprGenerator: ExpressionGenerator = new ExpressionGenerator(this.typeGenerator)
+    const body = this.visit(ctx._body)
     return {
       type: 'WhileStatement',
       test: ctx._test.accept(exprGenerator),
-      body: this.visit(ctx._body)
+      body,
+      datatype: body.datatype
     }
   }
 
   visitDoWhileStatement(ctx: DoWhileStatementContext): cs.Statement {
     const exprGenerator: ExpressionGenerator = new ExpressionGenerator(this.typeGenerator)
+    const body = this.visit(ctx._body)
     return {
       type: 'DoWhileStatement',
-      body: this.visit(ctx._body),
-      test: ctx._test.accept(exprGenerator)
+      body,
+      test: ctx._test.accept(exprGenerator),
+      datatype: body.datatype
     }
   }
 
@@ -344,21 +349,25 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
 
   visitContinueStatement(ctx: ContinueStatementContext): cs.Statement {
     return {
-      type: 'ContinueStatement'
+      type: 'ContinueStatement',
+      datatype: this.typeGenerator.void()
     }
   }
 
   visitBreakStatement(ctx: BreakStatementContext): cs.Statement {
     return {
-      type: 'BreakStatement'
+      type: 'BreakStatement',
+      datatype: this.typeGenerator.void()
     }
   }
 
   visitReturnStatement(ctx: ReturnStatementContext): cs.Statement {
     const exprGenerator: ExpressionGenerator = new ExpressionGenerator(this.typeGenerator)
+    const argument = ctx._argument?.accept(exprGenerator)
     return {
       type: 'ReturnStatement',
-      argument: ctx._argument?.accept(exprGenerator)
+      argument,
+      datatype: ctx._argument ? argument.datatype : this.typeGenerator.void()
     }
   }
 
@@ -417,10 +426,7 @@ class DeclarationGenerator implements CalcVisitor<cs.Declaration> {
       type: 'VariableDeclaration',
       declarations: varDeclarators,
       kind: 'let',
-      datatype: {
-        kind: 'primitive',
-        name: 'void'
-      }
+      datatype: this.typeGenerator.void()
     }
   }
 
@@ -526,7 +532,8 @@ class ExpressionStatementGenerator implements CalcVisitor<cs.ExpressionStatement
     const expression: cs.Expression = node.getChild(0).accept(generator)
     return {
       type: 'ExpressionStatement',
-      expression
+      expression,
+      datatype: expression.datatype
     }
   }
 
@@ -1182,6 +1189,13 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
 
 class TypeGenerator implements CalcVisitor<Type> {
   nameMap: { [name: string]: Type } = {}
+
+  void(): Type {
+    return {
+      kind: 'primitive',
+      name: 'void'
+    }
+  }
 
   addName(name: string, type: Type): void {
     this.nameMap[name] = type
