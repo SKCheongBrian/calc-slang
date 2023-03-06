@@ -285,7 +285,7 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
       type: 'FunctionDeclaration',
       id,
       params,
-      body,
+      body
       // TODO datatype:
     }
   }
