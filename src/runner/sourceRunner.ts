@@ -1,4 +1,5 @@
-import * as es from 'estree'
+// import * as cs from 'estree'
+import * as cs from '../tree/ctree'
 
 import { IOptions, Result } from '..'
 import { CannotFindModuleError } from '../errors/localImportErrors'
@@ -24,7 +25,7 @@ const DEFAULT_SOURCE_OPTIONS: IOptions = {
   throwInfiniteLoops: true
 }
 
-function runInterpreter(program: es.Program, context: Context, options: IOptions): Promise<Result> {
+function runInterpreter(program: cs.Program, context: Context, options: IOptions): Promise<Result> {
   const it = evaluate(program, context)
   const scheduler: Scheduler = new PreemptiveScheduler(options.steps)
   return scheduler.run(it, context)
@@ -40,7 +41,7 @@ export async function sourceRunner(
   context.errors = []
 
   // Parse and validate
-  const program: es.Program | undefined = parse(code, context)
+  const program: cs.Program | undefined = parse(code, context)
   if (!program) {
     return resolvedErrorPromise
   }

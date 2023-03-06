@@ -4,8 +4,9 @@ import { ErrorNode } from 'antlr4ts/tree/ErrorNode'
 import { ParseTree } from 'antlr4ts/tree/ParseTree'
 import { RuleNode } from 'antlr4ts/tree/RuleNode'
 import { TerminalNode } from 'antlr4ts/tree/TerminalNode'
-import * as es from 'estree'
 
+// import * as cs from 'estree'
+import * as cs from '../tree/ctree'
 import { CalcLexer } from '../lang/CalcLexer'
 import {
   AdditionAssignmentContext,
@@ -78,7 +79,7 @@ export class DisallowedConstructError implements SourceError {
   public severity = ErrorSeverity.ERROR
   public nodeType: string
 
-  constructor(public node: es.Node) {
+  constructor(public node: cs.Node) {
     this.nodeType = this.formatNodeType(this.node.type)
   }
 
@@ -119,7 +120,7 @@ export class DisallowedConstructError implements SourceError {
 export class FatalSyntaxError implements SourceError {
   public type = ErrorType.SYNTAX
   public severity = ErrorSeverity.ERROR
-  public constructor(public location: es.SourceLocation, public message: string) {}
+  public constructor(public location: cs.SourceLocation, public message: string) {}
 
   public explain() {
     return this.message
@@ -133,7 +134,7 @@ export class FatalSyntaxError implements SourceError {
 export class MissingSemicolonError implements SourceError {
   public type = ErrorType.SYNTAX
   public severity = ErrorSeverity.ERROR
-  public constructor(public location: es.SourceLocation) {}
+  public constructor(public location: cs.SourceLocation) {}
 
   public explain() {
     return 'Missing semicolon at the end of statement'
@@ -147,7 +148,7 @@ export class MissingSemicolonError implements SourceError {
 export class TrailingCommaError implements SourceError {
   public type: ErrorType.SYNTAX
   public severity: ErrorSeverity.WARNING
-  public constructor(public location: es.SourceLocation) {}
+  public constructor(public location: cs.SourceLocation) {}
 
   public explain() {
     return 'Trailing comma'
@@ -158,7 +159,7 @@ export class TrailingCommaError implements SourceError {
   }
 }
 
-function contextToLocation(ctx: ParserRuleContext): es.SourceLocation {
+function contextToLocation(ctx: ParserRuleContext): cs.SourceLocation {
   return {
     start: {
       line: ctx.start.line,
@@ -171,27 +172,27 @@ function contextToLocation(ctx: ParserRuleContext): es.SourceLocation {
   }
 }
 
-class StartGenerator implements CalcVisitor<es.Statement[]> {
-  visitStart?: ((ctx: StartContext) => es.Statement[]) | undefined
+class StartGenerator implements CalcVisitor<cs.Statement[]> {
+  visitStart?: ((ctx: StartContext) => cs.Statement[]) | undefined
 
-  visit(tree: ParseTree): es.Statement[] {
+  visit(tree: ParseTree): cs.Statement[] {
     return tree.accept(this)
   }
 
-  visitChildren(node: RuleNode): es.Statement[] {
+  visitChildren(node: RuleNode): cs.Statement[] {
     const stmtGenerator: StatementGenerator = new StatementGenerator()
-    const statements: es.Statement[] = []
+    const statements: cs.Statement[] = []
     for (let i = 0; i < node.childCount; i++) {
       statements.push(node.getChild(i).accept(stmtGenerator))
     }
     return statements
   }
 
-  visitTerminal(node: TerminalNode): es.Statement[] {
+  visitTerminal(node: TerminalNode): cs.Statement[] {
     throw new Error('Method not implemented.')
   }
 
-  visitErrorNode(node: ErrorNode): es.Statement[] {
+  visitErrorNode(node: ErrorNode): cs.Statement[] {
     throw new FatalSyntaxError(
       {
         start: {
@@ -208,24 +209,24 @@ class StartGenerator implements CalcVisitor<es.Statement[]> {
   }
 }
 
-class StatementGenerator implements CalcVisitor<es.Statement> {
+class StatementGenerator implements CalcVisitor<cs.Statement> {
   // Function definition =======================================
-  visitFunctionDefinition(ctx: FunctionDefinitionContext): es.Statement {
+  visitFunctionDefinition(ctx: FunctionDefinitionContext): cs.Statement {
     const dirDecl: DirectDeclaratorContext = ctx._decl._dirDecl
 
     // Parse id
-    const id: es.Identifier = {
+    const id: cs.Identifier = {
       type: 'Identifier',
       name: dirDecl._dirDecl._id.text as string
     }
 
     // Parse params
-    const params: es.Pattern[] = []
+    const params: cs.Pattern[] = []
     const paramList = dirDecl._params
     if (paramList) {
       for (let i = 0; i < paramList.childCount; i += 2) {
         const paramDecl = paramList.getChild(i) as ParameterDeclarationContext
-        const paramId: es.Identifier = {
+        const paramId: cs.Identifier = {
           type: 'Identifier',
           name: paramDecl._decl._dirDecl._id.text as string
         }
@@ -234,7 +235,7 @@ class StatementGenerator implements CalcVisitor<es.Statement> {
     }
 
     // Parse body
-    const body: es.BlockStatement = this.visit(ctx._body) as es.BlockStatement
+    const body: cs.BlockStatement = this.visit(ctx._body) as cs.BlockStatement
 
     return {
       type: 'FunctionDeclaration',
@@ -245,7 +246,7 @@ class StatementGenerator implements CalcVisitor<es.Statement> {
   }
 
   // Compound statement =======================================
-  visitCompoundStatement(ctx: CompoundStatementContext): es.Statement {
+  visitCompoundStatement(ctx: CompoundStatementContext): cs.Statement {
     const startGenerator: StartGenerator = new StartGenerator()
     return {
       type: 'BlockStatement',
@@ -254,20 +255,20 @@ class StatementGenerator implements CalcVisitor<es.Statement> {
   }
 
   // Declaration =======================================
-  visitDeclaration(ctx: DeclarationContext): es.Statement {
+  visitDeclaration(ctx: DeclarationContext): cs.Statement {
     const generator: DeclarationGenerator = new DeclarationGenerator()
     return ctx.accept(generator)
   }
 
   // Expression statement =======================================
-  visitExpressionStatement(ctx: ExpressionStatementContext): es.Statement {
+  visitExpressionStatement(ctx: ExpressionStatementContext): cs.Statement {
     const generator: ExpressionStatementGenerator = new ExpressionStatementGenerator()
     return ctx.accept(generator)
   }
 
   // Selection statements =======================================
 
-  visitIfStatement(ctx: IfStatementContext): es.Statement {
+  visitIfStatement(ctx: IfStatementContext): cs.Statement {
     const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
     return {
       type: 'IfStatement',
@@ -279,7 +280,7 @@ class StatementGenerator implements CalcVisitor<es.Statement> {
 
   // Iteration statements =======================================
 
-  visitWhileStatement(ctx: WhileStatementContext): es.Statement {
+  visitWhileStatement(ctx: WhileStatementContext): cs.Statement {
     const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
     return {
       type: 'WhileStatement',
@@ -288,7 +289,7 @@ class StatementGenerator implements CalcVisitor<es.Statement> {
     }
   }
 
-  visitDoWhileStatement(ctx: DoWhileStatementContext): es.Statement {
+  visitDoWhileStatement(ctx: DoWhileStatementContext): cs.Statement {
     const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
     return {
       type: 'DoWhileStatement',
@@ -299,19 +300,19 @@ class StatementGenerator implements CalcVisitor<es.Statement> {
 
   // Jump statements =======================================
 
-  visitContinueStatement(ctx: ContinueStatementContext): es.Statement {
+  visitContinueStatement(ctx: ContinueStatementContext): cs.Statement {
     return {
       type: 'ContinueStatement'
     }
   }
 
-  visitBreakStatement(ctx: BreakStatementContext): es.Statement {
+  visitBreakStatement(ctx: BreakStatementContext): cs.Statement {
     return {
       type: 'BreakStatement'
     }
   }
 
-  visitReturnStatement(ctx: ReturnStatementContext): es.Statement {
+  visitReturnStatement(ctx: ReturnStatementContext): cs.Statement {
     const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
     return {
       type: 'ReturnStatement',
@@ -321,22 +322,22 @@ class StatementGenerator implements CalcVisitor<es.Statement> {
 
   // ==============================================================
 
-  visitStatement?: ((ctx: StatementContext) => es.Statement) | undefined
+  visitStatement?: ((ctx: StatementContext) => cs.Statement) | undefined
 
-  visit(tree: ParseTree): es.Statement {
+  visit(tree: ParseTree): cs.Statement {
     return tree.accept(this)
   }
 
-  visitChildren(node: RuleNode): es.Statement {
+  visitChildren(node: RuleNode): cs.Statement {
     // First child is the statement
     return this.visit(node.getChild(0))
   }
 
-  visitTerminal(node: TerminalNode): es.Statement {
+  visitTerminal(node: TerminalNode): cs.Statement {
     throw new Error('Method not implemented.')
   }
 
-  visitErrorNode(node: ErrorNode): es.Statement {
+  visitErrorNode(node: ErrorNode): cs.Statement {
     throw new FatalSyntaxError(
       {
         start: {
@@ -353,11 +354,11 @@ class StatementGenerator implements CalcVisitor<es.Statement> {
   }
 }
 
-class DeclarationGenerator implements CalcVisitor<es.Declaration> {
-  visitDeclaration(ctx: DeclarationContext): es.Declaration {
+class DeclarationGenerator implements CalcVisitor<cs.Declaration> {
+  visitDeclaration(ctx: DeclarationContext): cs.Declaration {
     const initDecls = ctx._initDecls
     const initDeclGenerator = new InitDeclaratorGenerator()
-    const varDeclarators: es.VariableDeclarator[] = []
+    const varDeclarators: cs.VariableDeclarator[] = []
     for (let i = 0; i < initDecls.childCount; i++) {
       const child: ParseTree = initDecls.getChild(i)
       if (child instanceof TerminalNode) continue
@@ -366,23 +367,27 @@ class DeclarationGenerator implements CalcVisitor<es.Declaration> {
     return {
       type: 'VariableDeclaration',
       declarations: varDeclarators,
-      kind: 'let'
+      kind: 'let',
+      datatype: {
+        kind: 'primitive',
+        name: 'void'
+      }
     }
   }
 
-  visit(tree: ParseTree): es.Declaration {
+  visit(tree: ParseTree): cs.Declaration {
     return tree.accept(this)
   }
 
-  visitChildren(node: RuleNode): es.Declaration {
+  visitChildren(node: RuleNode): cs.Declaration {
     throw new Error('Method not implemented.')
   }
 
-  visitTerminal(node: TerminalNode): es.Declaration {
+  visitTerminal(node: TerminalNode): cs.Declaration {
     return node.accept(this)
   }
 
-  visitErrorNode(node: ErrorNode): es.Declaration {
+  visitErrorNode(node: ErrorNode): cs.Declaration {
     throw new FatalSyntaxError(
       {
         start: {
@@ -399,17 +404,17 @@ class DeclarationGenerator implements CalcVisitor<es.Declaration> {
   }
 }
 
-class InitDeclaratorGenerator implements CalcVisitor<es.VariableDeclarator> {
-  visitInitDeclarator?: ((ctx: InitDeclaratorContext) => es.VariableDeclarator) | undefined
+class InitDeclaratorGenerator implements CalcVisitor<cs.VariableDeclarator> {
+  visitInitDeclarator?: ((ctx: InitDeclaratorContext) => cs.VariableDeclarator) | undefined
 
-  visit(tree: ParseTree): es.VariableDeclarator {
+  visit(tree: ParseTree): cs.VariableDeclarator {
     return tree.accept(this)
   }
 
-  visitChildren(node: InitDeclaratorContext): es.VariableDeclarator {
+  visitChildren(node: InitDeclaratorContext): cs.VariableDeclarator {
     const name: string = node._decl._dirDecl._id.text as string
     const exprGenerator: ExpressionGenerator = new ExpressionGenerator()
-    const expression: es.Expression = node._init?._assignExpr._expr.accept(exprGenerator)
+    const expression: cs.Expression = node._init?._assignExpr._expr.accept(exprGenerator)
     return {
       type: 'VariableDeclarator',
       id: {
@@ -420,11 +425,11 @@ class InitDeclaratorGenerator implements CalcVisitor<es.VariableDeclarator> {
     }
   }
 
-  visitTerminal(node: TerminalNode): es.VariableDeclarator {
+  visitTerminal(node: TerminalNode): cs.VariableDeclarator {
     return node.accept(this)
   }
 
-  visitErrorNode(node: ErrorNode): es.VariableDeclarator {
+  visitErrorNode(node: ErrorNode): cs.VariableDeclarator {
     throw new FatalSyntaxError(
       {
         start: {
@@ -441,30 +446,30 @@ class InitDeclaratorGenerator implements CalcVisitor<es.VariableDeclarator> {
   }
 }
 
-class ExpressionStatementGenerator implements CalcVisitor<es.ExpressionStatement> {
-  visitExpressioStatement?:
-    | ((ctx: ExpressionStatementContext) => es.ExpressionStatement)
+class ExpressionStatementGenerator implements CalcVisitor<cs.ExpressionStatement> {
+  visitExpressionStatement?:
+    | ((ctx: ExpressionStatementContext) => cs.ExpressionStatement)
     | undefined
 
-  visit(tree: ParseTree): es.ExpressionStatement {
+  visit(tree: ParseTree): cs.ExpressionStatement {
     return tree.accept(this)
   }
 
-  visitChildren(node: RuleNode): es.ExpressionStatement {
+  visitChildren(node: RuleNode): cs.ExpressionStatement {
     const generator: ExpressionGenerator = new ExpressionGenerator()
     // First child is an expression
-    const expression: es.Expression = node.getChild(0).accept(generator)
+    const expression: cs.Expression = node.getChild(0).accept(generator)
     return {
       type: 'ExpressionStatement',
       expression
     }
   }
 
-  visitTerminal(node: TerminalNode): es.ExpressionStatement {
+  visitTerminal(node: TerminalNode): cs.ExpressionStatement {
     return node.accept(this)
   }
 
-  visitErrorNode(node: ErrorNode): es.ExpressionStatement {
+  visitErrorNode(node: ErrorNode): cs.ExpressionStatement {
     throw new FatalSyntaxError(
       {
         start: {
@@ -481,39 +486,53 @@ class ExpressionStatementGenerator implements CalcVisitor<es.ExpressionStatement
   }
 }
 
-class ExpressionGenerator implements CalcVisitor<es.Expression> {
-  visitNumber(ctx: NumberContext): es.Expression {
+class ExpressionGenerator implements CalcVisitor<cs.Expression> {
+  visitNumber(ctx: NumberContext): cs.Expression {
+    console.log('LALALALALALALALA')
     return {
       type: 'Literal',
       value: parseInt(ctx.text),
       raw: ctx.text,
+      datatype: {
+        kind: 'primitive',
+        name: 'int'
+      },
       loc: contextToLocation(ctx)
     }
   }
 
-  visitIdentifier(ctx: IdentifierContext): es.Expression {
+  visitIdentifier(ctx: IdentifierContext): cs.Expression {
+    console.log('mimimimimimimimimimimi')
     return {
       type: 'Identifier',
       name: ctx.text,
+      datatype: {
+        kind: 'variable',
+        type: {
+          kind: 'primitive',
+          name: 'int'
+        },
+        name: ctx.text
+      },
       loc: contextToLocation(ctx)
     }
   }
 
-  visitParentheses(ctx: ParenthesesContext): es.Expression {
+  visitParentheses(ctx: ParenthesesContext): cs.Expression {
     return this.visit(ctx.expression())
   }
 
   // Call expression =======================================
 
-  visitCall(ctx: CallContext): es.Expression {
+  visitCall(ctx: CallContext): cs.Expression {
     // Parse callee
-    const callee: es.Identifier = {
+    const callee: cs.Identifier = {
       type: 'Identifier',
       name: ctx._id.text as string
     }
 
     // Parse args
-    const args: es.Expression[] = []
+    const args: cs.Expression[] = []
     const argsList = ctx._args
     if (argsList) {
       for (let i = 0; i < argsList.childCount; i += 2) {
@@ -531,7 +550,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
 
   // Update expressions =======================================
 
-  visitIncrementPrefix(ctx: IncrementPrefixContext): es.Expression {
+  visitIncrementPrefix(ctx: IncrementPrefixContext): cs.Expression {
     return {
       type: 'UpdateExpression',
       operator: '++',
@@ -541,7 +560,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitDecrementPrefix(ctx: DecrementPrefixContext): es.Expression {
+  visitDecrementPrefix(ctx: DecrementPrefixContext): cs.Expression {
     return {
       type: 'UpdateExpression',
       operator: '--',
@@ -551,7 +570,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitIncrementPostfix(ctx: IncrementPostfixContext): es.Expression {
+  visitIncrementPostfix(ctx: IncrementPostfixContext): cs.Expression {
     return {
       type: 'UpdateExpression',
       operator: '++',
@@ -561,7 +580,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitDecrementPostfix(ctx: DecrementPostfixContext): es.Expression {
+  visitDecrementPostfix(ctx: DecrementPostfixContext): cs.Expression {
     return {
       type: 'UpdateExpression',
       operator: '--',
@@ -573,7 +592,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
 
   // (Unary) arithmetic expressions =======================================
 
-  visitPositive(ctx: PositiveContext): es.Expression {
+  visitPositive(ctx: PositiveContext): cs.Expression {
     return {
       type: 'UnaryExpression',
       operator: '+',
@@ -583,7 +602,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitNegative(ctx: NegativeContext): es.Expression {
+  visitNegative(ctx: NegativeContext): cs.Expression {
     return {
       type: 'UnaryExpression',
       operator: '-',
@@ -595,7 +614,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
 
   // (Unary) bitwise expression =======================================
 
-  visitBitwiseComplement(ctx: BitwiseComplementContext): es.Expression {
+  visitBitwiseComplement(ctx: BitwiseComplementContext): cs.Expression {
     return {
       type: 'UnaryExpression',
       operator: '~',
@@ -607,7 +626,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
 
   // (Unary) logical expression =======================================
 
-  visitFactorial(ctx: FactorialContext): es.Expression {
+  visitFactorial(ctx: FactorialContext): cs.Expression {
     return {
       type: 'UnaryExpression',
       operator: '!',
@@ -619,7 +638,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
 
   // (Binary) arithmetic expressions =======================================
 
-  visitMultiplication(ctx: MultiplicationContext): es.Expression {
+  visitMultiplication(ctx: MultiplicationContext): cs.Expression {
     return {
       type: 'BinaryExpression',
       operator: '*',
@@ -629,7 +648,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitDivision(ctx: DivisionContext): es.Expression {
+  visitDivision(ctx: DivisionContext): cs.Expression {
     return {
       type: 'BinaryExpression',
       operator: '/',
@@ -639,7 +658,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitModulo(ctx: ModuloContext): es.Expression {
+  visitModulo(ctx: ModuloContext): cs.Expression {
     return {
       type: 'BinaryExpression',
       operator: '%',
@@ -649,7 +668,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitAddition(ctx: AdditionContext): es.Expression {
+  visitAddition(ctx: AdditionContext): cs.Expression {
     return {
       type: 'BinaryExpression',
       operator: '+',
@@ -659,7 +678,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitSubtraction(ctx: SubtractionContext): es.Expression {
+  visitSubtraction(ctx: SubtractionContext): cs.Expression {
     return {
       type: 'BinaryExpression',
       operator: '-',
@@ -671,7 +690,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
 
   // Shift expressions =======================================
 
-  visitShiftLeft(ctx: ShiftLeftContext): es.Expression {
+  visitShiftLeft(ctx: ShiftLeftContext): cs.Expression {
     return {
       type: 'BinaryExpression',
       operator: '<<',
@@ -681,7 +700,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitShiftRight(ctx: ShiftRightContext): es.Expression {
+  visitShiftRight(ctx: ShiftRightContext): cs.Expression {
     return {
       type: 'BinaryExpression',
       operator: '>>',
@@ -693,7 +712,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
 
   // Relation expressions =======================================
 
-  visitEquals(ctx: EqualsContext): es.Expression {
+  visitEquals(ctx: EqualsContext): cs.Expression {
     return {
       type: 'BinaryExpression',
       operator: '==',
@@ -703,7 +722,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitNotEquals(ctx: NotEqualsContext): es.Expression {
+  visitNotEquals(ctx: NotEqualsContext): cs.Expression {
     return {
       type: 'BinaryExpression',
       operator: '!=',
@@ -713,7 +732,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitStrictlyLessThan(ctx: StrictlyLessThanContext): es.Expression {
+  visitStrictlyLessThan(ctx: StrictlyLessThanContext): cs.Expression {
     return {
       type: 'BinaryExpression',
       operator: '<',
@@ -723,7 +742,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitLessThanOrEquals(ctx: LessThanOrEqualsContext): es.Expression {
+  visitLessThanOrEquals(ctx: LessThanOrEqualsContext): cs.Expression {
     return {
       type: 'BinaryExpression',
       operator: '<=',
@@ -733,7 +752,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitStrictlyGreaterThan(ctx: StrictlyGreaterThanContext): es.Expression {
+  visitStrictlyGreaterThan(ctx: StrictlyGreaterThanContext): cs.Expression {
     return {
       type: 'BinaryExpression',
       operator: '>',
@@ -743,7 +762,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitGreaterThanOrEquals(ctx: GreaterThanOrEqualsContext): es.Expression {
+  visitGreaterThanOrEquals(ctx: GreaterThanOrEqualsContext): cs.Expression {
     return {
       type: 'BinaryExpression',
       operator: '>=',
@@ -755,7 +774,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
 
   // (Binary) bitwise expressions =======================================
 
-  visitBitwiseOr(ctx: BitwiseOrContext): es.Expression {
+  visitBitwiseOr(ctx: BitwiseOrContext): cs.Expression {
     return {
       type: 'BinaryExpression',
       operator: '|',
@@ -765,7 +784,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitBitwiseXor(ctx: BitwiseXorContext): es.Expression {
+  visitBitwiseXor(ctx: BitwiseXorContext): cs.Expression {
     return {
       type: 'BinaryExpression',
       operator: '^',
@@ -775,7 +794,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitBitwiseAnd(ctx: BitwiseAndContext): es.Expression {
+  visitBitwiseAnd(ctx: BitwiseAndContext): cs.Expression {
     return {
       type: 'BinaryExpression',
       operator: '&',
@@ -787,7 +806,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
 
   // (Binary) logical expressions =======================================
 
-  visitLogicalAnd(ctx: LogicalAndContext): es.Expression {
+  visitLogicalAnd(ctx: LogicalAndContext): cs.Expression {
     return {
       type: 'LogicalExpression',
       operator: '&&',
@@ -797,7 +816,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitLogicalOr(ctx: LogicalOrContext): es.Expression {
+  visitLogicalOr(ctx: LogicalOrContext): cs.Expression {
     return {
       type: 'LogicalExpression',
       operator: '||',
@@ -809,19 +828,19 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
 
   // Conditional expression =======================================
 
-  visitConditional(ctx: ConditionalContext): es.Expression {
+  visitConditional(ctx: ConditionalContext): cs.Expression {
     return {
       type: 'ConditionalExpression',
       test: this.visit(ctx._test),
       consequent: this.visit(ctx._cons),
       alternate: this.visit(ctx._alt),
-      loc: contextToLocation(ctx)
+      loc: contextToLocation(ctx),
     }
   }
 
   // Assignment expressions =======================================
 
-  visitAssignment(ctx: AssignmentContext): es.Expression {
+  visitAssignment(ctx: AssignmentContext): cs.Expression {
     return {
       type: 'AssignmentExpression',
       operator: '=',
@@ -834,7 +853,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitAdditionAssignment(ctx: AdditionAssignmentContext): es.Expression {
+  visitAdditionAssignment(ctx: AdditionAssignmentContext): cs.Expression {
     return {
       type: 'AssignmentExpression',
       operator: '+=',
@@ -847,7 +866,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitSubtractionAssignment(ctx: SubtractionAssignmentContext): es.Expression {
+  visitSubtractionAssignment(ctx: SubtractionAssignmentContext): cs.Expression {
     return {
       type: 'AssignmentExpression',
       operator: '-=',
@@ -860,7 +879,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitMultiplicationAssignment(ctx: MultiplicationAssignmentContext): es.Expression {
+  visitMultiplicationAssignment(ctx: MultiplicationAssignmentContext): cs.Expression {
     return {
       type: 'AssignmentExpression',
       operator: '*=',
@@ -873,7 +892,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitDivisionAssignment(ctx: DivisionAssignmentContext): es.Expression {
+  visitDivisionAssignment(ctx: DivisionAssignmentContext): cs.Expression {
     return {
       type: 'AssignmentExpression',
       operator: '/=',
@@ -886,7 +905,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitModuloAssignment(ctx: ModuloAssignmentContext): es.Expression {
+  visitModuloAssignment(ctx: ModuloAssignmentContext): cs.Expression {
     return {
       type: 'AssignmentExpression',
       operator: '%=',
@@ -899,7 +918,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitShiftLeftAssignment(ctx: ShiftLeftAssignmentContext): es.Expression {
+  visitShiftLeftAssignment(ctx: ShiftLeftAssignmentContext): cs.Expression {
     return {
       type: 'AssignmentExpression',
       operator: '<<=',
@@ -912,7 +931,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitShiftRightAssignment(ctx: ShiftRightAssignmentContext): es.Expression {
+  visitShiftRightAssignment(ctx: ShiftRightAssignmentContext): cs.Expression {
     return {
       type: 'AssignmentExpression',
       operator: '>>=',
@@ -925,7 +944,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitBitwiseOrAssignment(ctx: BitwiseOrAssignmentContext): es.Expression {
+  visitBitwiseOrAssignment(ctx: BitwiseOrAssignmentContext): cs.Expression {
     return {
       type: 'AssignmentExpression',
       operator: '|=',
@@ -938,7 +957,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitBitwiseXorAssignment(ctx: BitwiseXorAssignmentContext): es.Expression {
+  visitBitwiseXorAssignment(ctx: BitwiseXorAssignmentContext): cs.Expression {
     return {
       type: 'AssignmentExpression',
       operator: '^=',
@@ -951,7 +970,7 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitBitwiseAndAssignment(ctx: BitwiseAndAssignmentContext): es.Expression {
+  visitBitwiseAndAssignment(ctx: BitwiseAndAssignmentContext): cs.Expression {
     return {
       type: 'AssignmentExpression',
       operator: '&=',
@@ -966,14 +985,14 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
 
   // ==============================================================
 
-  visitExpression?: ((ctx: ExpressionContext) => es.Expression) | undefined
+  visitExpression?: ((ctx: ExpressionContext) => cs.Expression) | undefined
 
-  visit(tree: ParseTree): es.Expression {
+  visit(tree: ParseTree): cs.Expression {
     return tree.accept(this)
   }
 
-  visitChildren(node: RuleNode): es.Expression {
-    const expressions: es.Expression[] = []
+  visitChildren(node: RuleNode): cs.Expression {
+    const expressions: cs.Expression[] = []
     for (let i = 0; i < node.childCount; i++) {
       expressions.push(node.getChild(i).accept(this))
     }
@@ -983,11 +1002,11 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
     }
   }
 
-  visitTerminal(node: TerminalNode): es.Expression {
+  visitTerminal(node: TerminalNode): cs.Expression {
     return node.accept(this)
   }
 
-  visitErrorNode(node: ErrorNode): es.Expression {
+  visitErrorNode(node: ErrorNode): cs.Expression {
     throw new FatalSyntaxError(
       {
         start: {
@@ -1004,12 +1023,12 @@ class ExpressionGenerator implements CalcVisitor<es.Expression> {
   }
 }
 
-function convertStart(start: StartContext): Array<es.Statement> {
+function convertStart(start: StartContext): Array<cs.Statement> {
   const generator = new StartGenerator()
   return start.accept(generator)
 }
 
-function convertSource(start: StartContext): es.Program {
+function convertSource(start: StartContext): cs.Program {
   return {
     type: 'Program',
     sourceType: 'script',
@@ -1018,7 +1037,7 @@ function convertSource(start: StartContext): es.Program {
 }
 
 export function parse(source: string, context: Context) {
-  let program: es.Program | undefined
+  let program: cs.Program | undefined
 
   if (context.variant === 'calc') {
     const inputStream = CharStreams.fromString(source)

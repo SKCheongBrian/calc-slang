@@ -1,4 +1,5 @@
-import { SourceLocation } from 'estree'
+// import { SourceLocation } from 'estree'
+import { SourceLocation } from './tree/ctree'
 import { SourceMapConsumer } from 'source-map'
 
 import createContext from './createContext'

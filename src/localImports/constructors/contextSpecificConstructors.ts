@@ -1,4 +1,5 @@
-import es from 'estree'
+// import cs from 'estree'
+import * as cs from '../../tree/ctree'
 
 import { accessExportFunctionName } from '../../stdlib/localImport.prelude'
 import {
@@ -16,9 +17,9 @@ import {
  * @param tail The tail of the pair.
  */
 export const createPairCallExpression = (
-  head: es.Expression | es.SpreadElement,
-  tail: es.Expression | es.SpreadElement
-): es.SimpleCallExpression => {
+  head: cs.Expression | cs.SpreadElement,
+  tail: cs.Expression | cs.SpreadElement
+): cs.SimpleCallExpression => {
   return createCallExpression('pair', [head, tail])
 }
 
@@ -28,8 +29,8 @@ export const createPairCallExpression = (
  * @param listElements The elements of the list.
  */
 export const createListCallExpression = (
-  listElements: Array<es.Expression | es.SpreadElement>
-): es.SimpleCallExpression => {
+  listElements: Array<cs.Expression | cs.SpreadElement>
+): cs.SimpleCallExpression => {
   return createCallExpression('list', listElements)
 }
 
@@ -43,9 +44,9 @@ export const createListCallExpression = (
  */
 export const createImportedNameDeclaration = (
   functionName: string,
-  importedName: es.Identifier,
+  importedName: cs.Identifier,
   lookupName: string
-): es.VariableDeclaration => {
+): cs.VariableDeclaration => {
   const callExpression = createCallExpression(accessExportFunctionName, [
     createIdentifier(functionName),
     createLiteral(lookupName)
@@ -65,8 +66,8 @@ export const createImportedNameDeclaration = (
 export const createInvokedFunctionResultVariableDeclaration = (
   functionName: string,
   variableName: string,
-  functionArgs: es.Identifier[]
-): es.VariableDeclaration => {
+  functionArgs: cs.Identifier[]
+): cs.VariableDeclaration => {
   const callExpression = createCallExpression(functionName, functionArgs)
   const variableDeclarator = createVariableDeclarator(
     createIdentifier(variableName),
@@ -85,8 +86,8 @@ export const createInvokedFunctionResultVariableDeclaration = (
  * @param importSpecifier The import specifier to be cloned.
  */
 export const cloneAndStripImportSpecifier = (
-  importSpecifier: es.ImportSpecifier | es.ImportDefaultSpecifier | es.ImportNamespaceSpecifier
-): es.ImportSpecifier | es.ImportDefaultSpecifier | es.ImportNamespaceSpecifier => {
+  importSpecifier: cs.ImportSpecifier | cs.ImportDefaultSpecifier | cs.ImportNamespaceSpecifier
+): cs.ImportSpecifier | cs.ImportDefaultSpecifier | cs.ImportNamespaceSpecifier => {
   switch (importSpecifier.type) {
     case 'ImportSpecifier':
       return {

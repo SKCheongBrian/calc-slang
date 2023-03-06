@@ -1,4 +1,5 @@
-import { BinaryOperator, UnaryOperator, UpdateOperator } from 'estree'
+// import { BinaryOperator, UnaryOperator, UpdateOperator } from 'estree'
+import { BinaryOperator, UnaryOperator, UpdateOperator } from '../tree/ctree'
 
 import { LazyBuiltIn } from '../createContext'
 import {

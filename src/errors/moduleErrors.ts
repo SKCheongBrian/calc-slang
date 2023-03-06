@@ -1,12 +1,13 @@
 /* tslint:disable: max-classes-per-file */
-import * as es from 'estree'
+// import * as cs from 'estree'
+import * as cs from '../tree/ctree'
 
 import { RuntimeSourceError } from './runtimeSourceError'
 
 export class ModuleConnectionError extends RuntimeSourceError {
   private static message: string = `Unable to get modules.`
   private static elaboration: string = `You should check your Internet connection, and ensure you have used the correct module path.`
-  constructor(node?: es.Node) {
+  constructor(node?: cs.Node) {
     super(node)
   }
 
@@ -20,7 +21,7 @@ export class ModuleConnectionError extends RuntimeSourceError {
 }
 
 export class ModuleNotFoundError extends RuntimeSourceError {
-  constructor(public moduleName: string, node?: es.Node) {
+  constructor(public moduleName: string, node?: cs.Node) {
     super(node)
   }
 
@@ -36,7 +37,7 @@ export class ModuleNotFoundError extends RuntimeSourceError {
 }
 
 export class ModuleInternalError extends RuntimeSourceError {
-  constructor(public moduleName: string, node?: es.Node) {
+  constructor(public moduleName: string, node?: cs.Node) {
     super(node)
   }
 

@@ -45,9 +45,9 @@ function niceTypeToString(type: Type, nameMap = { _next: 0 }): string {
     case 'primitive':
       return type.name
     case 'variable':
-      if (type.constraint && type.constraint !== 'none') {
-        return type.constraint
-      }
+      // if (type.constraint && type.constraint !== 'none') {
+      //   return type.constraint
+      // }
       if (!(type.name in nameMap)) {
         // type name is not in map, so add it
         nameMap[type.name] = 'T' + nameMap._next++
