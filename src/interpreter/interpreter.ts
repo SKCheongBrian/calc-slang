@@ -1,4 +1,3 @@
-import { binaryExpression } from './../utils/astCreator';
 import { BinaryOperator } from 'estree'
 /* tslint:disable:max-classes-per-file */
 import * as es from 'estree'
@@ -11,6 +10,7 @@ import { Context, Environment, Frame, Value } from '../types'
 import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
 import * as rttc from '../utils/rttc'
 import { createEmptyContext } from './../createContext'
+import { binaryExpression } from './../utils/astCreator'
 
 class Thunk {
   public value: Value
@@ -289,7 +289,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
           left: node.argument, 
           right: {
             type: "BinaryExpression",
-            operator: "+",
+            operator: node.operator.charAt(0),
             left: node.argument,
             right: {
               type: "Literal",
