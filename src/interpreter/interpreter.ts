@@ -353,7 +353,6 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   Assignment_i: function* (node: any, context: Context) {
-    console.log("LOOK FOR MEEEE")
     console.log(node)
     setVar(context, node.symbol.name, S[S.length-1])
   },
@@ -363,7 +362,14 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   IfStatement: function* (node: es.IfStatement | es.ConditionalExpression, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    A.push(
+        [{type: 'Conditional_i', cons: node.consequent, alt: node.alternate}, context],
+        [node.test, context]
+      )
+  },
+
+  Conditional_i: function* (node: any, context: Context) {
+    A.push(S.pop() !== 0 ? [node.cons, context] : [node.alt, context])
   },
 
   ExpressionStatement: function* (node: es.ExpressionStatement, context: Context) {
@@ -410,7 +416,6 @@ export function* evaluate(node: es.Node, context: Context) {
   A = [[node, context]]
   console.log(A.slice(0))
   S = []
-  // ? idk what this is (talking about the any)
   let i: number = 0
   while (i < step_limit) {
     if (A.length === 0) break
