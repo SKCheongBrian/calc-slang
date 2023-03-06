@@ -205,7 +205,11 @@ function contextToLocation(ctx: ParserRuleContext): cs.SourceLocation {
 }
 
 class StartGenerator implements CalcVisitor<cs.Statement[]> {
-  typeGenerator = new TypeGenerator()
+  typeGenerator: TypeGenerator
+
+  constructor(typeGenerator: TypeGenerator) {
+    this.typeGenerator = typeGenerator
+  }
 
   visitStart?: ((ctx: StartContext) => cs.Statement[]) | undefined
 
@@ -281,16 +285,19 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
       type: 'FunctionDeclaration',
       id,
       params,
-      body
+      body,
+      // TODO datatype:
     }
   }
 
   // Compound statement =======================================
   visitCompoundStatement(ctx: CompoundStatementContext): cs.Statement {
-    const startGenerator: StartGenerator = new StartGenerator()
+    const startGenerator: StartGenerator = new StartGenerator(this.typeGenerator)
+    const body = ctx._blockItems?.accept(startGenerator) ?? []
     return {
       type: 'BlockStatement',
-      body: ctx._blockItems?.accept(startGenerator) ?? []
+      body,
+      datatype: body ? body[body.length - 1].datatype : this.typeGenerator.void()
     }
   }
 
@@ -316,8 +323,8 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
       type: 'IfStatement',
       test: ctx._test.accept(exprGenerator),
       consequent: this.visit(ctx._cons),
-      alternate: ctx._alt ? this.visit(ctx._alt) : undefined,
-      // TODO datatype: 
+      alternate: ctx._alt ? this.visit(ctx._alt) : undefined
+      // TODO datatype:
     }
   }
 
@@ -1190,6 +1197,13 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
 class TypeGenerator implements CalcVisitor<Type> {
   nameMap: { [name: string]: Type } = {}
 
+  int(): Type {
+    return {
+      kind: 'primitive',
+      name: 'int'
+    }
+  }
+
   void(): Type {
     return {
       kind: 'primitive',
@@ -1230,10 +1244,7 @@ class TypeGenerator implements CalcVisitor<Type> {
   }
 
   visitNumber(ctx: NumberContext): Type {
-    return {
-      kind: 'primitive',
-      name: 'int'
-    }
+    return this.int()
   }
 
   visitIdentifier(ctx: IdentifierContext): Type {
@@ -1344,7 +1355,7 @@ class TypeGenerator implements CalcVisitor<Type> {
 }
 
 function convertStart(start: StartContext): Array<cs.Statement> {
-  const generator = new StartGenerator()
+  const generator = new StartGenerator(new TypeGenerator())
   return start.accept(generator)
 }
 
