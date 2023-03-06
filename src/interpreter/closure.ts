@@ -12,7 +12,7 @@ export default class Closure {
   constructor(
     public params: es.Identifier[],
     public body: es.BlockStatement,
-    public environment: Environment,
+    public environment: Environment
   ) {
     this.closure_params = params
     this.closure_body = body
