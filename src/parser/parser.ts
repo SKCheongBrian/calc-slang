@@ -87,8 +87,8 @@ import {
 import { CalcVisitor } from '../lang/CalcVisitor'
 // import * as cs from 'estree'
 import * as cs from '../tree/ctree'
-import { Type, Context, ErrorSeverity, ErrorType, SourceError } from '../types'
 import { TypeChecker } from '../typechecker/typechecker'
+import { Context, ErrorSeverity, ErrorType, SourceError, Type } from '../types'
 import { variableDeclarator } from '../utils/astCreator'
 import { stripIndent } from '../utils/formatters'
 
@@ -302,7 +302,9 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
 
   // Expression statement =======================================
   visitExpressionStatement(ctx: ExpressionStatementContext): cs.Statement {
-    const generator: ExpressionStatementGenerator = new ExpressionStatementGenerator(this.typeGenerator)
+    const generator: ExpressionStatementGenerator = new ExpressionStatementGenerator(
+      this.typeGenerator
+    )
     return ctx.accept(generator)
   }
 
@@ -585,7 +587,8 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
     // Parse callee
     const callee: cs.Identifier = {
       type: 'Identifier',
-      name: ctx._id.text as string
+      name: ctx._id.text as string,
+      datatype: this.typeGenerator.getType(ctx._id.text)
     }
 
     // Parse args
@@ -601,47 +604,57 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
       type: 'CallExpression',
       optional: false,
       callee,
-      arguments: args
+      arguments: args,
+      // TODO datatype:
+      loc: contextToLocation(ctx)
     }
   }
 
   // Update expressions =======================================
 
   visitIncrementPrefix(ctx: IncrementPrefixContext): cs.Expression {
+    const argument = this.visit(ctx._argument)
     return {
       type: 'UpdateExpression',
       operator: '++',
-      argument: this.visit(ctx._argument),
+      argument,
+      datatype: argument.datatype,
       prefix: true,
       loc: contextToLocation(ctx)
     }
   }
 
   visitDecrementPrefix(ctx: DecrementPrefixContext): cs.Expression {
+    const argument = this.visit(ctx._argument)
     return {
       type: 'UpdateExpression',
       operator: '--',
-      argument: this.visit(ctx._argument),
+      argument,
+      datatype: argument.datatype,
       prefix: true,
       loc: contextToLocation(ctx)
     }
   }
 
   visitIncrementPostfix(ctx: IncrementPostfixContext): cs.Expression {
+    const argument = this.visit(ctx._argument)
     return {
       type: 'UpdateExpression',
       operator: '++',
-      argument: this.visit(ctx._argument),
+      argument,
+      datatype: argument.datatype,
       prefix: false,
       loc: contextToLocation(ctx)
     }
   }
 
   visitDecrementPostfix(ctx: DecrementPostfixContext): cs.Expression {
+    const argument = this.visit(ctx._argument)
     return {
       type: 'UpdateExpression',
       operator: '--',
-      argument: this.visit(ctx._argument),
+      argument,
+      datatype: argument.datatype,
       prefix: false,
       loc: contextToLocation(ctx)
     }
@@ -650,20 +663,24 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
   // (Unary) arithmetic expressions =======================================
 
   visitPositive(ctx: PositiveContext): cs.Expression {
+    const argument = this.visit(ctx._argument)
     return {
       type: 'UnaryExpression',
       operator: '+',
-      argument: this.visit(ctx._argument),
+      argument,
+      datatype: argument.datatype,
       prefix: true,
       loc: contextToLocation(ctx)
     }
   }
 
   visitNegative(ctx: NegativeContext): cs.Expression {
+    const argument = this.visit(ctx._argument)
     return {
       type: 'UnaryExpression',
       operator: '-',
-      argument: this.visit(ctx._argument),
+      argument,
+      datatype: argument.datatype,
       prefix: true,
       loc: contextToLocation(ctx)
     }
@@ -672,10 +689,12 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
   // (Unary) bitwise expression =======================================
 
   visitBitwiseComplement(ctx: BitwiseComplementContext): cs.Expression {
+    const argument = this.visit(ctx._argument)
     return {
       type: 'UnaryExpression',
       operator: '~',
-      argument: this.visit(ctx._argument),
+      argument,
+      datatype: argument.datatype,
       prefix: true,
       loc: contextToLocation(ctx)
     }
@@ -684,10 +703,12 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
   // (Unary) logical expression =======================================
 
   visitFactorial(ctx: FactorialContext): cs.Expression {
+    const argument = this.visit(ctx._argument)
     return {
       type: 'UnaryExpression',
       operator: '!',
-      argument: this.visit(ctx._argument),
+      argument,
+      datatype: argument.datatype,
       prefix: true,
       loc: contextToLocation(ctx)
     }
@@ -961,9 +982,10 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
       left: {
         type: 'Identifier',
         name: ctx._left.text as string,
-        datatype: this.typeGenerator.resolveType(ctx._left.text)
+        datatype: this.typeGenerator.getType(ctx._left.text)
       },
       right: this.visit(ctx._right),
+      datatype: this.typeGenerator.getType(ctx._left.text),
       loc: contextToLocation(ctx)
     }
   }
@@ -974,9 +996,11 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
       operator: '+=',
       left: {
         type: 'Identifier',
-        name: ctx._left.text as string
+        name: ctx._left.text as string,
+        datatype: this.typeGenerator.getType(ctx._left.text)
       },
       right: this.visit(ctx._right),
+      datatype: this.typeGenerator.getType(ctx._left.text),
       loc: contextToLocation(ctx)
     }
   }
@@ -987,9 +1011,11 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
       operator: '-=',
       left: {
         type: 'Identifier',
-        name: ctx._left.text as string
+        name: ctx._left.text as string,
+        datatype: this.typeGenerator.getType(ctx._left.text)
       },
       right: this.visit(ctx._right),
+      datatype: this.typeGenerator.getType(ctx._left.text),
       loc: contextToLocation(ctx)
     }
   }
@@ -1000,9 +1026,11 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
       operator: '*=',
       left: {
         type: 'Identifier',
-        name: ctx._left.text as string
+        name: ctx._left.text as string,
+        datatype: this.typeGenerator.getType(ctx._left.text)
       },
       right: this.visit(ctx._right),
+      datatype: this.typeGenerator.getType(ctx._left.text),
       loc: contextToLocation(ctx)
     }
   }
@@ -1013,9 +1041,11 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
       operator: '/=',
       left: {
         type: 'Identifier',
-        name: ctx._left.text as string
+        name: ctx._left.text as string,
+        datatype: this.typeGenerator.getType(ctx._left.text)
       },
       right: this.visit(ctx._right),
+      datatype: this.typeGenerator.getType(ctx._left.text),
       loc: contextToLocation(ctx)
     }
   }
@@ -1026,9 +1056,11 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
       operator: '%=',
       left: {
         type: 'Identifier',
-        name: ctx._left.text as string
+        name: ctx._left.text as string,
+        datatype: this.typeGenerator.getType(ctx._left.text)
       },
       right: this.visit(ctx._right),
+      datatype: this.typeGenerator.getType(ctx._left.text),
       loc: contextToLocation(ctx)
     }
   }
@@ -1039,9 +1071,11 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
       operator: '<<=',
       left: {
         type: 'Identifier',
-        name: ctx._left.text as string
+        name: ctx._left.text as string,
+        datatype: this.typeGenerator.getType(ctx._left.text)
       },
       right: this.visit(ctx._right),
+      datatype: this.typeGenerator.getType(ctx._left.text),
       loc: contextToLocation(ctx)
     }
   }
@@ -1052,9 +1086,11 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
       operator: '>>=',
       left: {
         type: 'Identifier',
-        name: ctx._left.text as string
+        name: ctx._left.text as string,
+        datatype: this.typeGenerator.getType(ctx._left.text)
       },
       right: this.visit(ctx._right),
+      datatype: this.typeGenerator.getType(ctx._left.text),
       loc: contextToLocation(ctx)
     }
   }
@@ -1065,9 +1101,11 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
       operator: '|=',
       left: {
         type: 'Identifier',
-        name: ctx._left.text as string
+        name: ctx._left.text as string,
+        datatype: this.typeGenerator.getType(ctx._left.text)
       },
       right: this.visit(ctx._right),
+      datatype: this.typeGenerator.getType(ctx._left.text),
       loc: contextToLocation(ctx)
     }
   }
@@ -1078,9 +1116,11 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
       operator: '^=',
       left: {
         type: 'Identifier',
-        name: ctx._left.text as string
+        name: ctx._left.text as string,
+        datatype: this.typeGenerator.getType(ctx._left.text)
       },
       right: this.visit(ctx._right),
+      datatype: this.typeGenerator.getType(ctx._left.text),
       loc: contextToLocation(ctx)
     }
   }
@@ -1091,9 +1131,11 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
       operator: '&=',
       left: {
         type: 'Identifier',
-        name: ctx._left.text as string
+        name: ctx._left.text as string,
+        datatype: this.typeGenerator.getType(ctx._left.text)
       },
       right: this.visit(ctx._right),
+      datatype: this.typeGenerator.getType(ctx._left.text),
       loc: contextToLocation(ctx)
     }
   }
@@ -1139,10 +1181,15 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
 }
 
 class TypeGenerator implements CalcVisitor<Type> {
-  nameMap: {[name: string]: Type} = {}
+  nameMap: { [name: string]: Type } = {}
 
   addName(name: string, type: Type): void {
     this.nameMap[name] = type
+  }
+
+  getType(name: string | undefined): Type {
+    if (name) return this.nameMap[name]
+    throw Error('Type error')
   }
 
   resolveType(str: string | undefined): Type {
