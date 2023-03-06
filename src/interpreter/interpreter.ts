@@ -11,6 +11,7 @@ import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/oper
 import * as rttc from '../utils/rttc'
 import { createEmptyContext } from './../createContext'
 import { binaryExpression } from './../utils/astCreator'
+import Closure from './closure'
 
 class Thunk {
   public value: Value
@@ -390,7 +391,30 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   FunctionDeclaration: function* (node: es.FunctionDeclaration, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    const id = node.id
+    A.push([
+      {
+        type: "VariableDeclaration",
+        kind: "const", // cant change what a function is after
+        declarations: [
+          {
+            type: "VariableDeclarator",
+            id: id,
+            init: {
+              type: "Closure",
+              params: node.params,
+              body: node.body,
+            }
+          }
+        ],
+      },
+      context
+    ]
+    )
+  },
+
+  Closure: function* (node: any, context: Context) {
+    S.push(new Closure(node.params as es.Identifier[], node.body, currEnv(context)))
   },
 
   IfStatement: function* (node: es.IfStatement | es.ConditionalExpression, context: Context) {

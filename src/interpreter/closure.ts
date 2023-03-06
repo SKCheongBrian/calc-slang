@@ -13,11 +13,9 @@ export default class Closure {
     public params: es.Identifier[],
     public body: es.BlockStatement,
     public environment: Environment,
-    context: Context
   ) {
     this.closure_params = params
     this.closure_body = body
     this.current_environment = environment
-    this.closure_context = context
   }
 }
