@@ -397,9 +397,9 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     const test = S.pop()
     if (test > 0) {
       A.push(
-        [node, context],
+        [node, context], // push node back onto agenda
         [node.test, context],
-        [{ type: "Pop_i" }, context],
+        [{ type: "Pop_i" }, context], // pop result of body
         [node.body, context],
       )
     }
@@ -408,8 +408,8 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   DoWhileStatement: function* (node: es.DoWhileStatement, context: Context) {
     A.push(
       [{ type: "WhileStatement", test: node.test, body: node.body }, context],
-      [{ type: "Pop_i" }, context],
-      [node.body, context]
+      [{ type: "Pop_i" }, context], // pop result of body
+      [node.body, context] // execute body one time before doing check
     )
   },
 
