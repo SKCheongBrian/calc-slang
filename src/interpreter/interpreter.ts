@@ -273,7 +273,10 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   ConditionalExpression: function* (node: es.ConditionalExpression, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    A.push(
+        [{type: 'Conditional_i', cons: node.consequent, alt: node.alternate}, context],
+        [node.test, context]
+      )
   },
 
   LogicalExpression: function* (node: es.LogicalExpression, context: Context) {
