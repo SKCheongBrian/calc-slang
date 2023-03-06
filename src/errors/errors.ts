@@ -1,9 +1,9 @@
 /* tslint:disable: max-classes-per-file */
 /* tslint:disable:max-line-length */
 import { baseGenerator, generate } from 'astring'
+
 // import * as cs from 'estree'
 import * as cs from '../tree/ctree'
-
 import { ErrorSeverity, ErrorType, SourceError, Value } from '../types'
 import { stringify } from '../utils/stringify'
 import { RuntimeSourceError } from './runtimeSourceError'

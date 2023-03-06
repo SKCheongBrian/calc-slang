@@ -1,11 +1,11 @@
 // import { SourceLocation } from 'estree'
-import { SourceLocation } from './tree/ctree'
 import { SourceMapConsumer } from 'source-map'
 
 import createContext from './createContext'
 import { InterruptedError } from './errors/errors'
 import { findDeclarationNode, findIdentifierNode } from './finder'
 import { parse } from './parser/parser'
+import { SourceLocation } from './tree/ctree'
 import {
   Context,
   Error as ResultError,

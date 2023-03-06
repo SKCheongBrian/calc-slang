@@ -1,7 +1,6 @@
 // import * as cs from 'estree'
-import * as cs from '../tree/ctree'
-
 import { UNKNOWN_LOCATION } from '../constants'
+import * as cs from '../tree/ctree'
 import { ErrorSeverity, ErrorType, SourceError } from '../types'
 
 export class RuntimeSourceError implements SourceError {

@@ -6,10 +6,10 @@
 /* tslint:disable:max-classes-per-file */
 
 import { SourceLocation } from 'acorn'
-import * as cs from './tree/ctree'
-// import * as cs from 'estree'
 
+// import * as cs from 'estree'
 import { EnvTree } from './createContext'
+import * as cs from './tree/ctree'
 
 /**
  * Defines functions that act as built-ins, but might rely on
@@ -299,7 +299,7 @@ export type Constraint = 'none' | 'addable'
 // Types used by both type inferencer and Source Typed
 export type Type =
   | Primitive
-  | Variable
+  // | Variable
   | FunctionType
   | List
   | Pair
@@ -313,12 +313,12 @@ export interface Primitive {
   // name: PrimitiveType | TSAllowedTypes
 }
 
-export interface Variable {
-  kind: 'variable'
-  type: Type
-  name: string
-  // constraint: Constraint
-}
+// export interface Variable {
+//   kind: 'variable'
+//   type: Type
+//   name: string
+//   // constraint: Constraint
+// }
 
 // cannot name Function, conflicts with TS
 export interface FunctionType {

@@ -20,7 +20,6 @@ import {
   SourceLocation,
   VariableDeclarator
 } from './tree/ctree'
-
 import { Context } from './types'
 import {
   ancestor,

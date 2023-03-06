@@ -1,6 +1,5 @@
 // import cs from 'estree'
 import * as cs from '../../tree/ctree'
-
 import { ancestor } from '../../utils/walkers'
 import { isFilePath } from '../filePaths'
 

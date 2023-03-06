@@ -1,8 +1,7 @@
 // import * as cs from 'estree'
-import * as cs from '../tree/ctree'
-
 import { ConstAssignment } from '../errors/errors'
 import { NoAssignmentToForVariable } from '../errors/validityErrors'
+import * as cs from '../tree/ctree'
 import { Context, NodeWithInferredType } from '../types'
 import { getVariableDecarationName } from '../utils/astCreator'
 import { ancestor, base, FullWalkerCallback } from '../utils/walkers'

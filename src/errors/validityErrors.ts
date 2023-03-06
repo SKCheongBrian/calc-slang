@@ -1,6 +1,5 @@
 // import * as cs from 'estree'
 import * as cs from '../tree/ctree'
-
 import { ErrorSeverity, ErrorType, SourceError } from '../types'
 
 export class NoAssignmentToForVariable implements SourceError {

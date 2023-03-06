@@ -1,7 +1,6 @@
 /* tslint:disable: max-classes-per-file */
 // import * as cs from 'estree'
 import * as cs from '../tree/ctree'
-
 import { RuntimeSourceError } from './runtimeSourceError'
 
 export class ModuleConnectionError extends RuntimeSourceError {

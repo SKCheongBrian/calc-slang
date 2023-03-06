@@ -1,8 +1,8 @@
 // import cs from 'estree'
-import * as cs from '../../tree/ctree'
 import * as path from 'path'
 
 import { defaultExportLookupName } from '../../stdlib/localImport.prelude'
+import * as cs from '../../tree/ctree'
 import {
   createFunctionDeclaration,
   createIdentifier,

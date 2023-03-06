@@ -1,7 +1,6 @@
 // import cs from 'estree'
-import * as cs from '../../tree/ctree'
-
 import { accessExportFunctionName } from '../../stdlib/localImport.prelude'
+import * as cs from '../../tree/ctree'
 import {
   createCallExpression,
   createIdentifier,

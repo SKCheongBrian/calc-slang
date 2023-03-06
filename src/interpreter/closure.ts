@@ -1,6 +1,5 @@
 // import * as cs from 'estree'
 import * as cs from '../tree/ctree'
-
 import { Context, Environment } from './../types'
 import { blockStatement } from './../utils/astCreator'
 

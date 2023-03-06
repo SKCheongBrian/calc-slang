@@ -1,9 +1,9 @@
 // import cs from 'estree'
-import * as cs from '../tree/ctree'
 import * as path from 'path'
 
 import { CannotFindModuleError, CircularImportError } from '../errors/localImportErrors'
 import { parse } from '../parser/parser'
+import * as cs from '../tree/ctree'
 import { Context } from '../types'
 import { isIdentifier } from '../utils/rttc'
 import { createInvokedFunctionResultVariableDeclaration } from './constructors/contextSpecificConstructors'

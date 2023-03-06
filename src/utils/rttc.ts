@@ -1,7 +1,6 @@
 // import * as cs from 'estree'
-import * as cs from '../tree/ctree'
-
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
+import * as cs from '../tree/ctree'
 import { ErrorSeverity, ErrorType, Value } from '../types'
 
 const LHS = ' on left hand side of operation'

@@ -1,6 +1,5 @@
 // import * as cs from 'estree'
 import * as cs from '../tree/ctree'
-
 import { BlockExpression } from '../types'
 
 const DUMMY_STRING = '__DUMMY__'

@@ -1,7 +1,7 @@
 // import cs from 'estree'
-import * as cs from '../../tree/ctree'
 import * as _ from 'lodash'
 
+import * as cs from '../../tree/ctree'
 import { createImportDeclaration, createLiteral } from '../constructors/baseConstructors'
 import { cloneAndStripImportSpecifier } from '../constructors/contextSpecificConstructors'
 import { isImportDeclaration } from '../typeGuards'

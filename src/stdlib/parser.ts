@@ -1,7 +1,6 @@
 // import * as cs from 'estree'
-import * as cs from '../tree/ctree'
-
 import { parse as sourceParse } from '../parser/parser'
+import * as cs from '../tree/ctree'
 import { Context, ContiguousArrayElements, Value } from '../types'
 import { oneLine } from '../utils/formatters'
 import { vector_to_list } from './list'

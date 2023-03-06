@@ -1,13 +1,13 @@
-import { Identifier } from '../tree/ctree'
-/* tslint:disable:max-classes-per-file */
-// import * as cs from 'estree'
-import * as cs from '../tree/ctree'
 import { isUndefined, reduce, uniqueId } from 'lodash'
 
 import { createGlobalEnvironment } from '../createContext'
 import * as errors from '../errors/errors'
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
 import { is_undefined } from '../stdlib/misc'
+import { Identifier } from '../tree/ctree'
+/* tslint:disable:max-classes-per-file */
+// import * as cs from 'estree'
+import * as cs from '../tree/ctree'
 import { Context, Environment, Frame, Value } from '../types'
 import {
   evaluateBinaryExpression,
