@@ -405,6 +405,14 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     }
   },
 
+  DoWhileStatement: function* (node: es.DoWhileStatement, context: Context) {
+    A.push(
+      [{ type: "WhileStatement", test: node.test, body: node.body }, context],
+      [{ type: "Pop_i" }, context],
+      [node.body, context]
+    )
+  },
+
   BlockStatement: function* (node: es.BlockStatement, context: Context) {
     const env = createBlockEnv(context, 'blockEnvironment')
     pushEnvironment(context, env)
