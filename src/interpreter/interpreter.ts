@@ -145,11 +145,13 @@ export const createBlockEnv = (
   }
 }
 
+const UNASSIGNED = { type: 'not_initialized' }
+
 const create_unassigned = (locals: any[], context: Context) => {
   const env = currEnv(context)
   for (let i = 0; i < locals.length; i++) {
     const name = locals[i]
-    makeVar(context, name, { type: 'not_initialized' })
+    makeVar(context, name, UNASSIGNED)
   }
 }
 
@@ -384,9 +386,24 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   WhileStatement: function* (node: es.WhileStatement, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    A.push(
+      [{ type: "Literal", value: undefined }, context],
+      [{ type: "While_i", test: node.test, body: node.body }, context],
+      [node.test, context]
+    )
   },
 
+  While_i: function* (node: any, context: Context) {
+    const test = S.pop()
+    if (test > 0) {
+      A.push(
+        [node, context],
+        [node.test, context],
+        [{ type: "Pop_i" }, context],
+        [node.body, context],
+      )
+    }
+  },
 
   BlockStatement: function* (node: es.BlockStatement, context: Context) {
     const env = createBlockEnv(context, 'blockEnvironment')
