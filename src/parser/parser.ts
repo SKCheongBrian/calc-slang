@@ -717,7 +717,7 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
       type: 'UnaryExpression',
       operator: '*',
       argument,
-      datatype: argument.datatype, // TODO
+      datatype: (argument.datatype as Pointer).type,
       prefix: true,
       loc: contextToLocation(ctx)
     }

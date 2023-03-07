@@ -1,4 +1,5 @@
 import _ from 'lodash'
+
 import * as t from '../types'
 
 export class TypeChecker {
