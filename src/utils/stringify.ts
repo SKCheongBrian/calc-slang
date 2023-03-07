@@ -53,6 +53,8 @@ function niceTypeToString(type: Type, nameMap = { _next: 0 }): string {
     //     nameMap[type.name] = 'T' + nameMap._next++
     //   }
     //   return nameMap[type.name]
+    case 'pointer':
+      return `Pointer<${curriedTypeToString(type.type)}>`
     case 'list':
       return `List<${curriedTypeToString(type.elementType)}>`
     case 'array':

@@ -444,7 +444,7 @@ export interface BigIntLiteral extends BaseNode, BaseExpression {
   raw?: string | undefined
 }
 
-export type UnaryOperator = '-' | '+' | '!' | '~' | 'typeof' | 'void' | 'delete'
+export type UnaryOperator = '-' | '+' | '!' | '~' | '*' | '&' | 'typeof' | 'void' | 'delete'
 
 export type BinaryOperator =
   | '=='

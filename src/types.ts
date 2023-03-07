@@ -301,6 +301,7 @@ export type Type =
   | Primitive
   // | Variable
   | FunctionType
+  | Pointer
   | List
   | Pair
   | SArray
@@ -319,6 +320,11 @@ export interface Primitive {
 //   name: string
 //   // constraint: Constraint
 // }
+
+export interface Pointer {
+  kind: 'pointer'
+  type: Type
+}
 
 // cannot name Function, conflicts with TS
 export interface FunctionType {
