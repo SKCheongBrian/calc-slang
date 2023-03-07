@@ -511,15 +511,22 @@ class InitDeclaratorGenerator implements CalcVisitor<cs.VariableDeclarator> {
 
   visitChildren(node: InitDeclaratorContext): cs.VariableDeclarator {
     const name: string = node._decl._dirDecl._id.text as string
+    const pointers = node._decl._pointers
+    let datatype = _.cloneDeep(this.datatype)
+    if (pointers) {
+      for (let i = 0; i < pointers.childCount; i++) {
+        datatype = this.typeGenerator.pointer(datatype)
+      }
+    }
     const exprGenerator: ExpressionGenerator = new ExpressionGenerator(this.typeGenerator)
     const expression: cs.Expression = node._init?._assignExpr._expr.accept(exprGenerator)
-    this.typeGenerator.addName(name, this.datatype)
+    this.typeGenerator.addName(name, datatype)
     return {
       type: 'VariableDeclarator',
       id: {
         type: 'Identifier',
         name,
-        datatype: this.datatype
+        datatype
       },
       init: expression
     }

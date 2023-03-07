@@ -135,9 +135,9 @@ initDeclaratorList: initDeclarator (COMMA initDeclarator)*;
 
 initDeclarator: decl = declarator (ASSIGN init = initializer)?;
 
-declarator: pointer? dirDecl = directDeclarator;
+declarator: pointers = pointer? dirDecl = directDeclarator;
 
-pointer: MUL;
+pointer: MUL+;
 
 directDeclarator:
 	id = IDENTIFIER
