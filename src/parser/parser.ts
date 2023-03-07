@@ -4,6 +4,7 @@ import { ErrorNode } from 'antlr4ts/tree/ErrorNode'
 import { ParseTree } from 'antlr4ts/tree/ParseTree'
 import { RuleNode } from 'antlr4ts/tree/RuleNode'
 import { TerminalNode } from 'antlr4ts/tree/TerminalNode'
+import _ from 'lodash'
 
 import { CalcLexer } from '../lang/CalcLexer'
 import {
@@ -90,8 +91,16 @@ import { CalcVisitor } from '../lang/CalcVisitor'
 // import * as cs from 'estree'
 import * as cs from '../tree/ctree'
 import { TypeChecker } from '../typechecker/typechecker'
-import { Context, ErrorSeverity, ErrorType, SourceError, 
-  Type, Primitive, FunctionType, Pointer } from '../types'
+import {
+  Context,
+  ErrorSeverity,
+  ErrorType,
+  FunctionType,
+  Pointer,
+  Primitive,
+  SourceError,
+  Type
+} from '../types'
 import { variableDeclarator } from '../utils/astCreator'
 import { stripIndent } from '../utils/formatters'
 
@@ -264,6 +273,7 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
     // Parse params
     const params: cs.Identifier[] = []
     const paramList = dirDecl._params
+    this.typeGenerator.saveNameMap()
     if (paramList) {
       for (let i = 0; i < paramList.childCount; i += 2) {
         const paramDecl = paramList.getChild(i) as ParameterDeclarationContext
@@ -283,7 +293,7 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
     const body: cs.BlockStatement = this.visit(ctx._body) as cs.BlockStatement
 
     // Type logic
-    const datatype: FunctionType = this.typeGenerator.function(
+    const datatype: FunctionType = this.typeGenerator.functionType(
       params.map(p => p.datatype!),
       body.datatype!
     )
@@ -296,6 +306,7 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
       datatype
     }
 
+    this.typeGenerator.restoreNameMap()
     return {
       type: 'FunctionDeclaration',
       id,
@@ -308,7 +319,9 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
   // Compound statement =======================================
   visitCompoundStatement(ctx: CompoundStatementContext): cs.Statement {
     const startGenerator: StartGenerator = new StartGenerator(this.typeGenerator)
+    this.typeGenerator.saveNameMap()
     const body = ctx._blockItems?.accept(startGenerator) ?? []
+    this.typeGenerator.restoreNameMap()
     return {
       type: 'BlockStatement',
       body,
@@ -1236,7 +1249,8 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
 }
 
 class TypeGenerator implements CalcVisitor<Type> {
-  nameMap: { [name: string]: Type } = {}
+  prevNameMaps: { [name: string]: Type }[] = []
+  currNameMap: { [name: string]: Type } = {}
   functionMap: { [name: string]: FunctionType } = {}
 
   int(): Primitive {
@@ -1260,7 +1274,7 @@ class TypeGenerator implements CalcVisitor<Type> {
     }
   }
 
-  function(parameterTypes: Type[], returnType: Type): FunctionType {
+  functionType(parameterTypes: Type[], returnType: Type): FunctionType {
     return {
       kind: 'function',
       parameterTypes,
@@ -1268,8 +1282,16 @@ class TypeGenerator implements CalcVisitor<Type> {
     }
   }
 
+  saveNameMap(): void {
+    this.prevNameMaps.push(_.cloneDeep(this.currNameMap))
+  }
+
+  restoreNameMap(): void {
+    this.currNameMap = this.prevNameMaps.pop()!
+  }
+
   addName(name: string, type: Type): void {
-    this.nameMap[name] = type
+    this.currNameMap[name] = type
   }
 
   addFunction(name: string, type: FunctionType): void {
@@ -1277,7 +1299,7 @@ class TypeGenerator implements CalcVisitor<Type> {
   }
 
   getTypeFromName(name: string | undefined): Type {
-    if (name) return this.nameMap[name]
+    if (name) return this.currNameMap[name]
     throw Error('Type error')
   }
 
@@ -1314,7 +1336,7 @@ class TypeGenerator implements CalcVisitor<Type> {
   }
 
   visitIdentifier(ctx: IdentifierContext): Type {
-    return this.nameMap[ctx.text]
+    return this.currNameMap[ctx.text]
   }
 
   visitParentheses?: ((ctx: ParenthesesContext) => Type) | undefined

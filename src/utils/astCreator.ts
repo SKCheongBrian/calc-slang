@@ -1,6 +1,5 @@
 // import * as cs from 'estree'
 import * as cs from '../tree/ctree'
-
 import { AllowedDeclarations, BlockExpression, FunctionDeclarationExpression } from '../types'
 
 export const getVariableDecarationName = (decl: cs.VariableDeclaration) =>
