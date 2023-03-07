@@ -44,10 +44,10 @@ LOGICAL_OR: '||';
 SHL: '<<';
 SHR: '>>';
 
-OPEN_PARENTHESIS: '(';
-CLOSED_PARENTHESIS: ')';
-LEFT_BRACE: '{';
-RIGHT_BRACE: '}';
+LPAREN: '(';
+RPAREN: ')';
+LBRACE: '{';
+RBRACE: '}';
 COMMA: ',';
 QUESTION: '?';
 EXCLAM: '!';
@@ -106,7 +106,8 @@ functionDefinition:
 parameterList:
 	parameterDeclaration (COMMA parameterDeclaration)*;
 
-parameterDeclaration: declarationSpecifier decl = declarator;
+parameterDeclaration:
+	declSpec = declarationSpecifier decl = declarator;
 
 // Labeled statement =======================================
 
@@ -117,8 +118,7 @@ labeledStatement:
 
 // Compound statement =======================================
 
-compoundStatement:
-	LEFT_BRACE blockItems = blockItemList? RIGHT_BRACE;
+compoundStatement: LBRACE blockItems = blockItemList? RBRACE;
 
 blockItemList: statement+;
 
@@ -135,12 +135,14 @@ initDeclaratorList: initDeclarator (COMMA initDeclarator)*;
 
 initDeclarator: decl = declarator (ASSIGN init = initializer)?;
 
-declarator: dirDecl = directDeclarator;
+declarator: pointer? dirDecl = directDeclarator;
+
+pointer: MUL;
 
 directDeclarator:
 	id = IDENTIFIER
 	// Function definition
-	| dirDecl = directDeclarator OPEN_PARENTHESIS params = parameterList? CLOSED_PARENTHESIS;
+	| dirDecl = directDeclarator LPAREN params = parameterList? RPAREN;
 
 initializer: assignExpr = assignmentExpression;
 
@@ -151,18 +153,22 @@ assignmentExpression: expr = expression;
 expressionStatement: expression SEMI;
 
 expression:
-	NUMBER														# Number
-	| IDENTIFIER												# Identifier
-	| OPEN_PARENTHESIS inner = expression CLOSED_PARENTHESIS	# Parentheses
+	NUMBER								# Number
+	| IDENTIFIER						# Identifier
+	| LPAREN inner = expression RPAREN	# Parentheses
 
 	// (Function) call expression
-	| id = IDENTIFIER OPEN_PARENTHESIS args = argumentExpressionList? CLOSED_PARENTHESIS # Call
+	| id = IDENTIFIER LPAREN args = argumentExpressionList? RPAREN # Call
 
 	// Update expressions
 	| argument = expression operator = INC	# IncrementPostfix
 	| argument = expression operator = DEC	# DecrementPostfix
 	| operator = INC argument = expression	# IncrementPrefix
 	| operator = DEC argument = expression	# DecrementPrefix
+
+	// Pointer expressions
+	| operator = MUL argument = expression			# Dereference
+	| operator = BITWISE_AND argument = expression	# Reference
 
 	// (Unary) arithmetic expressions
 	| operator = ADD argument = expression	# Positive
@@ -223,21 +229,19 @@ argumentExpressionList: expression (COMMA expression)*;
 // Selection statements =======================================
 
 selectionStatement:
-	IF OPEN_PARENTHESIS test = expression CLOSED_PARENTHESIS cons = statement (
+	IF LPAREN test = expression RPAREN cons = statement (
 		ELSE alt = statement
 	)? # IfStatement
 	// TODO
-	| SWITCH OPEN_PARENTHESIS disc = expression CLOSED_PARENTHESIS cases = statement #
-		SwitchCaseStatement;
+	| SWITCH LPAREN disc = expression RPAREN cases = statement # SwitchCaseStatement;
 
 // Iteration statements =======================================
 
 iterationStatement:
-	WHILE OPEN_PARENTHESIS test = expression CLOSED_PARENTHESIS body = statement			# WhileStatement
-	| DO body = statement WHILE OPEN_PARENTHESIS test = expression CLOSED_PARENTHESIS SEMI	#
-		DoWhileStatement
+	WHILE LPAREN test = expression RPAREN body = statement				# WhileStatement
+	| DO body = statement WHILE LPAREN test = expression RPAREN SEMI	# DoWhileStatement
 	// TODO
-	| FOR OPEN_PARENTHESIS SEMI SEMI CLOSED_PARENTHESIS body = statement # ForStatement;
+	| FOR LPAREN SEMI SEMI RPAREN body = statement # ForStatement;
 
 // Jump statements =======================================
 
