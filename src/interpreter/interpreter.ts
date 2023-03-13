@@ -249,7 +249,39 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   CallExpression: function* (node: es.CallExpression, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    A.push(
+      [
+        {
+          type: "Call_i",
+          arity: node.arguments.length
+        },
+        context
+      ],
+    )
+    for (let i = node.arguments.length - 1; i >= 0; i--) { // not reversed unlike hw3 so we need to reverse it
+      A.push([node.arguments[i], context])
+    }
+    A.push([node.callee, context])
+  },
+
+  // TODO marki envi reseti
+
+  Call_i: function* (node: any, context: Context) {
+    const arity = node.arity
+    let args = []
+    for (let i = arity - 1; i >= 0; i--) {
+      args[i] = S.pop()
+    }
+    if (A.length === 0 || A[A.length - 1][0].type === 'Env_i') {
+      A.push([{type: "Mark_i"}, context])
+    } else if (A[A.length - 1][0].type === 'Reset_i') {
+      A.pop();
+    } else {
+      A.push(
+        [{type: "Env_i", env: currEnv(context)}, context],
+        [{type: "Mark_i"}, context]
+      )
+    }
   },
 
   NewExpression: function* (node: es.NewExpression, context: Context) {
@@ -501,7 +533,7 @@ export function* evaluate(node: es.Node, context: Context) {
     console.log('A before popping')
     console.log(A.slice(0))
     const curr = A.pop()
-    const cmd = curr[0]
+    const cmd = curr[1]
     const ctxt = curr[1]
     console.log('A after popping')
     console.log(A.slice(0))
