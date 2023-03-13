@@ -268,7 +268,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
 
   Call_i: function* (node: any, context: Context) {
     const arity = node.arity
-    let args = []
+    const args = []
     for (let i = arity - 1; i >= 0; i--) {
       args[i] = S.pop()
     }
