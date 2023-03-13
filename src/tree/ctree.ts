@@ -390,7 +390,7 @@ export interface MemberExpression extends BaseExpression, BasePattern {
   object: Expression | Super
   property: Expression | PrivateIdentifier
   computed: boolean
-  optional: boolean
+  // optional: boolean
 }
 
 export type Pattern =

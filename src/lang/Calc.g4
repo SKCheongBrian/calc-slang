@@ -220,17 +220,17 @@ expression:
 	| test = expression QUESTION cons = expression COLON alt = expression # Conditional
 
 	// Assignment expressions
-	| left = IDENTIFIER operator = ASSIGN right = expression		# Assignment
-	| left = IDENTIFIER operator = ASSIGN_ADD right = expression	# AdditionAssignment
-	| left = IDENTIFIER operator = ASSIGN_SUB right = expression	# SubtractionAssignment
-	| left = IDENTIFIER operator = ASSIGN_MUL right = expression	# MultiplicationAssignment
-	| left = IDENTIFIER operator = ASSIGN_DIV right = expression	# DivisionAssignment
-	| left = IDENTIFIER operator = ASSIGN_MOD right = expression	# ModuloAssignment
-	| left = IDENTIFIER operator = ASSIGN_SHL right = expression	# ShiftLeftAssignment
-	| left = IDENTIFIER operator = ASSIGN_SHR right = expression	# ShiftRightAssignment
-	| left = IDENTIFIER operator = ASSIGN_OR right = expression		# BitwiseOrAssignment
-	| left = IDENTIFIER operator = ASSIGN_XOR right = expression	# BitwiseXorAssignment
-	| left = IDENTIFIER operator = ASSIGN_AND right = expression	# BitwiseAndAssignment;
+	| left = expression operator = ASSIGN right = expression		# Assignment
+	| left = expression operator = ASSIGN_ADD right = expression	# AdditionAssignment
+	| left = expression operator = ASSIGN_SUB right = expression	# SubtractionAssignment
+	| left = expression operator = ASSIGN_MUL right = expression	# MultiplicationAssignment
+	| left = expression operator = ASSIGN_DIV right = expression	# DivisionAssignment
+	| left = expression operator = ASSIGN_MOD right = expression	# ModuloAssignment
+	| left = expression operator = ASSIGN_SHL right = expression	# ShiftLeftAssignment
+	| left = expression operator = ASSIGN_SHR right = expression	# ShiftRightAssignment
+	| left = expression operator = ASSIGN_OR right = expression		# BitwiseOrAssignment
+	| left = expression operator = ASSIGN_XOR right = expression	# BitwiseXorAssignment
+	| left = expression operator = ASSIGN_AND right = expression	# BitwiseAndAssignment;
 
 argumentExpressionList: expression (COMMA expression)*;
 
