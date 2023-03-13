@@ -30,7 +30,6 @@ export const memberExpression = (
   type: 'MemberExpression',
   object,
   computed: typeof property === 'number',
-  optional: false,
   property: typeof property === 'number' ? literal(property) : identifier(property)
 })
 

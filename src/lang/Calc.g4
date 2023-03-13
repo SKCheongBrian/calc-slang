@@ -165,6 +165,9 @@ expression:
 	// (Function) call expression
 	| id = IDENTIFIER LPAREN args = argumentExpressionList? RPAREN # Call
 
+	// Array member
+	| object = expression LSQUARE property = expression RSQUARE # ArrayMember
+
 	// Update expressions
 	| argument = expression operator = INC	# IncrementPostfix
 	| argument = expression operator = DEC	# DecrementPostfix
