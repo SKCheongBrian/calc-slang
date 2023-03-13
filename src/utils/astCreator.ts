@@ -223,9 +223,10 @@ export const conditionalExpression = (
   loc
 })
 
-export const arrayExpression = (elements: cs.Expression[]): cs.ArrayExpression => ({
+export const arrayExpression = (elements: cs.Expression[], length: cs.Expression): cs.ArrayExpression => ({
   type: 'ArrayExpression',
-  elements
+  elements,
+  length
 })
 
 export const assignmentExpression = (

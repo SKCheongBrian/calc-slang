@@ -285,7 +285,8 @@ export interface ThisExpression extends BaseExpression {
 
 export interface ArrayExpression extends BaseExpression {
   type: 'ArrayExpression'
-  elements: Array<Expression | SpreadElement | null>
+  elements: Array<Expression | null>
+  length: Expression
 }
 
 export interface ObjectExpression extends BaseExpression {

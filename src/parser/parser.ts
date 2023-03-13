@@ -11,6 +11,7 @@ import {
   AdditionAssignmentContext,
   AdditionContext,
   ArgumentExpressionListContext,
+  ArrayDeclaratorContext,
   AssignmentContext,
   AssignmentExpressionContext,
   BitwiseAndAssignmentContext,
@@ -44,6 +45,7 @@ import {
   ExpressionStatementContext,
   FactorialContext,
   ForStatementContext,
+  FunctionDeclaratorContext,
   FunctionDefinitionContext,
   GreaterThanOrEqualsContext,
   IdentifierContext,
@@ -69,6 +71,7 @@ import {
   ParameterDeclarationContext,
   ParameterListContext,
   ParenthesesContext,
+  PointerContext,
   PositiveContext,
   ReferenceContext,
   ReturnStatementContext,
@@ -85,6 +88,7 @@ import {
   SubtractionContext,
   SwitchCaseStatementContext,
   TypeSpecifierContext,
+  VariableDeclaratorContext,
   WhileStatementContext
 } from '../lang/CalcParser'
 import { CalcVisitor } from '../lang/CalcVisitor'
@@ -98,6 +102,7 @@ import {
   FunctionType,
   Pointer,
   Primitive,
+  SArray,
   SourceError,
   Type
 } from '../types'
@@ -268,24 +273,32 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
 
   // Function definition =======================================
   visitFunctionDefinition(ctx: FunctionDefinitionContext): cs.Statement {
-    const dirDecl: DirectDeclaratorContext = ctx._decl._dirDecl
+    const dirDecl = ctx._decl._dirDecl as FunctionDeclaratorContext
 
     // Parse params
     const params: cs.Identifier[] = []
     const paramList = dirDecl._params
     this.typeGenerator.saveNameMap()
     if (paramList) {
+      // Parse each param
       for (let i = 0; i < paramList.childCount; i += 2) {
         const paramDecl = paramList.getChild(i) as ParameterDeclarationContext
-        const name: string = paramDecl._decl._dirDecl._id.text!
-        const datatype: Type = this.typeGenerator.resolveType(paramDecl._declSpec.text)
-        this.typeGenerator.addName(name, datatype)
-        const paramId: cs.Identifier = {
-          type: 'Identifier',
-          name,
-          datatype
+
+        // Parse datatype
+        const pointers = paramDecl._decl._pointers
+        let datatype: Type = _.cloneDeep(this.typeGenerator.resolveType(paramDecl._declSpec.text))
+        if (pointers) {
+          for (let i = 0; i < pointers.childCount; i++) {
+            datatype = this.typeGenerator.pointer(datatype)
+          }
         }
-        params.push(paramId)
+
+        // Parse declarator
+        const dirDeclGenerator: DirectDeclaratorGenerator = new DirectDeclaratorGenerator(this.typeGenerator, datatype)
+        const id: cs.Identifier = paramDecl._decl._dirDecl.accept(dirDeclGenerator)
+
+        this.typeGenerator.addName(id.name, id.datatype!)
+        params.push(id)
       }
     }
 
@@ -297,12 +310,12 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
       params.map(p => p.datatype!),
       body.datatype!
     )
-    this.typeGenerator.addFunction(dirDecl._dirDecl._id.text!, datatype)
+    this.typeGenerator.addFunction(dirDecl._id.text!, datatype)
 
     // Parse id
     const id: cs.Identifier = {
       type: 'Identifier',
-      name: dirDecl._dirDecl._id.text as string,
+      name: dirDecl._id.text as string,
       datatype
     }
 
@@ -503,33 +516,38 @@ class InitDeclaratorGenerator implements CalcVisitor<cs.VariableDeclarator> {
     this.datatype = datatype
   }
 
-  visitInitDeclarator?: ((ctx: InitDeclaratorContext) => cs.VariableDeclarator) | undefined
-
-  visit(tree: ParseTree): cs.VariableDeclarator {
-    return tree.accept(this)
-  }
-
-  visitChildren(node: InitDeclaratorContext): cs.VariableDeclarator {
-    const name: string = node._decl._dirDecl._id.text as string
-    const pointers = node._decl._pointers
+  visitInitDeclarator(ctx: InitDeclaratorContext): cs.VariableDeclarator {
+    // Parse datatype
+    const pointers = ctx._decl._pointers
     let datatype = _.cloneDeep(this.datatype)
     if (pointers) {
       for (let i = 0; i < pointers.childCount; i++) {
         datatype = this.typeGenerator.pointer(datatype)
       }
     }
+
+    // Parse declarator
+    const dirDeclGenerator: DirectDeclaratorGenerator = new DirectDeclaratorGenerator(this.typeGenerator, datatype)
+    const id: cs.Identifier = ctx._decl._dirDecl.accept(dirDeclGenerator)
+
+    // Parse init
     const exprGenerator: ExpressionGenerator = new ExpressionGenerator(this.typeGenerator)
-    const expression: cs.Expression = node._init?._assignExpr._expr.accept(exprGenerator)
-    this.typeGenerator.addName(name, datatype)
+    const expression: cs.Expression = ctx._init?._assignExpr._expr.accept(exprGenerator)
+
+    this.typeGenerator.addName(id.name, id.datatype!)
     return {
       type: 'VariableDeclarator',
-      id: {
-        type: 'Identifier',
-        name,
-        datatype
-      },
+      id,
       init: expression
     }
+  }
+
+  visit(tree: ParseTree): cs.VariableDeclarator {
+    return tree.accept(this)
+  }
+
+  visitChildren(node: RuleNode): cs.VariableDeclarator {
+    throw new Error('Method not implemented.')
   }
 
   visitTerminal(node: TerminalNode): cs.VariableDeclarator {
@@ -537,6 +555,59 @@ class InitDeclaratorGenerator implements CalcVisitor<cs.VariableDeclarator> {
   }
 
   visitErrorNode(node: ErrorNode): cs.VariableDeclarator {
+    throw new FatalSyntaxError(
+      {
+        start: {
+          line: node.symbol.line,
+          column: node.symbol.charPositionInLine
+        },
+        end: {
+          line: node.symbol.line,
+          column: node.symbol.charPositionInLine + 1
+        }
+      },
+      `invalid syntax ${node.text}`
+    )
+  }
+}
+
+class DirectDeclaratorGenerator implements CalcVisitor<cs.Identifier> {
+  typeGenerator: TypeGenerator
+  datatype: Type
+
+  constructor(typeGenerator: TypeGenerator, datatype: Type) {
+    this.typeGenerator = typeGenerator
+    this.datatype = datatype
+  }
+
+  visitVariableDeclarator(ctx: VariableDeclaratorContext): cs.Identifier {
+    const name: string = ctx._id.text as string
+    return {
+      type: 'Identifier',
+      name,
+      datatype: this.datatype
+    }
+  }
+  
+  visitFunctionDeclarator?: ((ctx: FunctionDeclaratorContext) => cs.Identifier) | undefined
+  
+  visitArrayDeclarator?: ((ctx: ArrayDeclaratorContext) => cs.Identifier) | undefined
+
+  visitDirectDeclarator?: ((ctx: DirectDeclaratorContext) => cs.Identifier) | undefined
+
+  visit(tree: ParseTree): cs.Identifier {
+    return tree.accept(this)
+  }
+
+  visitChildren(node: RuleNode): cs.Identifier {
+    throw new Error('Method not implemented.')
+  }
+
+  visitTerminal(node: TerminalNode): cs.Identifier {
+    return node.accept(this)
+  }
+
+  visitErrorNode(node: ErrorNode): cs.Identifier {
     throw new FatalSyntaxError(
       {
         start: {
@@ -1286,6 +1357,13 @@ class TypeGenerator implements CalcVisitor<Type> {
       kind: 'function',
       parameterTypes,
       returnType
+    }
+  }
+
+  array(elementType: Type): SArray {
+    return {
+      kind: 'array',
+      elementType
     }
   }
 

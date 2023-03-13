@@ -115,7 +115,8 @@ export const dummyConditionalExpression = (): cs.ConditionalExpression => ({
 
 export const dummyArrayExpression = (): cs.ArrayExpression => ({
   type: 'ArrayExpression',
-  elements: []
+  elements: [],
+  length: dummyExpression()
 })
 
 export const dummyBinaryExpression = (): cs.BinaryExpression => ({

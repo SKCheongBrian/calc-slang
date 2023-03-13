@@ -46,6 +46,8 @@ SHR: '>>';
 
 LPAREN: '(';
 RPAREN: ')';
+LSQUARE: '[';
+RSQUARE: ']';
 LBRACE: '{';
 RBRACE: '}';
 COMMA: ',';
@@ -140,9 +142,9 @@ declarator: pointers = pointer? dirDecl = directDeclarator;
 pointer: MUL+;
 
 directDeclarator:
-	id = IDENTIFIER
-	// Function definition
-	| dirDecl = directDeclarator LPAREN params = parameterList? RPAREN;
+	id = IDENTIFIER											# VariableDeclarator
+	| id = IDENTIFIER LPAREN params = parameterList? RPAREN	# FunctionDeclarator
+	| id = IDENTIFIER (LSQUARE exp = expression? RSQUARE)+	# ArrayDeclarator;
 
 initializer: assignExpr = assignmentExpression;
 
