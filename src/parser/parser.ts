@@ -294,7 +294,10 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
         }
 
         // Parse declarator
-        const dirDeclGenerator: DirectDeclaratorGenerator = new DirectDeclaratorGenerator(this.typeGenerator, datatype)
+        const dirDeclGenerator: DirectDeclaratorGenerator = new DirectDeclaratorGenerator(
+          this.typeGenerator,
+          datatype
+        )
         const id: cs.Identifier = paramDecl._decl._dirDecl.accept(dirDeclGenerator)
 
         this.typeGenerator.addName(id.name, id.datatype!)
@@ -338,7 +341,7 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
     return {
       type: 'BlockStatement',
       body,
-      datatype: body ? body[body.length - 1].datatype : this.typeGenerator.void()
+      datatype: body.length !== 0 ? body[body.length - 1].datatype : this.typeGenerator.void()
     }
   }
 
@@ -527,7 +530,10 @@ class InitDeclaratorGenerator implements CalcVisitor<cs.VariableDeclarator> {
     }
 
     // Parse declarator
-    const dirDeclGenerator: DirectDeclaratorGenerator = new DirectDeclaratorGenerator(this.typeGenerator, datatype)
+    const dirDeclGenerator: DirectDeclaratorGenerator = new DirectDeclaratorGenerator(
+      this.typeGenerator,
+      datatype
+    )
     const id: cs.Identifier = ctx._decl._dirDecl.accept(dirDeclGenerator)
 
     // Parse init
@@ -588,10 +594,22 @@ class DirectDeclaratorGenerator implements CalcVisitor<cs.Identifier> {
       datatype: this.datatype
     }
   }
-  
+
   visitFunctionDeclarator?: ((ctx: FunctionDeclaratorContext) => cs.Identifier) | undefined
-  
-  visitArrayDeclarator?: ((ctx: ArrayDeclaratorContext) => cs.Identifier) | undefined
+
+  visitArrayDeclarator(ctx: ArrayDeclaratorContext): cs.Identifier {
+    const name: string = ctx._id.text as string
+    const arrLength: number = Math.floor((ctx.childCount - 1) / 2)
+    let datatype = this.datatype
+    for (let i = 0; i < arrLength; i++) {
+      datatype = this.typeGenerator.array(datatype)
+    }
+    return {
+      type: 'Identifier',
+      name,
+      datatype
+    }
+  }
 
   visitDirectDeclarator?: ((ctx: DirectDeclaratorContext) => cs.Identifier) | undefined
 

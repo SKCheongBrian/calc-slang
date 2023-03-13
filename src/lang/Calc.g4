@@ -144,7 +144,7 @@ pointer: MUL+;
 directDeclarator:
 	id = IDENTIFIER											# VariableDeclarator
 	| id = IDENTIFIER LPAREN params = parameterList? RPAREN	# FunctionDeclarator
-	| id = IDENTIFIER (LSQUARE exp = expression? RSQUARE)+	# ArrayDeclarator;
+	| id = IDENTIFIER (LSQUARE RSQUARE)+					# ArrayDeclarator;
 
 initializer: assignExpr = assignmentExpression;
 
