@@ -12,6 +12,7 @@ import {
   AdditionContext,
   ArgumentExpressionListContext,
   ArrayDeclaratorContext,
+  ArrayInitialisationContext,
   AssignmentContext,
   AssignmentExpressionContext,
   BitwiseAndAssignmentContext,
@@ -717,6 +718,25 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
 
   visitParentheses(ctx: ParenthesesContext): cs.Expression {
     return this.visit(ctx.expression())
+  }
+
+  // Array initialisation =======================================
+
+  visitArrayInitialisation(ctx: ArrayInitialisationContext): cs.Expression {
+    const elements: Array<cs.Expression | null> = []
+    for (let i = 1; i < ctx.childCount - 1; i += 2) {
+      elements.push(ctx.getChild(i).accept(this))
+    }
+    return {
+      type: 'ArrayExpression',
+      elements,
+      length: {
+        type: 'Literal',
+        value: elements.length
+      },
+      // Assume datatype is uniform across array elements
+      datatype: this.typeGenerator.array(elements[0]?.datatype!) 
+    }
   }
 
   // Call expression =======================================

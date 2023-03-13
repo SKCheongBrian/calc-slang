@@ -159,6 +159,9 @@ expression:
 	| IDENTIFIER						# Identifier
 	| LPAREN inner = expression RPAREN	# Parentheses
 
+	// Array initialisation
+	| LBRACE elem = expression (COMMA elem = expression)* RBRACE # ArrayInitialisation
+
 	// (Function) call expression
 	| id = IDENTIFIER LPAREN args = argumentExpressionList? RPAREN # Call
 
