@@ -1,4 +1,3 @@
-import { BinaryOperator } from 'estree'
 /* tslint:disable:max-classes-per-file */
 import * as es from 'estree'
 import { isUndefined, uniqueId } from 'lodash'
@@ -24,6 +23,7 @@ class Thunk {
 
 let A: any[]
 let S: any[]
+let global_context: Context
 
 // ? Commenting out since it calls evaluate
 // function* forceIt(val: any, context: Context): Value {
@@ -157,6 +157,16 @@ const create_unassigned = (locals: any[], context: Context) => {
   }
 }
 
+const extend = (names: es.Identifier[], values: any[], context: Context) => {
+  const env = createBlockEnv(context)
+  pushEnvironment(context, env)
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i].name
+    const value = values[i]
+    makeVar(context, name, value)
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                    Body                                    */
 /* -------------------------------------------------------------------------- */
@@ -179,15 +189,15 @@ const scan = (body_arr: any) => {
   return res
 }
 
-const handle_body = (body: any, context: Context) => {
+const handle_body = (body: any) => {
   if (body.length === 0) {
-    return [[{ type: 'Literal', value: undefined }, context]]
+    return [{ type: 'Literal', value: undefined }]
   }
   const res = []
   let first = true
   for (const cmd of body) {
-    first ? (first = false) : res.push([{ type: 'Pop_i' }, context])
-    res.push([cmd, context])
+    first ? (first = false) : res.push({ type: 'Pop_i' })
+    res.push(cmd)
   }
   return res.reverse()
 }
@@ -250,21 +260,36 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
 
   CallExpression: function* (node: es.CallExpression, context: Context) {
     A.push(
-      [
-        {
-          type: "Call_i",
-          arity: node.arguments.length
-        },
-        context
-      ],
+      {
+        type: "Call_i",
+        arity: node.arguments.length
+      },
     )
     for (let i = node.arguments.length - 1; i >= 0; i--) { // not reversed unlike hw3 so we need to reverse it
-      A.push([node.arguments[i], context])
+      A.push(node.arguments[i])
     }
-    A.push([node.callee, context])
+    A.push(node.callee)
   },
 
-  // TODO marki envi reseti
+  ReturnStatement: function* (node: es.ReturnStatement, context: Context) {
+    A.push(
+      {type: "Reset_i"},
+      node.argument // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
+    )
+  },
+  // TODO marki envi reseti return statement
+  Env_i: function* (node: any, context: Context) {
+    global_context = node.context
+  },
+
+  Reset_i: function* (node: any, context: Context) {
+    if (A.pop().type === "Mark_i") {
+      console.log("LSKDJFOIEWFWJFFLSJDFLKSJFLHEWOFIJSLKJ")
+      return
+    } else {
+      A.push(node)
+    }
+  },
 
   Call_i: function* (node: any, context: Context) {
     const arity = node.arity
@@ -272,16 +297,19 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     for (let i = arity - 1; i >= 0; i--) {
       args[i] = S.pop()
     }
-    if (A.length === 0 || A[A.length - 1][0].type === 'Env_i') {
-      A.push([{type: "Mark_i"}, context])
-    } else if (A[A.length - 1][0].type === 'Reset_i') {
+    const sf: Closure = S.pop()
+    if (A.length === 0 || A[A.length - 1].type === 'Env_i') {
+      A.push({type: "Mark_i"})
+    } else if (A[A.length - 1].type === 'Reset_i') {
       A.pop();
     } else {
       A.push(
-        [{type: "Env_i", env: currEnv(context)}, context],
-        [{type: "Mark_i"}, context]
+        {type: "Env_i", context: context},
+        {type: "Mark_i"}
       )
     }
+    A.push(sf.body)
+    extend(sf.params, args, context)
   },
 
   NewExpression: function* (node: es.NewExpression, context: Context) {
@@ -289,7 +317,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   UnaryExpression: function* (node: es.UnaryExpression, context: Context) {
-    A.push([{ type: "UnaryExpression_i", operator: node.operator }, context], [node.argument, context])
+    A.push({ type: "UnaryExpression_i", operator: node.operator }, node.argument)
   },
 
   UnaryExpression_i: function* (node: any, context: Context) {
@@ -298,7 +326,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   BinaryExpression: function* (node: es.BinaryExpression, context: Context) {
-    A.push([{ type: "BinaryExpression_i", operator: node.operator }, context], [node.left, context], [node.right, context])
+    A.push({ type: "BinaryExpression_i", operator: node.operator }, node.left, node.right)
   },
 
   // TODO: I'm not sure the type of node should be here since its a weird one
@@ -315,29 +343,27 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
       S.push(value)
     }
     A.push(
-      [
-        { 
-          type: "AssignmentExpression",
-          operator: "=",
-          left: node.argument, 
+      { 
+        type: "AssignmentExpression",
+        operator: "=",
+        left: node.argument, 
+        right: {
+          type: "BinaryExpression",
+          operator: node.operator.charAt(0),
+          left: node.argument,
           right: {
-            type: "BinaryExpression",
-            operator: node.operator.charAt(0),
-            left: node.argument,
-            right: {
-              type: "Literal",
-              value: 1
-            }
+            type: "Literal",
+            value: 1
           }
-        },
-        context],
+        }
+      }
     )
   },
 
   ConditionalExpression: function* (node: es.ConditionalExpression, context: Context) {
     A.push(
-        [{type: 'Conditional_i', cons: node.consequent, alt: node.alternate}, context],
-        [node.test, context]
+        {type: 'Conditional_i', cons: node.consequent, alt: node.alternate},
+        node.test
       )
   },
 
@@ -355,9 +381,9 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
         ? undefined
         : declaration.init
       A.push(
-        [{type: 'Literal', value: undefined}, context],
-        [{ type: "Pop_i" }, context],
-        [{type: "AssignmentExpression", left: identifier, right: init, operator: "="}, context],
+        {type: 'Literal', value: undefined},
+        { type: "Pop_i" },
+        {type: "AssignmentExpression", left: identifier, right: init, operator: "="},
       )
     }
   },
@@ -380,32 +406,32 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
 
 
   AssignmentExpression: function* (node: es.AssignmentExpression, context: Context) {
-    A.push([{ type: "Assignment_i", symbol: node.left }, context])
+    A.push({ type: "Assignment_i", symbol: node.left })
     console.log(node.operator);
     
     switch (node.operator) {
       case "=": {
-        A.push([node.right, context])
+        A.push(node.right)
         break
       }
       case "+=": {
-        A.push([{ type: "BinaryExpression", operator: "+", left: node.left, right: node.right}, context])
+        A.push({ type: "BinaryExpression", operator: "+", left: node.left, right: node.right})
         break
       }
       case "-=": {
-        A.push([{ type: "BinaryExpression", operator: "-", left: node.left, right: node.right}, context])
+        A.push({ type: "BinaryExpression", operator: "-", left: node.left, right: node.right})
         break
       }
       case "*=": {
-        A.push([{ type: "BinaryExpression", operator: "*", left: node.left, right: node.right}, context])
+        A.push({ type: "BinaryExpression", operator: "*", left: node.left, right: node.right})
         break
       }
       case "/=": {
-        A.push([{ type: "BinaryExpression", operator: "/", left: node.left, right: node.right}, context])
+        A.push({ type: "BinaryExpression", operator: "/", left: node.left, right: node.right})
         break
       }
       case "%=": {
-        A.push([{ type: "BinaryExpression", operator: "%", left: node.left, right: node.right}, context])
+        A.push({ type: "BinaryExpression", operator: "%", left: node.left, right: node.right})
         break
       }
       // TODO add more of the assignment stuff
@@ -424,7 +450,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
 
   FunctionDeclaration: function* (node: es.FunctionDeclaration, context: Context) {
     const id = node.id
-    A.push([
+    A.push(
       {
         type: "VariableDeclaration",
         kind: "const", // cant change what a function is after
@@ -439,40 +465,34 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
             }
           }
         ],
-      },
-      context
-    ]
+      }
     )
   },
 
   Closure: function* (node: any, context: Context) {
-    S.push(new Closure(node.params as es.Identifier[], node.body, currEnv(context)))
+    S.push(new Closure(node.params as es.Identifier[], node.body, context))
   },
 
   IfStatement: function* (node: es.IfStatement | es.ConditionalExpression, context: Context) {
     A.push(
-        [{type: 'Conditional_i', cons: node.consequent, alt: node.alternate}, context],
-        [node.test, context]
+        {type: 'Conditional_i', cons: node.consequent, alt: node.alternate},
+        node.test
       )
   },
 
   Conditional_i: function* (node: any, context: Context) {
-    A.push(S.pop() !== 0 ? [node.cons, context] : [node.alt, context])
+    A.push(S.pop() !== 0 ? node.cons : node.alt)
   },
 
   ExpressionStatement: function* (node: es.ExpressionStatement, context: Context) {
-    A.push([node.expression, context])
-  },
-
-  ReturnStatement: function* (node: es.ReturnStatement, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    A.push(node.expression)
   },
 
   WhileStatement: function* (node: es.WhileStatement, context: Context) {
     A.push(
-      [{ type: "Literal", value: undefined }, context],
-      [{ type: "While_i", test: node.test, body: node.body }, context],
-      [node.test, context]
+      { type: "Literal", value: undefined },
+      { type: "While_i", test: node.test, body: node.body },
+      node.test
     )
   },
 
@@ -480,19 +500,19 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     const test = S.pop()
     if (test > 0) {
       A.push(
-        [node, context], // push node back onto agenda
-        [node.test, context],
-        [{ type: "Pop_i" }, context], // pop result of body
-        [node.body, context],
+        node, // push node back onto agenda
+        node.test,
+        { type: "Pop_i" }, // pop result of body
+        node.body,
       )
     }
   },
 
   DoWhileStatement: function* (node: es.DoWhileStatement, context: Context) {
     A.push(
-      [{ type: "WhileStatement", test: node.test, body: node.body }, context],
-      [{ type: "Pop_i" }, context], // pop result of body
-      [node.body, context] // execute body one time before doing check
+      { type: "WhileStatement", test: node.test, body: node.body },
+      { type: "Pop_i" }, // pop result of body
+      node.body // execute body one time before doing check
     )
   },
 
@@ -503,8 +523,8 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     console.log("LOCALS:-----------------------")
     console.log(locals)
     create_unassigned(locals, context)
-    A.push([{ type: "Pop_env" }, context])
-    A.push(...handle_body(node.body, context))
+    A.push({ type: "Pop_env" })
+    A.push(...handle_body(node.body))
   },
 
   Program: function* (node: es.BlockStatement, context: Context) {
@@ -514,7 +534,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     console.log("LOCALS:-----------------------")
     console.log(locals)
     create_unassigned(locals, context)
-    A.push(...handle_body(node.body, context))
+    A.push(...handle_body(node.body))
   }
 }
 // tslint:enable:object-literal-shorthand
@@ -524,7 +544,8 @@ export function* evaluate(node: es.Node, context: Context) {
   context.numberOfOuterEnvironments++
   const env = createGlobalEnvironment()
   pushEnvironment(context, env)
-  A = [[node, context]]
+  global_context = context
+  A = [node]
   console.log(A.slice(0))
   S = []
   let i: number = 0
@@ -532,16 +553,15 @@ export function* evaluate(node: es.Node, context: Context) {
     if (A.length === 0) break
     console.log('A before popping')
     console.log(A.slice(0))
-    const curr = A.pop()
-    const cmd = curr[1]
-    const ctxt = curr[1]
+    const cmd = A.pop()
     console.log('A after popping')
     console.log(A.slice(0))
+    console.log('the command V')
     console.log(cmd)
     console.log(i)
     console.log(S.slice(0))
-    if (evaluators.hasOwnProperty(cmd.type)) yield* evaluators[cmd.type](cmd, ctxt)
-    else throw new Error('unknown command')
+    if (evaluators.hasOwnProperty(cmd.type)) yield* evaluators[cmd.type](cmd, global_context)
+    else throw new Error(`unknown command ${JSON.stringify(cmd.type)}`)
     console.log('A after executing command')
     console.log(A.slice(0))
     console.log('---------------')
