@@ -1,4 +1,5 @@
 import * as es from 'estree'
+import { cloneDeep } from 'lodash'
 
 import { Context } from './../types'
 
@@ -14,6 +15,6 @@ export default class Closure {
   ) {
     this.closure_params = params
     this.closure_body = body
-    this.closure_context = context
+    this.closure_context = cloneDeep(context)
   }
 }
