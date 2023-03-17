@@ -1,4 +1,5 @@
-import es from 'estree'
+// import cs from 'estree'
+import * as cs from '../tree/ctree'
 
 // It is necessary to write this type guard like this as the 'type' of both
 // 'Directive' & 'ExpressionStatement' is 'ExpressionStatement'.
@@ -16,11 +17,11 @@ import es from 'estree'
 //
 // As such, we check whether the 'directive' property exists on the object
 // instead in order to differentiate between the two.
-export const isDirective = (node: es.Node): node is es.Directive => {
+export const isDirective = (node: cs.Node): node is cs.Directive => {
   return 'directive' in node
 }
 
-export const isModuleDeclaration = (node: es.Node): node is es.ModuleDeclaration => {
+export const isModuleDeclaration = (node: cs.Node): node is cs.ModuleDeclaration => {
   return [
     'ImportDeclaration',
     'ExportNamedDeclaration',
@@ -30,12 +31,12 @@ export const isModuleDeclaration = (node: es.Node): node is es.ModuleDeclaration
 }
 
 export const isStatement = (
-  node: es.Directive | es.Statement | es.ModuleDeclaration
-): node is es.Statement => {
+  node: cs.Directive | cs.Statement | cs.ModuleDeclaration
+): node is cs.Statement => {
   return !isDirective(node) && !isModuleDeclaration(node)
 }
 
-export function isDeclaration(node: es.Node): node is es.Declaration {
+export function isDeclaration(node: cs.Node): node is cs.Declaration {
   // export type Declaration =
   //       FunctionDeclaration | VariableDeclaration | ClassDeclaration;
   return (
@@ -45,6 +46,6 @@ export function isDeclaration(node: es.Node): node is es.Declaration {
   )
 }
 
-export function isImportDeclaration(node: es.Node): node is es.ImportDeclaration {
+export function isImportDeclaration(node: cs.Node): node is cs.ImportDeclaration {
   return node.type === 'ImportDeclaration'
 }

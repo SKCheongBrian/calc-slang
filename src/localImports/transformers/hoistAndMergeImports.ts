@@ -1,6 +1,7 @@
-import es from 'estree'
+// import cs from 'estree'
 import * as _ from 'lodash'
 
+import * as cs from '../../tree/ctree'
 import { createImportDeclaration, createLiteral } from '../constructors/baseConstructors'
 import { cloneAndStripImportSpecifier } from '../constructors/contextSpecificConstructors'
 import { isImportDeclaration } from '../typeGuards'
@@ -17,18 +18,18 @@ import { isImportDeclaration } from '../typeGuards'
  * @param program The AST which should have its ImportDeclaration nodes
  *                hoisted & duplicate imports merged.
  */
-export const hoistAndMergeImports = (program: es.Program): void => {
+export const hoistAndMergeImports = (program: cs.Program): void => {
   // Separate import declarations from non-import declarations.
   const importDeclarations = program.body.filter(isImportDeclaration)
   const nonImportDeclarations = program.body.filter(
-    (node: es.Directive | es.Statement | es.ModuleDeclaration): boolean =>
+    (node: cs.Directive | cs.Statement | cs.ModuleDeclaration): boolean =>
       !isImportDeclaration(node)
   )
 
   // Merge import sources & specifiers.
   const importSourceToSpecifiersMap: Map<
     string,
-    Array<es.ImportSpecifier | es.ImportDefaultSpecifier | es.ImportNamespaceSpecifier>
+    Array<cs.ImportSpecifier | cs.ImportDefaultSpecifier | cs.ImportNamespaceSpecifier>
   > = new Map()
   for (const importDeclaration of importDeclarations) {
     const importSource = importDeclaration.source.value
@@ -48,7 +49,7 @@ export const hoistAndMergeImports = (program: es.Program): void => {
       const isSpecifierDuplicate =
         specifiers.filter(
           (
-            specifier: es.ImportSpecifier | es.ImportDefaultSpecifier | es.ImportNamespaceSpecifier
+            specifier: cs.ImportSpecifier | cs.ImportDefaultSpecifier | cs.ImportNamespaceSpecifier
           ): boolean => {
             return _.isEqual(strippedSpecifier, specifier)
           }
@@ -62,11 +63,11 @@ export const hoistAndMergeImports = (program: es.Program): void => {
   }
 
   // Convert the merged import sources & specifiers back into import declarations.
-  const mergedImportDeclarations: es.ImportDeclaration[] = []
+  const mergedImportDeclarations: cs.ImportDeclaration[] = []
   importSourceToSpecifiersMap.forEach(
     (
       specifiers: Array<
-        es.ImportSpecifier | es.ImportDefaultSpecifier | es.ImportNamespaceSpecifier
+        cs.ImportSpecifier | cs.ImportDefaultSpecifier | cs.ImportNamespaceSpecifier
       >,
       importSource: string
     ): void => {

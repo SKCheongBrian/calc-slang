@@ -1,7 +1,8 @@
-import es from 'estree'
+// import cs from 'estree'
 import * as path from 'path'
 
 import { defaultExportLookupName } from '../../stdlib/localImport.prelude'
+import * as cs from '../../tree/ctree'
 import {
   createFunctionDeclaration,
   createIdentifier,
@@ -20,15 +21,15 @@ import {
 import { isDeclaration, isDirective, isModuleDeclaration, isStatement } from '../typeGuards'
 import { isSourceModule } from './removeNonSourceModuleImports'
 
-type ImportSpecifier = es.ImportSpecifier | es.ImportDefaultSpecifier | es.ImportNamespaceSpecifier
+type ImportSpecifier = cs.ImportSpecifier | cs.ImportDefaultSpecifier | cs.ImportNamespaceSpecifier
 
 export const getInvokedFunctionResultVariableNameToImportSpecifiersMap = (
-  nodes: es.ModuleDeclaration[],
+  nodes: cs.ModuleDeclaration[],
   currentDirPath: string
 ): Record<string, ImportSpecifier[]> => {
   const invokedFunctionResultVariableNameToImportSpecifierMap: Record<string, ImportSpecifier[]> =
     {}
-  nodes.forEach((node: es.ModuleDeclaration): void => {
+  nodes.forEach((node: cs.ModuleDeclaration): void => {
     // Only ImportDeclaration nodes specify imported names.
     if (node.type !== 'ImportDeclaration') {
       return
@@ -86,7 +87,7 @@ export const getInvokedFunctionResultVariableNameToImportSpecifiersMap = (
   return invokedFunctionResultVariableNameToImportSpecifierMap
 }
 
-const getIdentifier = (node: es.Declaration): es.Identifier | null => {
+const getIdentifier = (node: cs.Declaration): cs.Identifier | null => {
   switch (node.type) {
     case 'FunctionDeclaration':
       if (node.id === null) {
@@ -108,10 +109,10 @@ const getIdentifier = (node: es.Declaration): es.Identifier | null => {
 }
 
 const getExportedNameToIdentifierMap = (
-  nodes: es.ModuleDeclaration[]
-): Record<string, es.Identifier> => {
-  const exportedNameToIdentifierMap: Record<string, es.Identifier> = {}
-  nodes.forEach((node: es.ModuleDeclaration): void => {
+  nodes: cs.ModuleDeclaration[]
+): Record<string, cs.Identifier> => {
+  const exportedNameToIdentifierMap: Record<string, cs.Identifier> = {}
+  nodes.forEach((node: cs.ModuleDeclaration): void => {
     // Only ExportNamedDeclaration nodes specify exported names.
     if (node.type !== 'ExportNamedDeclaration') {
       return
@@ -130,7 +131,7 @@ const getExportedNameToIdentifierMap = (
       // it contains a list of names to export, i.e., export { a, b as c, d };.
       // Exported names can be renamed using the 'as' keyword. As such, the
       // exported names and their corresponding identifiers might be different.
-      node.specifiers.forEach((node: es.ExportSpecifier): void => {
+      node.specifiers.forEach((node: cs.ExportSpecifier): void => {
         const exportedName = node.exported.name
         const identifier = node.local
         exportedNameToIdentifierMap[exportedName] = identifier
@@ -141,10 +142,10 @@ const getExportedNameToIdentifierMap = (
 }
 
 const getDefaultExportExpression = (
-  nodes: es.ModuleDeclaration[],
-  exportedNameToIdentifierMap: Partial<Record<string, es.Identifier>>
-): es.Expression | null => {
-  let defaultExport: es.Expression | null = null
+  nodes: cs.ModuleDeclaration[],
+  exportedNameToIdentifierMap: Partial<Record<string, cs.Identifier>>
+): cs.Expression | null => {
+  let defaultExport: cs.Expression | null = null
 
   // Handle default exports which are parsed as ExportNamedDeclaration AST nodes.
   // 'export { name as default };' is equivalent to 'export default name;' but
@@ -158,7 +159,7 @@ const getDefaultExportExpression = (
     delete exportedNameToIdentifierMap['default']
   }
 
-  nodes.forEach((node: es.ModuleDeclaration): void => {
+  nodes.forEach((node: cs.ModuleDeclaration): void => {
     // Only ExportDefaultDeclaration nodes specify the default export.
     if (node.type !== 'ExportDefaultDeclaration') {
       return
@@ -187,8 +188,8 @@ const getDefaultExportExpression = (
 
 export const createAccessImportStatements = (
   invokedFunctionResultVariableNameToImportSpecifiersMap: Record<string, ImportSpecifier[]>
-): es.VariableDeclaration[] => {
-  const importDeclarations: es.VariableDeclaration[] = []
+): cs.VariableDeclaration[] => {
+  const importDeclarations: cs.VariableDeclaration[] = []
   for (const [invokedFunctionResultVariableName, importSpecifiers] of Object.entries(
     invokedFunctionResultVariableNameToImportSpecifiersMap
   )) {
@@ -220,10 +221,10 @@ export const createAccessImportStatements = (
 }
 
 const createReturnListArguments = (
-  exportedNameToIdentifierMap: Record<string, es.Identifier>
-): Array<es.Expression | es.SpreadElement> => {
+  exportedNameToIdentifierMap: Record<string, cs.Identifier>
+): Array<cs.Expression | cs.SpreadElement> => {
   return Object.entries(exportedNameToIdentifierMap).map(
-    ([exportedName, identifier]: [string, es.Identifier]): es.SimpleCallExpression => {
+    ([exportedName, identifier]: [string, cs.Identifier]): cs.SimpleCallExpression => {
       const head = createLiteral(exportedName)
       const tail = identifier
       return createPairCallExpression(head, tail)
@@ -232,20 +233,20 @@ const createReturnListArguments = (
 }
 
 const removeDirectives = (
-  nodes: Array<es.Directive | es.Statement | es.ModuleDeclaration>
-): Array<es.Statement | es.ModuleDeclaration> => {
+  nodes: Array<cs.Directive | cs.Statement | cs.ModuleDeclaration>
+): Array<cs.Statement | cs.ModuleDeclaration> => {
   return nodes.filter(
     (
-      node: es.Directive | es.Statement | es.ModuleDeclaration
-    ): node is es.Statement | es.ModuleDeclaration => !isDirective(node)
+      node: cs.Directive | cs.Statement | cs.ModuleDeclaration
+    ): node is cs.Statement | cs.ModuleDeclaration => !isDirective(node)
   )
 }
 
 const removeModuleDeclarations = (
-  nodes: Array<es.Statement | es.ModuleDeclaration>
-): es.Statement[] => {
-  const statements: es.Statement[] = []
-  nodes.forEach((node: es.Statement | es.ModuleDeclaration): void => {
+  nodes: Array<cs.Statement | cs.ModuleDeclaration>
+): cs.Statement[] => {
+  const statements: cs.Statement[] = []
+  nodes.forEach((node: cs.Statement | cs.ModuleDeclaration): void => {
     if (isStatement(node)) {
       statements.push(node)
       return
@@ -283,9 +284,9 @@ const removeModuleDeclarations = (
  * @param currentFilePath The file path of the current program.
  */
 export const transformProgramToFunctionDeclaration = (
-  program: es.Program,
+  program: cs.Program,
   currentFilePath: string
-): es.FunctionDeclaration => {
+): cs.FunctionDeclaration => {
   const moduleDeclarations = program.body.filter(isModuleDeclaration)
   const currentDirPath = path.resolve(currentFilePath, '..')
 

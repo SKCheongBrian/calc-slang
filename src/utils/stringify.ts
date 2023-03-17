@@ -44,15 +44,17 @@ function niceTypeToString(type: Type, nameMap = { _next: 0 }): string {
   switch (type.kind) {
     case 'primitive':
       return type.name
-    case 'variable':
-      if (type.constraint && type.constraint !== 'none') {
-        return type.constraint
-      }
-      if (!(type.name in nameMap)) {
-        // type name is not in map, so add it
-        nameMap[type.name] = 'T' + nameMap._next++
-      }
-      return nameMap[type.name]
+    // case 'variable':
+    //   // if (type.constraint && type.constraint !== 'none') {
+    //   //   return type.constraint
+    //   // }
+    //   if (!(type.name in nameMap)) {
+    //     // type name is not in map, so add it
+    //     nameMap[type.name] = 'T' + nameMap._next++
+    //   }
+    //   return nameMap[type.name]
+    case 'pointer':
+      return `Pointer<${curriedTypeToString(type.type)}>`
     case 'list':
       return `List<${curriedTypeToString(type.elementType)}>`
     case 'array':

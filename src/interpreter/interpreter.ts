@@ -1,10 +1,13 @@
 /* tslint:disable:max-classes-per-file */
-import * as es from 'estree'
-import { isUndefined, uniqueId } from 'lodash'
-
+import { isUndefined, reduce, uniqueId } from 'lodash'
 import { createGlobalEnvironment } from '../createContext'
 import * as errors from '../errors/errors'
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
+import { is_undefined } from '../stdlib/misc'
+import { Identifier } from '../tree/ctree'
+/* tslint:disable:max-classes-per-file */
+// import * as cs from 'estree'
+import * as cs from '../tree/ctree'
 import { Context, Environment, Frame, Value } from '../types'
 import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
 import * as rttc from '../utils/rttc'
@@ -15,7 +18,7 @@ import Closure from './closure'
 class Thunk {
   public value: Value
   public isMemoized: boolean
-  constructor(public exp: es.Node, public env: Environment) {
+  constructor(public exp: cs.Node, public env: Environment) {
     this.isMemoized = false
     this.value = null
   }
@@ -54,7 +57,7 @@ const handleRuntimeError = (context: Context, error: RuntimeSourceError): never 
   throw error
 }
 
-function* visit(context: Context, node: es.Node) {
+function* visit(context: Context, node: cs.Node) {
   context.runtime.nodes.unshift(node)
   yield context
 }
@@ -147,6 +150,8 @@ export const createBlockEnv = (
   }
 }
 
+export type Evaluator<T extends cs.Node> = (node: T, context: Context) => IterableIterator<Value>
+
 const UNASSIGNED = { type: 'not_initialized' }
 
 const create_unassigned = (locals: any[], context: Context) => {
@@ -232,25 +237,25 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     S.push(node.value)
   },
 
-  TemplateLiteral: function* (node: es.TemplateLiteral) {
+  TemplateLiteral: function* (node: cs.TemplateLiteral) {
     // Expressions like `${1}` are not allowed, so no processing needed
     return node.quasis[0].value.cooked
   },
 
-  ThisExpression: function* (node: es.ThisExpression, context: Context) {
+  ThisExpression: function* (node: cs.ThisExpression, context: Context) {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
-  ArrayExpression: function* (node: es.ArrayExpression, context: Context) {
+  ArrayExpression: function* (node: cs.ArrayExpression, context: Context) {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
 
-  FunctionExpression: function* (node: es.FunctionExpression, context: Context) {
+  FunctionExpression: function* (node: cs.FunctionExpression, context: Context) {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
-  ArrowFunctionExpression: function* (node: es.ArrowFunctionExpression, context: Context) {
+  ArrowFunctionExpression: function* (node: cs.ArrowFunctionExpression, context: Context) {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
@@ -312,7 +317,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     extend(sf.params, args, context)
   },
 
-  NewExpression: function* (node: es.NewExpression, context: Context) {
+  NewExpression: function* (node: cs.NewExpression, context: Context) {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
@@ -367,11 +372,11 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
       )
   },
 
-  LogicalExpression: function* (node: es.LogicalExpression, context: Context) {
+  LogicalExpression: function* (node: cs.LogicalExpression, context: Context) {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
-  VariableDeclaration: function* (node: es.VariableDeclaration, context: Context) {
+  VariableDeclaration: function* (node: cs.VariableDeclaration, context: Context) {
     const len = node.declarations.length
     for (let i = 0; i < len; i++) {
       const declaration = node.declarations[i]
@@ -392,18 +397,17 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     makeVar(context, node.symbol, S[S.length-1])
   },
 
-  ContinueStatement: function* (_node: es.ContinueStatement, _context: Context) {
+  ContinueStatement: function* (_node: cs.ContinueStatement, _context: Context) {
     throw new Error(`not supported yet: ${_node.type}`)
   },
 
-  BreakStatement: function* (_node: es.BreakStatement, _context: Context) {
+  BreakStatement: function* (_node: cs.BreakStatement, _context: Context) {
     throw new Error(`not supported yet: ${_node.type}`)
   },
 
-  ForStatement: function* (node: es.ForStatement, context: Context) {
+  ForStatement: function* (node: cs.ForStatement, context: Context) {
     throw new Error(`not supported yet: ${node.type}`)
   },
-
 
   AssignmentExpression: function* (node: es.AssignmentExpression, context: Context) {
     A.push({ type: "Assignment_i", symbol: node.left })
@@ -516,7 +520,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     )
   },
 
-  BlockStatement: function* (node: es.BlockStatement, context: Context) {
+  BlockStatement: function* (node: cs.BlockStatement, context: Context) {
     const env = createBlockEnv(context, 'blockEnvironment')
     pushEnvironment(context, env)
     const locals = scan(node.body)

@@ -1,6 +1,6 @@
-import * as es from 'estree'
-
+// import * as cs from 'estree'
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
+import * as cs from '../tree/ctree'
 import { ErrorSeverity, ErrorType, Value } from '../types'
 
 const LHS = ' on left hand side of operation'
@@ -9,9 +9,9 @@ const RHS = ' on right hand side of operation'
 export class TypeError extends RuntimeSourceError {
   public type = ErrorType.RUNTIME
   public severity = ErrorSeverity.ERROR
-  public location: es.SourceLocation
+  public location: cs.SourceLocation
 
-  constructor(node: es.Node, public side: string, public expected: string, public got: string) {
+  constructor(node: cs.Node, public side: string, public expected: string, public got: string) {
     super(node)
   }
 
@@ -45,7 +45,7 @@ const isString = (v: Value) => typeOf(v) === 'string'
 const isObject = (v: Value) => typeOf(v) === 'object'
 const isArray = (v: Value) => typeOf(v) === 'array'
 
-export const checkUnaryExpression = (node: es.Node, operator: es.UnaryOperator, value: Value) => {
+export const checkUnaryExpression = (node: cs.Node, operator: cs.UnaryOperator, value: Value) => {
   if ((operator === '+' || operator === '-') && !isNumber(value)) {
     return new TypeError(node, '', 'number', typeOf(value))
   } else if (operator === '!' && !isNumber(value)) {
@@ -55,7 +55,7 @@ export const checkUnaryExpression = (node: es.Node, operator: es.UnaryOperator, 
   }
 }
 
-export function checkUpdateExpression(node: es.UpdateExpression, operator: string, value: any) {
+export function checkUpdateExpression(node: cs.UpdateExpression, operator: string, value: any) {
   if ((operator === '++' || operator === '--') && !isNumber(value)) {
     return new TypeError(node, '', 'number', typeOf(value))
   } else {
@@ -64,8 +64,8 @@ export function checkUpdateExpression(node: es.UpdateExpression, operator: strin
 }
 
 export const checkBinaryExpression = (
-  node: es.Node,
-  operator: es.BinaryOperator,
+  node: cs.Node,
+  operator: cs.BinaryOperator,
   left: Value,
   right: Value
 ) => {
@@ -100,11 +100,11 @@ export const checkBinaryExpression = (
   }
 }
 
-export const checkIfStatement = (node: es.Node, test: Value) => {
+export const checkIfStatement = (node: cs.Node, test: Value) => {
   return isNumber(test) ? undefined : new TypeError(node, ' as condition', 'number', typeOf(test))
 }
 
-export const checkMemberAccess = (node: es.Node, obj: Value, prop: Value) => {
+export const checkMemberAccess = (node: cs.Node, obj: Value, prop: Value) => {
   if (isObject(obj)) {
     return isString(prop) ? undefined : new TypeError(node, ' as prop', 'string', typeOf(prop))
   } else if (isArray(obj)) {
@@ -118,6 +118,6 @@ export const checkMemberAccess = (node: es.Node, obj: Value, prop: Value) => {
   }
 }
 
-export const isIdentifier = (node: any): node is es.Identifier => {
-  return (node as es.Identifier).name !== undefined
+export const isIdentifier = (node: any): node is cs.Identifier => {
+  return (node as cs.Identifier).name !== undefined
 }
