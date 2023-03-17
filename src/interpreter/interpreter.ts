@@ -68,8 +68,6 @@ function* leave(context: Context) {
   yield context
 }
 
-export type Evaluator<T extends es.Node> = (node: T, context: Context) => IterableIterator<Value>
-
 // function* evaluateBlockSatement(context: Context, node: es.BlockStatement) {
 //   let result
 //   for (const statement of node.body) {
@@ -162,7 +160,7 @@ const create_unassigned = (locals: any[], context: Context) => {
   }
 }
 
-const extend = (names: es.Identifier[], values: any[], context: Context) => {
+const extend = (names: cs.Identifier[], values: any[], context: Context) => {
   const env = createBlockEnv(context)
   pushEnvironment(context, env)
   for (let i = 0; i < names.length; i++) {
@@ -177,14 +175,14 @@ const extend = (names: es.Identifier[], values: any[], context: Context) => {
 /* -------------------------------------------------------------------------- */
 
 const scan = (body_arr: any) => {
-  const res = []
+  const res: any[] = []
   for (let i = 0; i < body_arr.length; i++) {
     const statement: any = body_arr[i]
     if (statement.type === 'VariableDeclaration') {
       const len = statement.declarations.length
       for (let i = 0; i < len; i++) {
         const declaration = statement.declarations[i]
-        const identifier = declaration.id as es.Identifier
+        const identifier = declaration.id as cs.Identifier
         res.push(identifier.name)
       }
     } else if (statement.type === 'FunctionDeclaration') {
@@ -198,7 +196,7 @@ const handle_body = (body: any) => {
   if (body.length === 0) {
     return [{ type: 'Literal', value: undefined }]
   }
-  const res = []
+  const res: any[] = []
   let first = true
   for (const cmd of body) {
     first ? (first = false) : res.push({ type: 'Pop_i' })
@@ -224,7 +222,7 @@ const handle_body = (body: any) => {
 /*                                  Microcode                                 */
 /* -------------------------------------------------------------------------- */
 
-export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
+export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   Pop_i: function* (node: any, _context: Context) {
     S.pop()
   },
@@ -232,8 +230,9 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   Pop_env: function* (node: any, context: Context) {
     popEnvironment(context)
   },
+
   /** Simple Values */
-  Literal: function* (node: es.Literal, _context: Context) {
+  Literal: function* (node: cs.Literal, _context: Context) {
     S.push(node.value)
   },
 
@@ -250,7 +249,6 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
-
   FunctionExpression: function* (node: cs.FunctionExpression, context: Context) {
     throw new Error(`not supported yet: ${node.type}`)
   },
@@ -259,11 +257,11 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
-  Identifier: function* (node: es.Identifier, context: Context) {
+  Identifier: function* (node: cs.Identifier, context: Context) {
     S.push(getVar(context, node.name))
   },
 
-  CallExpression: function* (node: es.CallExpression, context: Context) {
+  CallExpression: function* (node: cs.CallExpression, context: Context) {
     A.push(
       {
         type: "Call_i",
@@ -276,7 +274,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     A.push(node.callee)
   },
 
-  ReturnStatement: function* (node: es.ReturnStatement, context: Context) {
+  ReturnStatement: function* (node: cs.ReturnStatement, context: Context) {
     A.push(
       {type: "Reset_i"},
       node.argument // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
@@ -298,7 +296,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
 
   Call_i: function* (node: any, context: Context) {
     const arity = node.arity
-    const args = []
+    const args: any[] = []
     for (let i = arity - 1; i >= 0; i--) {
       args[i] = S.pop()
     }
@@ -321,7 +319,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
-  UnaryExpression: function* (node: es.UnaryExpression, context: Context) {
+  UnaryExpression: function* (node: cs.UnaryExpression, context: Context) {
     A.push({ type: "UnaryExpression_i", operator: node.operator }, node.argument)
   },
 
@@ -330,7 +328,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     S.push(result)
   },
 
-  BinaryExpression: function* (node: es.BinaryExpression, context: Context) {
+  BinaryExpression: function* (node: cs.BinaryExpression, context: Context) {
     A.push({ type: "BinaryExpression_i", operator: node.operator }, node.left, node.right)
   },
 
@@ -341,9 +339,9 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     S.push(result)
   },
 
-  UpdateExpression: function* (node: es.UpdateExpression, context: Context) {
+  UpdateExpression: function* (node: cs.UpdateExpression, context: Context) {
     if (!node.prefix) {
-      const value = getVar(context, (node.argument as es.Identifier).name)
+      const value = getVar(context, (node.argument as cs.Identifier).name)
       A.push( [{ type: "Pop_i" }, context])
       S.push(value)
     }
@@ -365,7 +363,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     )
   },
 
-  ConditionalExpression: function* (node: es.ConditionalExpression, context: Context) {
+  ConditionalExpression: function* (node: cs.ConditionalExpression, context: Context) {
     A.push(
         {type: 'Conditional_i', cons: node.consequent, alt: node.alternate},
         node.test
@@ -380,7 +378,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     const len = node.declarations.length
     for (let i = 0; i < len; i++) {
       const declaration = node.declarations[i]
-      const identifier = declaration.id as es.Identifier
+      const identifier = declaration.id as cs.Identifier
       // const symbol = identifier.name
       const init = (declaration.init == null || isUndefined(declaration.init))
         ? undefined
@@ -409,7 +407,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
-  AssignmentExpression: function* (node: es.AssignmentExpression, context: Context) {
+  AssignmentExpression: function* (node: cs.AssignmentExpression, context: Context) {
     A.push({ type: "Assignment_i", symbol: node.left })
     console.log(node.operator);
     
@@ -452,7 +450,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     setVar(context, node.symbol.name, S[S.length-1])
   },
 
-  FunctionDeclaration: function* (node: es.FunctionDeclaration, context: Context) {
+  FunctionDeclaration: function* (node: cs.FunctionDeclaration, context: Context) {
     const id = node.id
     A.push(
       {
@@ -474,10 +472,10 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
   },
 
   Closure: function* (node: any, context: Context) {
-    S.push(new Closure(node.params as es.Identifier[], node.body, context))
+    S.push(new Closure(node.params as cs.Identifier[], node.body, context))
   },
 
-  IfStatement: function* (node: es.IfStatement | es.ConditionalExpression, context: Context) {
+  IfStatement: function* (node: cs.IfStatement | cs.ConditionalExpression, context: Context) {
     A.push(
         {type: 'Conditional_i', cons: node.consequent, alt: node.alternate},
         node.test
@@ -488,11 +486,11 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     A.push(S.pop() !== 0 ? node.cons : node.alt)
   },
 
-  ExpressionStatement: function* (node: es.ExpressionStatement, context: Context) {
+  ExpressionStatement: function* (node: cs.ExpressionStatement, context: Context) {
     A.push(node.expression)
   },
 
-  WhileStatement: function* (node: es.WhileStatement, context: Context) {
+  WhileStatement: function* (node: cs.WhileStatement, context: Context) {
     A.push(
       { type: "Literal", value: undefined },
       { type: "While_i", test: node.test, body: node.body },
@@ -512,7 +510,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     }
   },
 
-  DoWhileStatement: function* (node: es.DoWhileStatement, context: Context) {
+  DoWhileStatement: function* (node: cs.DoWhileStatement, context: Context) {
     A.push(
       { type: "WhileStatement", test: node.test, body: node.body },
       { type: "Pop_i" }, // pop result of body
@@ -531,7 +529,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
     A.push(...handle_body(node.body))
   },
 
-  Program: function* (node: es.BlockStatement, context: Context) {
+  Program: function* (node: cs.BlockStatement, context: Context) {
     const env = createBlockEnv(context, 'programEnvironment')
     pushEnvironment(context, env)
     const locals = scan(node.body)
@@ -544,7 +542,7 @@ export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
 // tslint:enable:object-literal-shorthand
 
 const step_limit = 100
-export function* evaluate(node: es.Node, context: Context) {
+export function* evaluate(node: cs.Node, context: Context) {
   context.numberOfOuterEnvironments++
   const env = createGlobalEnvironment()
   pushEnvironment(context, env)
