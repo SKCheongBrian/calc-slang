@@ -28,6 +28,11 @@ let A: any[]
 let S: any[]
 let global_context: Context
 
+let RTS: ArrayBuffer
+let HEAP: ArrayBuffer
+const WORD_SIZE: number = 8
+const MEGA: number = 2 ** 20
+
 // ? Commenting out since it calls evaluate
 // function* forceIt(val: any, context: Context): Value {
 //   if (val instanceof Thunk) {
@@ -275,10 +280,17 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   ReturnStatement: function* (node: cs.ReturnStatement, context: Context) {
-    A.push(
-      {type: "Reset_i"},
-      node.argument // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
-    )
+    if (node.argument) {
+      A.push(
+        {type: "Reset_i"},
+        node.argument // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
+      )
+    } else {
+      A.push(
+        {type: "Reset_i"},
+      )
+
+    }
   },
   // TODO marki envi reseti return statement
   Env_i: function* (node: any, context: Context) {
@@ -287,7 +299,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 
   Reset_i: function* (node: any, context: Context) {
     if (A.pop().type === "Mark_i") {
-      console.log("LSKDJFOIEWFWJFFLSJDFLKSJFLHEWOFIJSLKJ")
+      console.log("look for me plz")
       return
     } else {
       A.push(node)
@@ -550,6 +562,8 @@ export function* evaluate(node: cs.Node, context: Context) {
   A = [node]
   console.log(A.slice(0))
   S = []
+  RTS = new ArrayBuffer(10 * MEGA)
+  HEAP = new ArrayBuffer(10 * MEGA)
   let i: number = 0
   while (i < step_limit) {
     if (A.length === 0) break
