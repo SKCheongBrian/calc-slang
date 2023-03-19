@@ -1,5 +1,6 @@
 /* tslint:disable:max-classes-per-file */
 import { isUndefined, reduce, uniqueId } from 'lodash'
+
 import { createGlobalEnvironment } from '../createContext'
 import * as errors from '../errors/errors'
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
