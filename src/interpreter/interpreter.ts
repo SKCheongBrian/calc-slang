@@ -15,6 +15,7 @@ import * as rttc from '../utils/rttc'
 import { createEmptyContext } from './../createContext'
 import { binaryExpression } from './../utils/astCreator'
 import Closure from './closure'
+import { RuntimeStack } from './Memory'
 
 class Thunk {
   public value: Value
@@ -29,8 +30,8 @@ let A: any[]
 let S: any[]
 let global_context: Context
 
-let RTS: ArrayBuffer
-let HEAP: ArrayBuffer
+let RTS: RuntimeStack
+// let HEAP: Memory
 const WORD_SIZE: number = 8
 const MEGA: number = 2 ** 20
 
@@ -563,8 +564,8 @@ export function* evaluate(node: cs.Node, context: Context) {
   A = [node]
   console.log(A.slice(0))
   S = []
-  RTS = new ArrayBuffer(10 * MEGA)
-  HEAP = new ArrayBuffer(10 * MEGA)
+  RTS = new RuntimeStack(10)
+  // HEAP = new ArrayBuffer(10 * MEGA)
   let i: number = 0
   while (i < step_limit) {
     if (A.length === 0) break
