@@ -15,7 +15,7 @@ import * as rttc from '../utils/rttc'
 import { createEmptyContext } from './../createContext'
 import { binaryExpression } from './../utils/astCreator'
 import Closure from './closure'
-import { RuntimeStack } from './Memory'
+import { RuntimeStack } from './memory'
 
 class Thunk {
   public value: Value
