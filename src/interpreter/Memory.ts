@@ -53,13 +53,17 @@ export class RuntimeStack extends Memory {
     return this.get_word_at_index(this.fp + offset)
   }
 
+  // TODO: I think we can pass in 'return pc' as a parameter to this function?
   public extend_frame() {
+    // TODO: Allocate return pc
     this.allocate(this.fp)
+    this.allocate(this.sp)
     this.fp = this.sp
   }
 
   public tear_down() {
     this.sp = this.get_word_at_index(this.fp - 1)
-    this.fp = this.get_word_at_index(this.fp - 1)
+    this.fp = this.get_word_at_index(this.fp - 2)
+    // TODO return 'return pc'? 
   }
 }
