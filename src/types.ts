@@ -255,7 +255,7 @@ export type ContiguousArrayElements = ContiguousArrayElementExpression[]
 // Types used in type checker for type inference/type error checker for Source Typed variant
 // =======================================
 
-export type PrimitiveType = 'int' | 'void'
+export type PrimitiveType = 'int' | 'void' | 'char'
 
 export type TSAllowedTypes = 'any' | 'void'
 

@@ -51,6 +51,7 @@ RSQUARE: ']';
 LBRACE: '{';
 RBRACE: '}';
 COMMA: ',';
+APROS: '\'';
 QUESTION: '?';
 EXCLAM: '!';
 COLON: ':';
@@ -59,6 +60,7 @@ SEMI: ';';
 // Types
 INT: 'int';
 VOID: 'void';
+CHAR: 'char';
 
 // Keywords
 CASE: 'case';
@@ -79,12 +81,16 @@ WHITESPACE: [ \r\n\t]+ -> skip;
 IDENTIFIER:
 	IDENTIFIER_NON_DIGIT (IDENTIFIER_NON_DIGIT | DIGIT)*;
 
+CHARACTER: APROS (~['\\\r\n] | ESCAPE_SEQUENCE) APROS;
+
 fragment IDENTIFIER_NON_DIGIT:
 	NON_DIGIT; //|   // other implementation-defined characters...
 
 fragment NON_DIGIT: [a-zA-Z_];
 
 fragment DIGIT: [0-9];
+
+fragment ESCAPE_SEQUENCE: '\\' [n0];
 
 /*
  * Productions
@@ -131,7 +137,7 @@ declaration:
 
 declarationSpecifier: typeSpec = typeSpecifier;
 
-typeSpecifier: type = (VOID | INT);
+typeSpecifier: type = (VOID | INT | CHAR);
 
 initDeclaratorList: initDeclarator (COMMA initDeclarator)*;
 
@@ -156,6 +162,7 @@ expressionStatement: expression SEMI;
 
 expression:
 	NUMBER								# Number
+	| CHARACTER							# Character
 	| IDENTIFIER						# Identifier
 	| LPAREN inner = expression RPAREN	# Parentheses
 

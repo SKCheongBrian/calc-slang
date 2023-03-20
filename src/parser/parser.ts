@@ -28,6 +28,7 @@ import {
   CalcParser,
   CallContext,
   CaseStatementContext,
+  CharacterContext,
   CompoundStatementContext,
   ConditionalContext,
   ContinueStatementContext,
@@ -706,6 +707,16 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
     }
   }
 
+  visitCharacter(ctx: CharacterContext): cs.Expression {
+    console.log('test')
+    return {
+      type: 'Literal',
+      value: ctx.text,
+      datatype: this.typeGenerator.visitCharacter(ctx),
+      loc: contextToLocation(ctx)
+    }
+  }
+
   visitIdentifier(ctx: IdentifierContext): cs.Expression {
     return {
       type: 'Identifier',
@@ -1354,6 +1365,13 @@ class TypeGenerator implements CalcVisitor<Type> {
     }
   }
 
+  char(): Primitive {
+    return {
+      kind: 'primitive',
+      name: 'char'
+    }
+  }
+
   pointer(type: Type): Pointer {
     return {
       kind: 'pointer',
@@ -1405,15 +1423,11 @@ class TypeGenerator implements CalcVisitor<Type> {
   resolveType(str: string | undefined): Type {
     switch (str) {
       case 'int':
-        return {
-          kind: 'primitive',
-          name: 'int'
-        }
+        return this.int()
       case 'void':
-        return {
-          kind: 'primitive',
-          name: 'void'
-        }
+        return this.void()
+      case 'char':
+        return this.char()
     }
     throw new Error('Type error')
   }
@@ -1427,6 +1441,10 @@ class TypeGenerator implements CalcVisitor<Type> {
 
   visitNumber(ctx: NumberContext): Type {
     return this.int()
+  }
+
+  visitCharacter(ctx: CharacterContext): Type {
+    return this.char()
   }
 
   visitIdentifier(ctx: IdentifierContext): Type {
