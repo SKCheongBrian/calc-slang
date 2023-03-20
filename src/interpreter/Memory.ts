@@ -17,14 +17,14 @@ class Memory {
   }
 
   public set_bit(i: number) {
-    const byte_index = Math.floor(i/8)
+    const byte_index = Math.floor(i / 8)
     const current_byte = this.memory.getUint8(byte_index)
     const bit_index = 7 - (i % 8)
-    this.memory.setUint8(byte_index, current_byte | 1 << bit_index)
+    this.memory.setUint8(byte_index, current_byte | (1 << bit_index))
   }
 
   public unset_bit(i: number) {
-    const byte_index = Math.floor(i/8)
+    const byte_index = Math.floor(i / 8)
     const current_byte = this.memory.getUint8(byte_index)
     const bit_index = 7 - (i % 8)
     this.memory.setUint8(byte_index, current_byte & ~(1 << bit_index))
