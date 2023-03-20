@@ -1,3 +1,5 @@
+import { stringify } from '../utils/stringify'
+
 class Memory {
   public memory: DataView
   public MEGA: number = 2 ** 20
@@ -39,10 +41,22 @@ class Memory {
 export class RuntimeStack extends Memory {
   public fp: number
   public sp: number
+  public frame_counter: number
+  public name_to_offset: object
   constructor(size: number) {
     super(size)
     this.fp = 0
     this.sp = 0
+    this.frame_counter = 0
+    this.name_to_offset = {}
+  }
+
+  public add_name(name: string, offset: number) {
+    this.name_to_offset[name + stringify(this.frame_counter)] = offset
+  }
+
+  public get_name(name: string) {
+    return this.name_to_offset[name + stringify(this.frame_counter)]
   }
 
   public allocate(value: number) {
@@ -54,6 +68,14 @@ export class RuntimeStack extends Memory {
   }
 
   public extend_frame() {
+    this.frame_counter++
+  }
+
+  public exit_frame() {
+    this.frame_counter--
+  }
+
+  public entering_function() {
     this.allocate(this.fp)
     this.fp = this.sp
   }
