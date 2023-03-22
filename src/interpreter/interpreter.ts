@@ -13,7 +13,7 @@ import { Context, Environment, Frame, Value } from '../types'
 import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
 import * as rttc from '../utils/rttc'
 import { createEmptyContext } from './../createContext'
-import { binaryExpression } from './../utils/astCreator'
+import { binaryExpression, identifier } from './../utils/astCreator'
 import Closure from './closure'
 import { RuntimeStack } from './Memory'
 
@@ -279,6 +279,14 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
       A.push(node.arguments[i])
     }
     A.push(node.callee)
+  // RTS
+  console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>> EXTENDING FRAME >>>>>>>>>>>>>>>>>>>")
+  RTS.extend_frame()
+  console.log(RTS)
+  const parameters = node.arguments
+  for (let i = 0; i < parameters.length; i++) {
+    RTS.allocate(parameters[i])
+  }
   },
 
   ReturnStatement: function* (node: cs.ReturnStatement, context: Context) {
@@ -306,6 +314,8 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     } else {
       A.push(node)
     }
+    RTS.tear_down()
+    console.log(">>>>>>>>>>>>>>>>>>>>>> TEAR DOWN >>>>>>>>>>>>>>>>>>>>>>>>>>")
   },
 
   Call_i: function* (node: any, context: Context) {
@@ -536,6 +546,9 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     const env = createBlockEnv(context, 'blockEnvironment')
     pushEnvironment(context, env)
     const locals = scan(node.body)
+    for (let i = 0; i < locals.length; i++) {
+      RTS.allocate(locals[i])
+    }
     console.log("LOCALS:-----------------------")
     console.log(locals)
     create_unassigned(locals, context)
@@ -551,6 +564,8 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     console.log(locals)
     create_unassigned(locals, context)
     A.push(...handle_body(node.body))
+    // A.push({type: "ExpressionStatement", expression: {arguments: [], callee: {name: "main"}, datatype: {name: 'int'}}})
+    // A.push({type: "CallExpression", callee: {type: 'Identifier', name: "main", datatype: {}}, datatype: {kind: 'primitive', name: 'int'}})
   }
 }
 // tslint:enable:object-literal-shorthand
