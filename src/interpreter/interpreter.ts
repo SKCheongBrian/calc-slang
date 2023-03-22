@@ -280,13 +280,13 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     }
     A.push(node.callee)
   // RTS
-  console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>> EXTENDING FRAME >>>>>>>>>>>>>>>>>>>")
-  RTS.extend_frame()
-  console.log(RTS)
-  const parameters = node.arguments
-  for (let i = 0; i < parameters.length; i++) {
-    RTS.allocate(parameters[i])
-  }
+  // console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>> EXTENDING FRAME >>>>>>>>>>>>>>>>>>>")
+  // RTS.extend_frame()
+  // console.log(RTS)
+  // const parameters = node.arguments
+  // for (let i = 0; i < parameters.length; i++) {
+  //   RTS.allocate(parameters[i])
+  // }
   },
 
   ReturnStatement: function* (node: cs.ReturnStatement, context: Context) {
@@ -314,8 +314,8 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     } else {
       A.push(node)
     }
-    RTS.tear_down()
-    console.log(">>>>>>>>>>>>>>>>>>>>>> TEAR DOWN >>>>>>>>>>>>>>>>>>>>>>>>>>")
+    // RTS.tear_down()
+    // console.log(">>>>>>>>>>>>>>>>>>>>>> TEAR DOWN >>>>>>>>>>>>>>>>>>>>>>>>>>")
   },
 
   Call_i: function* (node: any, context: Context) {
@@ -366,7 +366,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   UpdateExpression: function* (node: cs.UpdateExpression, context: Context) {
     if (!node.prefix) {
       const value = getVar(context, (node.argument as cs.Identifier).name)
-      A.push( [{ type: "Pop_i" }, context])
+      A.push( { type: "Pop_i" })
       S.push(value)
     }
     A.push(
@@ -546,9 +546,9 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     const env = createBlockEnv(context, 'blockEnvironment')
     pushEnvironment(context, env)
     const locals = scan(node.body)
-    for (let i = 0; i < locals.length; i++) {
-      RTS.allocate(locals[i])
-    }
+    // for (let i = 0; i < locals.length; i++) {
+    //   RTS.allocate(locals[i])
+    // }
     console.log("LOCALS:-----------------------")
     console.log(locals)
     create_unassigned(locals, context)
