@@ -47,6 +47,6 @@ export class RuntimeStack extends Memory {
 
   public allocate(value: number) {
     this.set_word_at_index(this.free, value)
-    this.free++;
+    this.free++
   }
 }

@@ -85,7 +85,7 @@ export const createGlobalEnvironment = (): Environment => ({
   name: 'global',
   head: {},
   id: '-1',
-  lastUsed: 0,
+  lastUsed: 0
 })
 
 export const createEmptyContext = <T>(
