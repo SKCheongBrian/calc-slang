@@ -39,49 +39,14 @@ class Memory {
 }
 
 export class RuntimeStack extends Memory {
-  public fp: number
-  public sp: number
-  public frame_counter: number
-  public name_to_offset: object
+  public free: number
   constructor(size: number) {
     super(size)
-    this.fp = 0
-    this.sp = 0
-    this.frame_counter = 0
-    this.name_to_offset = {}
-  }
-
-  public add_name(name: string, offset: number) {
-    this.name_to_offset[name + stringify(this.frame_counter)] = offset
-  }
-
-  public get_name(name: string) {
-    return this.name_to_offset[name + stringify(this.frame_counter)]
+    this.free = 0
   }
 
   public allocate(value: number) {
-    this.set_word_at_index(this.sp++, value)
-  }
-
-  public get_in_frame(offset: number) {
-    return this.get_word_at_index(this.fp + offset)
-  }
-
-  public extend_frame() {
-    this.frame_counter++
-  }
-
-  public exit_frame() {
-    this.frame_counter--
-  }
-
-  public entering_function() {
-    this.allocate(this.fp)
-    this.fp = this.sp
-  }
-
-  public tear_down() {
-    this.sp = this.get_word_at_index(this.fp - 1)
-    this.fp = this.get_word_at_index(this.fp - 1)
+    this.set_word_at_index(this.free, value)
+    this.free++;
   }
 }

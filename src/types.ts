@@ -181,6 +181,7 @@ export interface Environment {
   tail: Environment | null
   callExpression?: cs.CallExpression
   head: Frame
+  lastUsed: number
   thisContext?: Value
 }
 

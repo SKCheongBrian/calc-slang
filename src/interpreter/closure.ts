@@ -2,8 +2,7 @@
 import { cloneDeep } from 'lodash'
 
 import * as cs from '../tree/ctree'
-import { Context, Environment } from './../types'
-import { blockStatement } from './../utils/astCreator'
+import { Context } from './../types'
 
 export default class Closure {
   public closure_params: cs.Identifier[]
