@@ -229,6 +229,42 @@ const handle_body = (body: any) => {
 /*                                  Microcode                                 */
 /* -------------------------------------------------------------------------- */
 
+const create_main = (): cs.ExpressionStatement => {
+    const callee: cs.Identifier = {
+      type: 'Identifier',
+      name: 'main', 
+      datatype: {
+        kind: "function", 
+        parameterTypes: [],
+        returnType: {
+          kind: 'primitive', 
+          name: 'int'
+        }
+      } 
+    }
+
+    // Parse args
+    const args: cs.Expression[] = []
+
+    return {
+      type: "ExpressionStatement", 
+      expression: { 
+        type: 'CallExpression',
+        optional: false,
+        callee,
+        arguments: args,
+        datatype: {
+          kind: 'primitive', 
+          name: 'int'
+        } 
+      },
+      datatype: {
+        kind: 'primitive', 
+        name: 'int'
+      }
+    }
+}
+
 export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   Pop_i: function* (node: any, _context: Context) {
     S.pop()
@@ -562,6 +598,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     const locals = scan(node.body)
     console.log("LOCALS:-----------------------")
     console.log(locals)
+    node.body.push(create_main())
     create_unassigned(locals, context)
     A.push(...handle_body(node.body))
     // A.push({type: "ExpressionStatement", expression: {arguments: [], callee: {name: "main"}, datatype: {name: 'int'}}})
