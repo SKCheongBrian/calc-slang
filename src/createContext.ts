@@ -1,12 +1,7 @@
 // Variable determining chapter of Source is contained in this file.
 
-import { Context, 
-         CustomBuiltIns,
-         Environment, 
-         Variant, 
-         Value, 
-         NativeStorage } from './types'
 import * as misc from './stdlib/misc'
+import { Context, CustomBuiltIns, Environment, NativeStorage, Value, Variant } from './types'
 
 export class LazyBuiltIn {
   func: (...arg0: any) => any
@@ -191,7 +186,7 @@ export const importBuiltins = (context: Context, externalBuiltIns: CustomBuiltIn
 }
 
 const defaultBuiltIns: CustomBuiltIns = {
-  rawDisplay: misc.rawDisplay,
+  rawDisplay: misc.rawDisplay
 }
 
 const createContext = <T>(
