@@ -581,6 +581,7 @@ export function* evaluate(node: cs.Node, context: Context) {
   context.numberOfOuterEnvironments++
   const env = createGlobalEnvironment()
   pushEnvironment(context, env)
+  console.log('PRINTING CONTEXT', context)
   global_context = context
   A = [node]
   console.log(A.slice(0))
