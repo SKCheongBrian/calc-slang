@@ -1,3 +1,5 @@
+import { stringify } from '../utils/stringify'
+
 class Memory {
   public memory: DataView
   public MEGA: number = 2 ** 20
@@ -37,30 +39,14 @@ class Memory {
 }
 
 export class RuntimeStack extends Memory {
-  public fp: number
-  public sp: number
+  public free: number
   constructor(size: number) {
     super(size)
-    this.fp = 0
-    this.sp = 0
+    this.free = 0
   }
 
   public allocate(value: number) {
-    this.set_word_at_index(this.sp++, value)
-  }
-
-  public get_in_frame(offset: number) {
-    return this.get_word_at_index(this.fp + offset)
-  }
-
-  public extend_frame() {
-    this.allocate(this.fp)
-    this.allocate(this.sp)
-    this.fp = this.sp
-  }
-
-  public tear_down() {
-    this.sp = this.get_word_at_index(this.fp - 1)
-    this.fp = this.get_word_at_index(this.fp - 2)
+    this.set_word_at_index(this.free, value)
+    this.free++
   }
 }

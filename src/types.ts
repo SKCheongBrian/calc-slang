@@ -17,10 +17,8 @@ import * as cs from './tree/ctree'
  */
 export interface CustomBuiltIns {
   rawDisplay: (value: Value, str: string, externalContext: any) => Value
-  prompt: (value: Value, str: string, externalContext: any) => string | null
-  alert: (value: Value, str: string, externalContext: any) => void
-  /* Used for list visualisation. See #12 */
-  visualiseList: (list: any, externalContext: any) => void
+  // prompt: (value: Value, str: string, externalContext: any) => string | null
+  // alert: (value: Value, str: string, externalContext: any) => void
 }
 
 export enum ErrorType {
@@ -87,6 +85,10 @@ export interface ConstWrapper {
   getValue: () => Value
 }
 
+export interface NativeStorage {
+  builtins: Map<string, Value>
+}
+
 export interface Context<T = any> {
   /** The external symbols that exist in the Context. */
   externalSymbols: string[]
@@ -114,6 +116,8 @@ export interface Context<T = any> {
    * context for use in your own built-in functions (like `display(a)`)
    */
   externalContext?: T
+
+  nativeStorage: NativeStorage
 
   /**
    * Describes the language processor to be used for evaluation
@@ -181,6 +185,7 @@ export interface Environment {
   tail: Environment | null
   callExpression?: cs.CallExpression
   head: Frame
+  lastUsed: number
   thisContext?: Value
 }
 
@@ -255,7 +260,7 @@ export type ContiguousArrayElements = ContiguousArrayElementExpression[]
 // Types used in type checker for type inference/type error checker for Source Typed variant
 // =======================================
 
-export type PrimitiveType = 'int' | 'void'
+export type PrimitiveType = 'int' | 'void' | 'char'
 
 export type TSAllowedTypes = 'any' | 'void'
 

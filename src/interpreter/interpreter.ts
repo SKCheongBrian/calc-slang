@@ -1,21 +1,16 @@
 /* tslint:disable:max-classes-per-file */
-import { isUndefined, reduce, uniqueId } from 'lodash'
+import { isUndefined, uniqueId } from 'lodash'
 
 import { createGlobalEnvironment } from '../createContext'
 import * as errors from '../errors/errors'
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
-import { is_undefined } from '../stdlib/misc'
-import { Identifier } from '../tree/ctree'
+import { is_number } from '../stdlib/misc'
 /* tslint:disable:max-classes-per-file */
-// import * as cs from 'estree'
 import * as cs from '../tree/ctree'
 import { Context, Environment, Frame, Value } from '../types'
 import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
-import * as rttc from '../utils/rttc'
-import { createEmptyContext } from './../createContext'
-import { binaryExpression, identifier } from './../utils/astCreator'
 import Closure from './closure'
-import { RuntimeStack } from './Memory'
+import { RuntimeStack } from './memory'
 
 class Thunk {
   public value: Value
@@ -31,9 +26,9 @@ let S: any[]
 let global_context: Context
 
 let RTS: RuntimeStack
-// let HEAP: Memory
-const WORD_SIZE: number = 8
-const MEGA: number = 2 ** 20
+
+let functions: any[]
+let functionIndex: number
 
 // ? Commenting out since it calls evaluate
 // function* forceIt(val: any, context: Context): Value {
@@ -87,6 +82,11 @@ function* leave(context: Context) {
 /*                                  Variable                                  */
 /* -------------------------------------------------------------------------- */
 
+const addFunction = (closure: Closure) => {
+  functions[functionIndex] = closure
+  return functionIndex++
+}
+
 const makeVar = (context: Context, symbol: string, val: any) => {
   const env = currEnv(context)
   console.log('context:-----')
@@ -97,36 +97,46 @@ const makeVar = (context: Context, symbol: string, val: any) => {
   console.log('-------------')
   // TODO: map name to address instead value
   Object.defineProperty(env.head, symbol, {
-    value: val,
+    value: RTS.free,
     writable: true
   })
+  env.lastUsed = RTS.free
+  RTS.allocate(val)
 }
 
 const getVar = (context: Context, name: string) => {
   let env: Environment | null = currEnv(context)
+  let index: number = -1
   while (env) {
     if (env.head.hasOwnProperty(name)) {
       console.log('from env head(env mappings):-----')
       console.log(env.head)
       console.log('-------------------')
       // TODO change to heap look up address
-      return env.head[name]
+      index = env.head[name]
+      break
     }
     env = env.tail
   }
+  return index !== -1
+    ? RTS.get_word_at_index(index)
+    : handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
 }
 
 const setVar = (context: Context, name: string, value: any) => {
   let env: Environment | null = currEnv(context)
+  let index: number = -1
   // look through environment frames
   while (env) {
     if (env.head.hasOwnProperty(name)) {
-      env.head[name] = value
-      return undefined
+      index = env.head[name]
+      break
     }
     env = env.tail
   }
-  return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
+  return index !== -1
+    ? RTS.set_word_at_index(index, value)
+    : handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
 }
 
 /* -------------------------------------------------------------------------- */
@@ -135,7 +145,11 @@ const setVar = (context: Context, name: string, value: any) => {
 
 const currEnv = (c: Context) => c.runtime.environments[0]
 
-const popEnvironment = (context: Context) => context.runtime.environments.shift()
+// TODO update free pointer :)
+const popEnvironment = (context: Context) => {
+  context.runtime.environments.shift()
+  RTS.free = currEnv(context).lastUsed + 1
+}
 
 export const pushEnvironment = (context: Context, environment: Environment) => {
   context.runtime.environments.unshift(environment)
@@ -151,13 +165,15 @@ export const createBlockEnv = (
     name,
     tail: currEnv(context),
     head,
-    id: uniqueId()
+    id: uniqueId(),
+    lastUsed: RTS.free - 1
   }
 }
 
 export type Evaluator<T extends cs.Node> = (node: T, context: Context) => IterableIterator<Value>
 
-const UNASSIGNED = { type: 'not_initialized' }
+// TODO: prolly need to change this too
+const UNASSIGNED = 0
 
 const create_unassigned = (locals: any[], context: Context) => {
   const env = currEnv(context)
@@ -356,7 +372,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     for (let i = arity - 1; i >= 0; i--) {
       args[i] = S.pop()
     }
-    const sf: Closure = S.pop()
+    const sf: Closure = functions[S.pop()]
     if (A.length === 0 || A[A.length - 1].type === 'Env_i') {
       A.push({ type: 'Mark_i' })
     } else if (A[A.length - 1].type === 'Reset_i') {
@@ -494,7 +510,12 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 
   Assignment_i: function* (node: any, context: Context) {
     console.log(node)
-    setVar(context, node.symbol.name, S[S.length - 1])
+    if (is_number(S[S.length - 1])) {
+      setVar(context, node.symbol.name, S[S.length-1])
+    } else {
+      const index = addFunction(S[S.length - 1])
+      setVar(context, node.symbol.name, index)
+    }
   },
 
   FunctionDeclaration: function* (node: cs.FunctionDeclaration, context: Context) {
@@ -594,11 +615,14 @@ export function* evaluate(node: cs.Node, context: Context) {
   context.numberOfOuterEnvironments++
   const env = createGlobalEnvironment()
   pushEnvironment(context, env)
+  console.log('PRINTING CONTEXT', context)
   global_context = context
   A = [node]
   console.log(A.slice(0))
   S = []
   RTS = new RuntimeStack(10)
+  functions = []
+  functionIndex = 0
   // HEAP = new ArrayBuffer(10 * MEGA)
   let i: number = 0
   while (i < step_limit) {
