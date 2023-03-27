@@ -50,3 +50,5 @@ export class RuntimeStack extends Memory {
     this.free++
   }
 }
+
+export class Heap extends Memory {}
