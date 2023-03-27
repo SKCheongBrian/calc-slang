@@ -57,11 +57,11 @@ export default class Interval {
   public can_merge(other: Interval): boolean {
     return other.begin == this.end + 1 || other.end == this.end - 1
   }
-  
+
   public merge(other: Interval): Interval {
     const new_begin: number = Math.min(this.begin, other.begin)
     const new_end: number = Math.max(this.end, other.end)
-    const new_size: number = new_end - new_begin + 1;
+    const new_size: number = new_end - new_begin + 1
 
     return new Interval(new_begin, new_end, new_size)
   }

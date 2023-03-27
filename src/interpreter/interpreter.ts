@@ -511,7 +511,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   Assignment_i: function* (node: any, context: Context) {
     console.log(node)
     if (is_number(S[S.length - 1])) {
-      setVar(context, node.symbol.name, S[S.length-1])
+      setVar(context, node.symbol.name, S[S.length - 1])
     } else {
       const index = addFunction(S[S.length - 1])
       setVar(context, node.symbol.name, index)
