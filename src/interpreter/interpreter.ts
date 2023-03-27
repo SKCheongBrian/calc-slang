@@ -245,6 +245,42 @@ const handle_body = (body: any) => {
 /*                                  Microcode                                 */
 /* -------------------------------------------------------------------------- */
 
+const create_main = (): cs.ExpressionStatement => {
+    const callee: cs.Identifier = {
+      type: 'Identifier',
+      name: 'main', 
+      datatype: {
+        kind: "function", 
+        parameterTypes: [],
+        returnType: {
+          kind: 'primitive', 
+          name: 'int'
+        }
+      } 
+    }
+
+    // Parse args
+    const args: cs.Expression[] = []
+
+    return {
+      type: "ExpressionStatement", 
+      expression: { 
+        type: 'CallExpression',
+        optional: false,
+        callee,
+        arguments: args,
+        datatype: {
+          kind: 'primitive', 
+          name: 'int'
+        } 
+      },
+      datatype: {
+        kind: 'primitive', 
+        name: 'int'
+      }
+    }
+}
+
 export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   Pop_i: function* (node: any, _context: Context) {
     S.pop()
@@ -285,29 +321,33 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   CallExpression: function* (node: cs.CallExpression, context: Context) {
-    A.push(
-      {
-        type: "Call_i",
-        arity: node.arguments.length
-      },
-    )
-    for (let i = node.arguments.length - 1; i >= 0; i--) { // not reversed unlike hw3 so we need to reverse it
+    A.push({
+      type: 'Call_i',
+      arity: node.arguments.length
+    })
+    for (let i = node.arguments.length - 1; i >= 0; i--) {
+      // not reversed unlike hw3 so we need to reverse it
       A.push(node.arguments[i])
     }
     A.push(node.callee)
+    // RTS
+    // console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>> EXTENDING FRAME >>>>>>>>>>>>>>>>>>>")
+    // RTS.extend_frame()
+    // console.log(RTS)
+    // const parameters = node.arguments
+    // for (let i = 0; i < parameters.length; i++) {
+    //   RTS.allocate(parameters[i])
+    // }
   },
 
   ReturnStatement: function* (node: cs.ReturnStatement, context: Context) {
     if (node.argument) {
       A.push(
-        {type: "Reset_i"},
+        { type: 'Reset_i' },
         node.argument // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
       )
     } else {
-      A.push(
-        {type: "Reset_i"},
-      )
-
+      A.push({ type: 'Reset_i' })
     }
   },
   // TODO marki envi reseti return statement
@@ -316,12 +356,14 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   Reset_i: function* (node: any, context: Context) {
-    if (A.pop().type === "Mark_i") {
-      console.log("look for me plz")
+    if (A.pop().type === 'Mark_i') {
+      console.log('look for me plz')
       return
     } else {
       A.push(node)
     }
+    // RTS.tear_down()
+    // console.log(">>>>>>>>>>>>>>>>>>>>>> TEAR DOWN >>>>>>>>>>>>>>>>>>>>>>>>>>")
   },
 
   Call_i: function* (node: any, context: Context) {
@@ -332,14 +374,11 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     }
     const sf: Closure = functions[S.pop()]
     if (A.length === 0 || A[A.length - 1].type === 'Env_i') {
-      A.push({type: "Mark_i"})
+      A.push({ type: 'Mark_i' })
     } else if (A[A.length - 1].type === 'Reset_i') {
-      A.pop();
+      A.pop()
     } else {
-      A.push(
-        {type: "Env_i", context: context},
-        {type: "Mark_i"}
-      )
+      A.push({ type: 'Env_i', context: context }, { type: 'Mark_i' })
     }
     A.push(sf.body)
     extend(sf.params, args, context)
@@ -350,7 +389,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   UnaryExpression: function* (node: cs.UnaryExpression, context: Context) {
-    A.push({ type: "UnaryExpression_i", operator: node.operator }, node.argument)
+    A.push({ type: 'UnaryExpression_i', operator: node.operator }, node.argument)
   },
 
   UnaryExpression_i: function* (node: any, context: Context) {
@@ -359,45 +398,40 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   BinaryExpression: function* (node: cs.BinaryExpression, context: Context) {
-    A.push({ type: "BinaryExpression_i", operator: node.operator }, node.left, node.right)
+    A.push({ type: 'BinaryExpression_i', operator: node.operator }, node.left, node.right)
   },
 
   // TODO: I'm not sure the type of node should be here since its a weird one
   BinaryExpression_i: function* (node: any, context: Context) {
     const result = evaluateBinaryExpression(node.operator, S.pop(), S.pop())
-    console.log("result: " + result)
+    console.log('result: ' + result)
     S.push(result)
   },
 
   UpdateExpression: function* (node: cs.UpdateExpression, context: Context) {
     if (!node.prefix) {
       const value = getVar(context, (node.argument as cs.Identifier).name)
-      A.push( [{ type: "Pop_i" }, context])
+      A.push({ type: 'Pop_i' })
       S.push(value)
     }
-    A.push(
-      { 
-        type: "AssignmentExpression",
-        operator: "=",
-        left: node.argument, 
+    A.push({
+      type: 'AssignmentExpression',
+      operator: '=',
+      left: node.argument,
+      right: {
+        type: 'BinaryExpression',
+        operator: node.operator.charAt(0),
+        left: node.argument,
         right: {
-          type: "BinaryExpression",
-          operator: node.operator.charAt(0),
-          left: node.argument,
-          right: {
-            type: "Literal",
-            value: 1
-          }
+          type: 'Literal',
+          value: 1
         }
       }
-    )
+    })
   },
 
   ConditionalExpression: function* (node: cs.ConditionalExpression, context: Context) {
-    A.push(
-        {type: 'Conditional_i', cons: node.consequent, alt: node.alternate},
-        node.test
-      )
+    A.push({ type: 'Conditional_i', cons: node.consequent, alt: node.alternate }, node.test)
   },
 
   LogicalExpression: function* (node: cs.LogicalExpression, context: Context) {
@@ -410,19 +444,18 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
       const declaration = node.declarations[i]
       const identifier = declaration.id as cs.Identifier
       // const symbol = identifier.name
-      const init = (declaration.init == null || isUndefined(declaration.init))
-        ? undefined
-        : declaration.init
+      const init =
+        declaration.init == null || isUndefined(declaration.init) ? undefined : declaration.init
       A.push(
-        {type: 'Literal', value: undefined},
-        { type: "Pop_i" },
-        {type: "AssignmentExpression", left: identifier, right: init, operator: "="},
+        { type: 'Literal', value: undefined },
+        { type: 'Pop_i' },
+        { type: 'AssignmentExpression', left: identifier, right: init, operator: '=' }
       )
     }
   },
 
   VarDec_i: function* (node: any, context: Context) {
-    makeVar(context, node.symbol, S[S.length-1])
+    makeVar(context, node.symbol, S[S.length - 1])
   },
 
   ContinueStatement: function* (_node: cs.ContinueStatement, _context: Context) {
@@ -438,32 +471,32 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   AssignmentExpression: function* (node: cs.AssignmentExpression, context: Context) {
-    A.push({ type: "Assignment_i", symbol: node.left })
-    console.log(node.operator);
-    
+    A.push({ type: 'Assignment_i', symbol: node.left })
+    console.log(node.operator)
+
     switch (node.operator) {
-      case "=": {
+      case '=': {
         A.push(node.right)
         break
       }
-      case "+=": {
-        A.push({ type: "BinaryExpression", operator: "+", left: node.left, right: node.right})
+      case '+=': {
+        A.push({ type: 'BinaryExpression', operator: '+', left: node.left, right: node.right })
         break
       }
-      case "-=": {
-        A.push({ type: "BinaryExpression", operator: "-", left: node.left, right: node.right})
+      case '-=': {
+        A.push({ type: 'BinaryExpression', operator: '-', left: node.left, right: node.right })
         break
       }
-      case "*=": {
-        A.push({ type: "BinaryExpression", operator: "*", left: node.left, right: node.right})
+      case '*=': {
+        A.push({ type: 'BinaryExpression', operator: '*', left: node.left, right: node.right })
         break
       }
-      case "/=": {
-        A.push({ type: "BinaryExpression", operator: "/", left: node.left, right: node.right})
+      case '/=': {
+        A.push({ type: 'BinaryExpression', operator: '/', left: node.left, right: node.right })
         break
       }
-      case "%=": {
-        A.push({ type: "BinaryExpression", operator: "%", left: node.left, right: node.right})
+      case '%=': {
+        A.push({ type: 'BinaryExpression', operator: '%', left: node.left, right: node.right })
         break
       }
       // TODO add more of the assignment stuff
@@ -487,23 +520,21 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 
   FunctionDeclaration: function* (node: cs.FunctionDeclaration, context: Context) {
     const id = node.id
-    A.push(
-      {
-        type: "VariableDeclaration",
-        kind: "const", // cant change what a function is after
-        declarations: [
-          {
-            type: "VariableDeclarator",
-            id: id,
-            init: {
-              type: "Closure",
-              params: node.params,
-              body: node.body,
-            }
+    A.push({
+      type: 'VariableDeclaration',
+      kind: 'const', // cant change what a function is after
+      declarations: [
+        {
+          type: 'VariableDeclarator',
+          id: id,
+          init: {
+            type: 'Closure',
+            params: node.params,
+            body: node.body
           }
-        ],
-      }
-    )
+        }
+      ]
+    })
   },
 
   Closure: function* (node: any, context: Context) {
@@ -511,10 +542,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   IfStatement: function* (node: cs.IfStatement | cs.ConditionalExpression, context: Context) {
-    A.push(
-        {type: 'Conditional_i', cons: node.consequent, alt: node.alternate},
-        node.test
-      )
+    A.push({ type: 'Conditional_i', cons: node.consequent, alt: node.alternate }, node.test)
   },
 
   Conditional_i: function* (node: any, context: Context) {
@@ -527,8 +555,8 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 
   WhileStatement: function* (node: cs.WhileStatement, context: Context) {
     A.push(
-      { type: "Literal", value: undefined },
-      { type: "While_i", test: node.test, body: node.body },
+      { type: 'Literal', value: undefined },
+      { type: 'While_i', test: node.test, body: node.body },
       node.test
     )
   },
@@ -539,16 +567,16 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
       A.push(
         node, // push node back onto agenda
         node.test,
-        { type: "Pop_i" }, // pop result of body
-        node.body,
+        { type: 'Pop_i' }, // pop result of body
+        node.body
       )
     }
   },
 
   DoWhileStatement: function* (node: cs.DoWhileStatement, context: Context) {
     A.push(
-      { type: "WhileStatement", test: node.test, body: node.body },
-      { type: "Pop_i" }, // pop result of body
+      { type: 'WhileStatement', test: node.test, body: node.body },
+      { type: 'Pop_i' }, // pop result of body
       node.body // execute body one time before doing check
     )
   },
@@ -557,10 +585,13 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     const env = createBlockEnv(context, 'blockEnvironment')
     pushEnvironment(context, env)
     const locals = scan(node.body)
-    console.log("LOCALS:-----------------------")
+    // for (let i = 0; i < locals.length; i++) {
+    //   RTS.allocate(locals[i])
+    // }
+    console.log('LOCALS:-----------------------')
     console.log(locals)
     create_unassigned(locals, context)
-    A.push({ type: "Pop_env" })
+    A.push({ type: 'Pop_env' })
     A.push(...handle_body(node.body))
   },
 
@@ -568,10 +599,13 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     const env = createBlockEnv(context, 'programEnvironment')
     pushEnvironment(context, env)
     const locals = scan(node.body)
-    console.log("LOCALS:-----------------------")
+    console.log('LOCALS:-----------------------')
     console.log(locals)
+    node.body.push(create_main())
     create_unassigned(locals, context)
     A.push(...handle_body(node.body))
+    // A.push({type: "ExpressionStatement", expression: {arguments: [], callee: {name: "main"}, datatype: {name: 'int'}}})
+    // A.push({type: "CallExpression", callee: {type: 'Identifier', name: "main", datatype: {}}, datatype: {kind: 'primitive', name: 'int'}})
   }
 }
 // tslint:enable:object-literal-shorthand
