@@ -66,8 +66,8 @@ export default class Interval {
     return new Interval(new_begin, new_end, new_size)
   }
 
-  // 0: same 
-  // -1: x < y 
+  // 0: same
+  // -1: x < y
   // 1: x > y
   public compare(x: Interval): number {
     if (this.get_size() == x.get_size()) {
@@ -79,14 +79,12 @@ export default class Interval {
       else if (this.get_begin() == x.get_begin()) {
         if (this.get_end() < x.get_end()) {
           return -1
-        }
-        else if (this.get_end() == x.get_end()) {
+        } else if (this.get_end() == x.get_end()) {
           return 0
         }
       }
       return 1
-    }
-    else if (this.get_size() < x.get_size())  {
+    } else if (this.get_size() < x.get_size()) {
       return -1
     }
     return 1

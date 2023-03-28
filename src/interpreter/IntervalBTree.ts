@@ -133,7 +133,7 @@ export default class AVLTree {
       root.set_right(this.deleteNodeHelper(root.get_right(), item))
     } else {
       if (root.get_left() === null || root.get_right() === null) {
-        let temp : Node | null = null
+        let temp: Node | null = null
         if (temp == root.get_left()) {
           temp = root.get_right()
         } else {
@@ -195,11 +195,11 @@ export default class AVLTree {
   }
 
   // print the tree in pre - order
-  public inOrder () {
+  public inOrder() {
     this.inOrderHelper(this.root)
   }
 
-  public inOrderHelper (node: Node | null) {
+  public inOrderHelper(node: Node | null) {
     if (node) {
       this.inOrderHelper(node.get_left())
       console.log(node.get_item())
