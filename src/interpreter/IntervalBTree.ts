@@ -19,11 +19,10 @@ export default class AVLTree {
   //right rotate
   public rightRotate(y: Node): Node | null {
     const x: Node | null = y.get_left()
-    let T2 = null
     if (!x) {
       return null
     }
-    T2 = x.get_right()
+    const T2 = x.get_right()
     x.set_right(y)
     y.set_left(T2)
     y.set_height(Math.max(this.get_height(y.get_left()), this.get_height(y.get_right())) + 1)
@@ -60,9 +59,9 @@ export default class AVLTree {
       return new Node(item)
     }
 
-    if (item < node.get_item()) {
+    if (item.compare(node.get_item()) == -1) {
       node.set_left(this.insertNodeHelper(node.get_left(), item))
-    } else if (item > node.get_item()) {
+    } else if (item.compare(node.get_item()) == 1) {
       node.set_right(this.insertNodeHelper(node.get_right(), item))
     } else {
       return node
@@ -79,9 +78,9 @@ export default class AVLTree {
     if (balanceFactor > 1) {
       const node_left = node.get_left()
       if (node_left) {
-        if (item < node_left.get_item()) {
+        if (item.compare(node_left.get_item()) == -1) {
           return this.rightRotate(node)
-        } else if (item > node_left.get_item()) {
+        } else if (item.compare(node_left.get_item()) == 1) {
           node.set_left(this.leftRotate(node_left))
           return this.rightRotate(node)
         }
@@ -91,9 +90,9 @@ export default class AVLTree {
     if (balanceFactor < -1) {
       const node_right = node.get_right()
       if (node_right) {
-        if (item > node_right.get_item()) {
+        if (item.compare(node_right.get_item()) == 1) {
           return this.leftRotate(node)
-        } else if (item < node_right.get_item()) {
+        } else if (item.compare(node_right.get_item()) == -1) {
           node.set_right(this.rightRotate(node_right))
           return this.leftRotate(node)
         }
@@ -128,13 +127,13 @@ export default class AVLTree {
     if (root == null) {
       return root
     }
-    if (item < root.get_item()) {
+    if (item.compare(root.get_item()) == -1) {
       root.set_left(this.deleteNodeHelper(root.get_left(), item))
-    } else if (item > root.get_item()) {
+    } else if (item.compare(root.get_item()) == 1) {
       root.set_right(this.deleteNodeHelper(root.get_right(), item))
     } else {
       if (root.get_left() === null || root.get_right() === null) {
-        let temp = null
+        let temp : Node | null = null
         if (temp == root.get_left()) {
           temp = root.get_right()
         } else {
@@ -196,15 +195,15 @@ export default class AVLTree {
   }
 
   // print the tree in pre - order
-  public preOrder = () => {
-    this.preOrderHelper(this.root)
+  public inOrder () {
+    this.inOrderHelper(this.root)
   }
 
-  public preOrderHelper = (node: Node | null) => {
+  public inOrderHelper (node: Node | null) {
     if (node) {
+      this.inOrderHelper(node.get_left())
       console.log(node.get_item())
-      this.preOrderHelper(node.get_left())
-      this.preOrderHelper(node.get_right())
+      this.inOrderHelper(node.get_right())
     }
   }
 }
