@@ -228,7 +228,7 @@ export default class AVLTree {
     if (curr_left === null || curr_left.get_item().get_size() < size) {
       return curr.get_item()
     } else {
-      return this.searchSizeHelper(size , curr.get_left())
+      return this.searchSizeHelper(size, curr.get_left())
     }
   }
 }
