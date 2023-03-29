@@ -8,9 +8,10 @@ import { stringify } from '../utils/stringify'
  * @param externalContext a property of Context that can hold
  *   any information required for external use (optional).
  */
-export function rawDisplay(value: Value, str: string, _externalContext: any) {
+// export function rawDisplay(value: Value, str: string, _externalContext: any) {
+export function rawDisplay(value: Value) {
   // tslint:disable-next-line:no-console
-  console.log((str === undefined ? '' : str + ' ') + value.toString())
+  console.log('print', value.toString())
   return value
 }
 

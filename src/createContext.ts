@@ -164,6 +164,7 @@ export function defineBuiltin(
   if (typeof value === 'function') {
     const funName = name.split('(')[0].trim()
     const repr = `function ${name} {\n\t[implementation hidden]\n}`
+    value.tag = 'builtin'
     value.toString = () => repr
     value.minArgsNeeded = minArgsNeeded
 
@@ -178,8 +179,8 @@ export function defineBuiltin(
  */
 export const importBuiltins = (context: Context, externalBuiltIns: CustomBuiltIns) => {
   ensureGlobalEnvironmentExist(context)
-  const rawDisplay = (v: Value, ...s: string[]) =>
-    externalBuiltIns.rawDisplay(v, s[0], context.externalContext)
+  const rawDisplay = (v: Value) =>
+    externalBuiltIns.rawDisplay(v)
 
   // defineBuiltin(context, 'display(val, prepend = undefined)', display, 1)
   defineBuiltin(context, 'print(str, prepend = undefined)', rawDisplay, 1)

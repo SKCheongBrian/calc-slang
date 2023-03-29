@@ -708,7 +708,6 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
   }
 
   visitCharacter(ctx: CharacterContext): cs.Expression {
-    console.log('test')
     return {
       type: 'Literal',
       value: ctx.text,
@@ -774,7 +773,7 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
       optional: false,
       callee,
       arguments: args,
-      datatype: this.typeGenerator.getTypeFromFunction(ctx._id.text).returnType,
+      datatype: this.typeGenerator.getTypeFromFunction(ctx._id.text)?.returnType,
       loc: contextToLocation(ctx)
     }
   }
