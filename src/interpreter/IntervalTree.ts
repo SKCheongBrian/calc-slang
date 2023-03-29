@@ -1,7 +1,7 @@
 import Interval from './interval'
 import Node from './node'
 
-export default class AVLTree {
+export default class IntervalTree {
   private root: Node | null
 
   public constructor() {

@@ -1,6 +1,6 @@
 import { stringify } from '../utils/stringify'
 import Interval from './interval'
-import AVLTree from './IntervalBTree'
+import IntervalTree from './IntervalTree'
 
 class Memory {
   public memory: DataView
@@ -54,11 +54,11 @@ export class RuntimeStack extends Memory {
 }
 
 export class Heap extends Memory {
-  private tree: AVLTree
+  private tree: IntervalTree
   constructor(size: number) {
     super(size)
     const startingInterval: Interval = new Interval(0, 2 ** 17 - 1)
-    this.tree = new AVLTree()
+    this.tree = new IntervalTree()
     this.tree.insertNode(startingInterval)
   }
 }
