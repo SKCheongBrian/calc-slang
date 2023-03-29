@@ -1,6 +1,6 @@
 import Interval from './interval'
 
-export default class IntervalsList {
+export default class IntervalList {
   private list: Interval[]
 
   public constructor() {

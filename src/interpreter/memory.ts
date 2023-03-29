@@ -1,5 +1,5 @@
-import { stringify } from '../utils/stringify'
 import Interval from './interval'
+import IntervalList from './IntervalList'
 import IntervalTree from './IntervalTree'
 
 class Memory {
@@ -55,10 +55,52 @@ export class RuntimeStack extends Memory {
 
 export class Heap extends Memory {
   private tree: IntervalTree
+  private list: IntervalList
+  private indexToSize: object
+
   constructor(size: number) {
     super(size)
+    this.indexToSize = {}
     const startingInterval: Interval = new Interval(0, 2 ** 17 - 1)
     this.tree = new IntervalTree()
     this.tree.insertNode(startingInterval)
+    this.list = new IntervalList()
+    this.list.add(startingInterval)
   }
+
+  public allocate(size: number) {
+    const interval: Interval | null = this.tree.searchSize(size)
+    if (!interval) {
+      throw new Error(`No more space to allocate memory of size: ${size}`)
+    }
+
+    this.indexToSize[interval.get_begin()] = size
+
+    const newInterval: Interval | null = interval.allocate_with_size(size)
+    this.tree.deleteNode(interval)
+    this.list.remove(interval)
+    if (newInterval) {
+      this.tree.insertNode(newInterval)
+      this.list.add(newInterval)
+    }
+  }
+
+  public deallocate(index: number) {
+    const size: number = this.indexToSize[index]
+
+    let restoredInterval: Interval = new Interval(index, index + size - 1)
+    const [left, right] = this.list.find_neighbours(restoredInterval)
+    if (left) {
+      restoredInterval = restoredInterval.merge(left)
+      this.list.remove(left)
+      this.tree.deleteNode(left)
+    }
+    if (right) {
+      restoredInterval = restoredInterval.merge(right)
+      this.list.remove(right)
+      this.tree.deleteNode(right)
+    }
+    this.list.add(restoredInterval)
+    this.tree.insertNode(restoredInterval)
+  } 
 }
