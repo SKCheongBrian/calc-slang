@@ -68,7 +68,12 @@ export class Heap extends Memory {
     this.list.add(startingInterval)
   }
 
-  public allocate(size: number) {
+/**
+ * Allocates the `size` amount of words onto the heap
+ * @param size the size in words to allocate
+ * @returns the index on the heap where the allocated memory begins
+ */
+  public allocate(size: number): number {
     const interval: Interval | null = this.tree.searchSize(size)
     if (!interval) {
       throw new Error(`No more space to allocate memory of size: ${size}`)
@@ -83,9 +88,14 @@ export class Heap extends Memory {
       this.tree.insertNode(newInterval)
       this.list.add(newInterval)
     }
+    return interval.get_begin()
   }
 
-  public deallocate(index: number) {
+  /**
+   * Deallocates and frees the memory on the heap given an index onto the heap
+   * @param index the index onto the heap to be freed
+   */
+  public deallocate(index: number): void {
     const size: number = this.indexToSize[index]
 
     let restoredInterval: Interval = new Interval(index, index + size - 1)
