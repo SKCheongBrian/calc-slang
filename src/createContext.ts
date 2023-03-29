@@ -1,5 +1,6 @@
 // Variable determining chapter of Source is contained in this file.
 
+import * as memory from './stdlib/memory'
 import * as misc from './stdlib/misc'
 import { Context, CustomBuiltIns, Environment, NativeStorage, Value, Variant } from './types'
 
@@ -164,6 +165,7 @@ export function defineBuiltin(
   if (typeof value === 'function') {
     const funName = name.split('(')[0].trim()
     const repr = `function ${name} {\n\t[implementation hidden]\n}`
+    value.tag = 'builtin'
     value.toString = () => repr
     value.minArgsNeeded = minArgsNeeded
 
@@ -178,11 +180,12 @@ export function defineBuiltin(
  */
 export const importBuiltins = (context: Context, externalBuiltIns: CustomBuiltIns) => {
   ensureGlobalEnvironmentExist(context)
-  const rawDisplay = (v: Value, ...s: string[]) =>
-    externalBuiltIns.rawDisplay(v, s[0], context.externalContext)
+  const rawDisplay = (v: Value) => externalBuiltIns.rawDisplay(v)
 
   // defineBuiltin(context, 'display(val, prepend = undefined)', display, 1)
-  defineBuiltin(context, 'print(str, prepend = undefined)', rawDisplay, 1)
+  defineBuiltin(context, 'print(str)', rawDisplay, 1)
+  defineBuiltin(context, 'malloc(size)', memory.malloc, 1)
+  defineBuiltin(context, 'free(index)', memory.free, 1)
 }
 
 const defaultBuiltIns: CustomBuiltIns = {

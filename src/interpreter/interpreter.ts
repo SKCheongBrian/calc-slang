@@ -10,7 +10,7 @@ import * as cs from '../tree/ctree'
 import { Context, Environment, Frame, Value } from '../types'
 import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
 import Closure from './closure'
-import { RuntimeStack } from './memory'
+import { Heap, RuntimeStack } from './memory'
 
 class Thunk {
   public value: Value
@@ -26,6 +26,7 @@ let S: any[]
 let global_context: Context
 
 let RTS: RuntimeStack
+export let H: Heap
 
 let functions: any[]
 let functionIndex: number
@@ -104,7 +105,17 @@ const makeVar = (context: Context, symbol: string, val: any) => {
   RTS.allocate(val)
 }
 
+const isBuiltin = (context: Context, name: string): boolean => {
+  const builtins: Map<string, Value> = context.nativeStorage.builtins
+  return builtins.has(name)
+}
+
 const getVar = (context: Context, name: string) => {
+  // if is builtin
+  if (isBuiltin(context, name)) {
+    return context.nativeStorage.builtins.get(name)
+  }
+
   let env: Environment | null = currEnv(context)
   let index: number = -1
   while (env) {
@@ -372,7 +383,12 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     for (let i = arity - 1; i >= 0; i--) {
       args[i] = S.pop()
     }
-    const sf: Closure = functions[S.pop()]
+    const fun = S.pop()
+    if (fun.tag === 'builtin') {
+      S.push(fun(...args))
+      return
+    }
+    const sf: Closure | Value = functions[fun]
     if (A.length === 0 || A[A.length - 1].type === 'Env_i') {
       A.push({ type: 'Mark_i' })
     } else if (A[A.length - 1].type === 'Reset_i') {
@@ -621,6 +637,7 @@ export function* evaluate(node: cs.Node, context: Context) {
   console.log(A.slice(0))
   S = []
   RTS = new RuntimeStack(10)
+  H = new Heap(10)
   functions = []
   functionIndex = 0
   // HEAP = new ArrayBuffer(10 * MEGA)

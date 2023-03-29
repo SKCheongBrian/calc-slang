@@ -16,7 +16,7 @@ import * as cs from './tree/ctree'
  * different implementations. e.g display() in a web application.
  */
 export interface CustomBuiltIns {
-  rawDisplay: (value: Value, str: string, externalContext: any) => Value
+  rawDisplay: (value: Value) => Value
   // prompt: (value: Value, str: string, externalContext: any) => string | null
   // alert: (value: Value, str: string, externalContext: any) => void
 }
