@@ -9,10 +9,10 @@ import { Value } from '../types'
 export function malloc(size: Value) {
   // tslint:disable-next-line:no-console
   console.log('H before malloc', H)
-  H.allocate(size)
+  const index: number = H.allocate(size)
   console.log('[builtin] malloc', size.toString())
   console.log('H after malloc', H)
-  return size
+  return index
 }
 
 /**
