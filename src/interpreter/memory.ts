@@ -102,5 +102,5 @@ export class Heap extends Memory {
     }
     this.list.add(restoredInterval)
     this.tree.insertNode(restoredInterval)
-  } 
+  }
 }
