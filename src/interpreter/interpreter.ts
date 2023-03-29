@@ -10,7 +10,7 @@ import * as cs from '../tree/ctree'
 import { Context, Environment, Frame, Value } from '../types'
 import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
 import Closure from './closure'
-import { RuntimeStack } from './memory'
+import { RuntimeStack, Heap } from './memory'
 
 class Thunk {
   public value: Value
@@ -21,11 +21,12 @@ class Thunk {
   }
 }
 
-export let A: any[]
-export let S: any[]
+let A: any[]
+let S: any[]
 let global_context: Context
 
 let RTS: RuntimeStack
+export let H: Heap
 
 let functions: any[]
 let functionIndex: number
@@ -636,6 +637,7 @@ export function* evaluate(node: cs.Node, context: Context) {
   console.log(A.slice(0))
   S = []
   RTS = new RuntimeStack(10)
+  H = new Heap(10)
   functions = []
   functionIndex = 0
   // HEAP = new ArrayBuffer(10 * MEGA)
