@@ -223,7 +223,9 @@ export default class AVLTree {
       return this.searchSizeHelper(size, curr.get_right())
     }
 
-    if (curr.get_left() === null || curr.get_left()?.get_item().get_size()) {
+    const curr_left = curr.get_left()
+
+    if (curr_left === null || curr_left.get_item().get_size() < size) {
       return curr.get_item()
     } else {
       return this.searchSizeHelper(size , curr.get_left())
