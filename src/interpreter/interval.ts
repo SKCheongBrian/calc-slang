@@ -3,10 +3,10 @@ export default class Interval {
   private end: number
   private size: number
 
-  public constructor(begin: number, end: number, size: number) {
+  public constructor(begin: number, end: number) {
     this.begin = begin
     this.end = end
-    this.size = size
+    this.size = end - begin + 1
   }
 
   public get_begin(): number {
@@ -36,7 +36,7 @@ export default class Interval {
     if (index <= this.begin) {
       throw new Error('Noob index cannot be less than or equal to begin')
     }
-    return new Interval(index, this.end, this.end - index + 1)
+    return new Interval(index, this.end)
   }
 
   /**
@@ -61,9 +61,8 @@ export default class Interval {
   public merge(other: Interval): Interval {
     const new_begin: number = Math.min(this.begin, other.begin)
     const new_end: number = Math.max(this.end, other.end)
-    const new_size: number = new_end - new_begin + 1
 
-    return new Interval(new_begin, new_end, new_size)
+    return new Interval(new_begin, new_end)
   }
 
   // 0: same

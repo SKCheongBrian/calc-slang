@@ -206,4 +206,27 @@ export default class AVLTree {
       this.inOrderHelper(node.get_right())
     }
   }
+
+  public searchSize(size: number): Interval | null {
+    if (this.root) {
+      return this.searchSizeHelper(size, this.root)
+    }
+    return null
+  }
+
+  public searchSizeHelper(size: number, curr: Node | null): Interval | null {
+    if (curr === null) {
+      return null
+    }
+
+    if (size > curr.get_item().get_size()) {
+      return this.searchSizeHelper(size, curr.get_right())
+    }
+
+    if (curr.get_left() === null || curr.get_left()?.get_item().get_size()) {
+      return curr.get_item()
+    } else {
+      return this.searchSizeHelper(size , curr.get_left())
+    }
+  }
 }
