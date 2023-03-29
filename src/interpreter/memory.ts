@@ -68,11 +68,11 @@ export class Heap extends Memory {
     this.list.add(startingInterval)
   }
 
-/**
- * Allocates the `size` amount of words onto the heap
- * @param size the size in words to allocate
- * @returns the index on the heap where the allocated memory begins
- */
+  /**
+   * Allocates the `size` amount of words onto the heap
+   * @param size the size in words to allocate
+   * @returns the index on the heap where the allocated memory begins
+   */
   public allocate(size: number): number {
     const interval: Interval | null = this.tree.searchSize(size)
     if (!interval) {
