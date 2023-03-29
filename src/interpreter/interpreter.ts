@@ -10,7 +10,7 @@ import * as cs from '../tree/ctree'
 import { Context, Environment, Frame, Value } from '../types'
 import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
 import Closure from './closure'
-import { RuntimeStack, Heap } from './memory'
+import { Heap, RuntimeStack } from './memory'
 
 class Thunk {
   public value: Value
@@ -106,7 +106,7 @@ const makeVar = (context: Context, symbol: string, val: any) => {
 }
 
 const isBuiltin = (context: Context, name: string): boolean => {
-  let builtins: Map<string, Value> = context.nativeStorage.builtins
+  const builtins: Map<string, Value> = context.nativeStorage.builtins
   return builtins.has(name)
 }
 

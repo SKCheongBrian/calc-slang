@@ -1,5 +1,5 @@
-import { Value } from '../types'
 import { H } from '../interpreter/interpreter'
+import { Value } from '../types'
 
 /**
  * A function that mirrors C-like behaviour of `malloc`.
