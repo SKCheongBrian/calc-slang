@@ -1,7 +1,7 @@
 import Interval from './interval'
 
 export default class IntervalsList {
-  private list: Interval[] 
+  private list: Interval[]
 
   public constructor() {
     this.list = []
@@ -14,15 +14,15 @@ export default class IntervalsList {
   public remove(x: Interval) {
     const index = this.list.indexOf(x)
     if (index !== -1) {
-      this.list.splice(index, 1);
+      this.list.splice(index, 1)
     } else {
       throw new Error("cannot remove something you didn't add")
     }
   }
 
   public find_neighbours(curr: Interval): (Interval | null)[] {
-    let left: Interval | null = null;
-    let right: Interval | null = null;
+    let left: Interval | null = null
+    let right: Interval | null = null
 
     const begin = curr.get_begin()
     const end = curr.get_end()
@@ -38,5 +38,5 @@ export default class IntervalsList {
       }
     }
     return [left, right]
-  } 
+  }
 }
