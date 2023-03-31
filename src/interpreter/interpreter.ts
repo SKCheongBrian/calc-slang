@@ -1,3 +1,5 @@
+import { Identifier } from './../tree/ctree';
+import { identifier } from './../utils/astCreator';
 /* tslint:disable:max-classes-per-file */
 import { isUndefined, uniqueId } from 'lodash'
 
@@ -19,6 +21,16 @@ class Thunk {
     this.isMemoized = false
     this.value = null
   }
+}
+
+enum Type {
+  Int,
+  Char,
+}
+
+enum Location {
+  Stack,
+  Heap
 }
 
 let A: any[]
@@ -88,7 +100,7 @@ const addFunction = (closure: Closure) => {
   return functionIndex++
 }
 
-const makeVar = (context: Context, symbol: string, val: any) => {
+const makeVar = (context: Context, identifier: cs.Identifier, val: any) => {
   const env = currEnv(context)
   console.log('context:-----')
   console.log(context)
@@ -96,9 +108,38 @@ const makeVar = (context: Context, symbol: string, val: any) => {
   console.log('env:---------')
   console.log(env)
   console.log('-------------')
-  // TODO: map name to address instead value
+  // FUCK MADE HERE
+  // let type: Type;
+  // if (Number.isInteger(val)) {
+  //   type = Type.Int
+  // } else if (typeof val === 'string' || val instanceof String) {
+  //   type = Type.Char
+  //   val = String.prototype.charCodeAt(0)
+  // } else {
+  //   throw new Error("Unsupported type")
+  // }
+  let type
+  const datatype = identifier.datatype
+  const symbol = identifier.name
+  switch (datatype?.kind) {
+    case "primitive":
+      switch (datatype.name) {
+        case "int":
+          type = "int"
+          break
+        case "char":
+          type = "char"
+          break
+      }
+      break
+    case "function":
+      type = "function"
+      break
+    default:
+      throw new Error(`ERROR at makeVar, type unknown ${datatype?.kind}`)
+  }
   Object.defineProperty(env.head, symbol, {
-    value: RTS.free,
+    value: [RTS.free, type],
     writable: true
   })
   env.lastUsed = RTS.free
@@ -110,41 +151,68 @@ const isBuiltin = (context: Context, name: string): boolean => {
   return builtins.has(name)
 }
 
+// FUCK HERE TOO
 const getVar = (context: Context, name: string) => {
   // if is builtin
+  
   if (isBuiltin(context, name)) {
     return context.nativeStorage.builtins.get(name)
   }
 
   let env: Environment | null = currEnv(context)
   let index: number = -1
+  let type: String = ""
   while (env) {
     if (env.head.hasOwnProperty(name)) {
       console.log('from env head(env mappings):-----')
       console.log(env.head)
       console.log('-------------------')
-      // TODO change to heap look up address
-      index = env.head[name]
+      index = env.head[name][0]
+      type = env.head[name][1]
       break
     }
     env = env.tail
   }
-  return index !== -1
-    ? RTS.get_word_at_index(index)
-    : handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
+  console.log(`FINDING ${name}, ${type}, ${index}, ${RTS.get_word_at_index(index)}`);
+  if (index === -1) {
+    return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
+  } else if (type == 'int' || type == 'function') { // TODO maybe use a switch here
+    return RTS.get_word_at_index(index)
+  } else if (type == "char") {
+    return String.fromCharCode(RTS.get_word_at_index(index))
+  }
 }
 
-const setVar = (context: Context, name: string, value: any) => {
+// FUCK HERE TOO
+const setVar = (context: Context, identifier: cs.Identifier) => {
   let env: Environment | null = currEnv(context)
   let index: number = -1
+  const name = identifier.name
+  const dataType = identifier.datatype
+  let value = S[S.length - 1]
+
+  console.log(`Setting for ${name}, value: ${value}, index: ${index}`);
+  switch (dataType?.kind) {
+    case "function":
+      value = addFunction(value)
+      break
+    case "primitive":
+      if (dataType.name == "char") {
+        value = value.charCodeAt(0)
+      }
+      break
+  }
+
   // look through environment frames
+  
   while (env) {
     if (env.head.hasOwnProperty(name)) {
-      index = env.head[name]
+      index = env.head[name][0]
       break
     }
     env = env.tail
   }
+  console.log(`Setting for ${name}, value: ${value}, index: ${index}`);
   return index !== -1
     ? RTS.set_word_at_index(index, value)
     : handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
@@ -156,7 +224,6 @@ const setVar = (context: Context, name: string, value: any) => {
 
 const currEnv = (c: Context) => c.runtime.environments[0]
 
-// TODO update free pointer :)
 const popEnvironment = (context: Context) => {
   context.runtime.environments.shift()
   RTS.free = currEnv(context).lastUsed + 1
@@ -186,11 +253,11 @@ export type Evaluator<T extends cs.Node> = (node: T, context: Context) => Iterab
 // TODO: prolly need to change this too
 const UNASSIGNED = 0
 
-const create_unassigned = (locals: any[], context: Context) => {
+const create_unassigned = (locals: cs.Identifier[], context: Context) => {
   const env = currEnv(context)
   for (let i = 0; i < locals.length; i++) {
-    const name = locals[i]
-    makeVar(context, name, UNASSIGNED)
+    const currIdentifier: cs.Identifier = locals[i]
+    makeVar(context, currIdentifier, NaN)
   }
 }
 
@@ -198,9 +265,7 @@ const extend = (names: cs.Identifier[], values: any[], context: Context) => {
   const env = createBlockEnv(context)
   pushEnvironment(context, env)
   for (let i = 0; i < names.length; i++) {
-    const name = names[i].name
-    const value = values[i]
-    makeVar(context, name, value)
+    makeVar(context, names[i], values[i])
   }
 }
 
@@ -217,10 +282,10 @@ const scan = (body_arr: any) => {
       for (let i = 0; i < len; i++) {
         const declaration = statement.declarations[i]
         const identifier = declaration.id as cs.Identifier
-        res.push(identifier.name)
+        res.push(identifier)
       }
     } else if (statement.type === 'FunctionDeclaration') {
-      res.push(statement.id.name)
+      res.push(statement.id as cs.Identifier)
     }
   }
   return res
@@ -361,7 +426,6 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
       A.push({ type: 'Reset_i' })
     }
   },
-  // TODO marki envi reseti return statement
   Env_i: function* (node: any, context: Context) {
     global_context = node.context
   },
@@ -384,6 +448,8 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
       args[i] = S.pop()
     }
     const fun = S.pop()
+    console.log(`fun is ${fun}`);
+    
     if (fun.tag === 'builtin') {
       S.push(fun(...args))
       return
@@ -417,7 +483,6 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     A.push({ type: 'BinaryExpression_i', operator: node.operator }, node.left, node.right)
   },
 
-  // TODO: I'm not sure the type of node should be here since its a weird one
   BinaryExpression_i: function* (node: any, context: Context) {
     const result = evaluateBinaryExpression(node.operator, S.pop(), S.pop())
     console.log('result: ' + result)
@@ -515,7 +580,6 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
         A.push({ type: 'BinaryExpression', operator: '%', left: node.left, right: node.right })
         break
       }
-      // TODO add more of the assignment stuff
       default: {
         // ! not sure if this is correctly set
         throw new Error(`yo there not such thing amigo`)
@@ -525,13 +589,17 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   Assignment_i: function* (node: any, context: Context) {
+    console.log("FIND ME LSKDFJOEIWFJOSJFKL AWOIDJWOQIDJLEFJLSKDJF")
     console.log(node)
-    if (is_number(S[S.length - 1])) {
-      setVar(context, node.symbol.name, S[S.length - 1])
-    } else {
-      const index = addFunction(S[S.length - 1])
-      setVar(context, node.symbol.name, index)
-    }
+    const identifier = node.symbol as cs.Identifier
+    setVar(context, identifier)
+    // TODO remove if i am successful
+    // if (is_number(S[S.length - 1])) {
+    //   setVar(context, node.symbol.name, S[S.length - 1])
+    // } else {
+    //   const index = addFunction(S[S.length - 1])
+    //   setVar(context, node.symbol.name, index)
+    // }
   },
 
   FunctionDeclaration: function* (node: cs.FunctionDeclaration, context: Context) {

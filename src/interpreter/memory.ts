@@ -34,7 +34,6 @@ class Memory {
     this.memory.setUint8(byte_index, current_byte & ~(1 << bit_index))
   }
 
-  // TODO: right now this is assuming that it's an integer and not any other data type
   public interpret_word(index: number) {
     return this.memory.getInt32(index * this.WORD_SIZE + 4)
   }
