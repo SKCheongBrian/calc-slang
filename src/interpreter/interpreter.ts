@@ -1,5 +1,3 @@
-import { Identifier } from './../tree/ctree';
-import { identifier } from './../utils/astCreator';
 /* tslint:disable:max-classes-per-file */
 import { isUndefined, uniqueId } from 'lodash'
 
@@ -11,6 +9,8 @@ import { is_number } from '../stdlib/misc'
 import * as cs from '../tree/ctree'
 import { Context, Environment, Frame, Value } from '../types'
 import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
+import { Identifier } from './../tree/ctree'
+import { identifier } from './../utils/astCreator'
 import Closure from './closure'
 import { Heap, RuntimeStack } from './memory'
 
@@ -25,7 +25,7 @@ class Thunk {
 
 enum Type {
   Int,
-  Char,
+  Char
 }
 
 enum Location {
@@ -122,19 +122,19 @@ const makeVar = (context: Context, identifier: cs.Identifier, val: any) => {
   const datatype = identifier.datatype
   const symbol = identifier.name
   switch (datatype?.kind) {
-    case "primitive":
+    case 'primitive':
       switch (datatype.name) {
-        case "int":
-          type = "int"
+        case 'int':
+          type = 'int'
           break
-        case "char":
-          type = "char"
-          console.log("penis")
+        case 'char':
+          type = 'char'
+          console.log('penis')
           break
       }
       break
-    case "function":
-      type = "function"
+    case 'function':
+      type = 'function'
       break
     default:
       throw new Error(`ERROR at makeVar, type unknown ${datatype?.kind}`)
@@ -155,14 +155,14 @@ const isBuiltin = (context: Context, name: string): boolean => {
 // FUCK HERE TOO
 const getVar = (context: Context, name: string) => {
   // if is builtin
-  
+
   if (isBuiltin(context, name)) {
     return context.nativeStorage.builtins.get(name)
   }
 
   let env: Environment | null = currEnv(context)
   let index: number = -1
-  let type: String = ""
+  let type: String = ''
   while (env) {
     if (env.head.hasOwnProperty(name)) {
       console.log('from env head(env mappings):-----')
@@ -174,12 +174,13 @@ const getVar = (context: Context, name: string) => {
     }
     env = env.tail
   }
-  console.log(`FINDING ${name}, ${type}, ${index}, ${RTS.get_word_at_index(index)}`);
+  console.log(`FINDING ${name}, ${type}, ${index}, ${RTS.get_word_at_index(index)}`)
   if (index === -1) {
     return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
-  } else if (type == 'int' || type == 'function') { // TODO maybe use a switch here
+  } else if (type == 'int' || type == 'function') {
+    // TODO maybe use a switch here
     return RTS.get_word_at_index(index)
-  } else if (type == "char") {
+  } else if (type == 'char') {
     return String.fromCharCode(RTS.get_word_at_index(index))
   }
 }
@@ -192,20 +193,20 @@ const setVar = (context: Context, identifier: cs.Identifier) => {
   const dataType = identifier.datatype
   let value = S[S.length - 1]
 
-  console.log(`Setting for ${name}, value: ${value}, index: ${index}`);
+  console.log(`Setting for ${name}, value: ${value}, index: ${index}`)
   switch (dataType?.kind) {
-    case "function":
+    case 'function':
       value = addFunction(value)
       break
-    case "primitive":
-      if (dataType.name == "char") {
+    case 'primitive':
+      if (dataType.name == 'char') {
         value = value.charCodeAt(1)
       }
       break
   }
 
   // look through environment frames
-  
+
   while (env) {
     if (env.head.hasOwnProperty(name)) {
       index = env.head[name][0]
@@ -213,7 +214,7 @@ const setVar = (context: Context, identifier: cs.Identifier) => {
     }
     env = env.tail
   }
-  console.log(`Setting for ${name}, value: ${value}, index: ${index}`);
+  console.log(`Setting for ${name}, value: ${value}, index: ${index}`)
   return index !== -1
     ? RTS.set_word_at_index(index, value)
     : handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
@@ -449,8 +450,8 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
       args[i] = S.pop()
     }
     const fun = S.pop()
-    console.log(`fun is ${fun}`);
-    
+    console.log(`fun is ${fun}`)
+
     if (fun.tag === 'builtin') {
       S.push(fun(...args))
       return
@@ -590,7 +591,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   Assignment_i: function* (node: any, context: Context) {
-    console.log("FIND ME LSKDFJOEIWFJOSJFKL AWOIDJWOQIDJLEFJLSKDJF")
+    console.log('FIND ME LSKDFJOEIWFJOSJFKL AWOIDJWOQIDJLEFJLSKDJF')
     console.log(node)
     const identifier = node.symbol as cs.Identifier
     setVar(context, identifier)
