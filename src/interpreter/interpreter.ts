@@ -129,6 +129,7 @@ const makeVar = (context: Context, identifier: cs.Identifier, val: any) => {
           break
         case "char":
           type = "char"
+          console.log("penis")
           break
       }
       break
@@ -198,7 +199,7 @@ const setVar = (context: Context, identifier: cs.Identifier) => {
       break
     case "primitive":
       if (dataType.name == "char") {
-        value = value.charCodeAt(0)
+        value = value.charCodeAt(1)
       }
       break
   }
