@@ -178,7 +178,10 @@ const getVar = (context: Context, name: string) => {
   if (index === -1) {
     return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
   } else if (isNaN(RTS.get_word_at_index(index))) {
-    return handleRuntimeError(context, new errors.UnassignedVariable(name, context.runtime.nodes[0]))
+    return handleRuntimeError(
+      context,
+      new errors.UnassignedVariable(name, context.runtime.nodes[0])
+    )
   } else if (type == 'int' || type == 'function') {
     // TODO maybe use a switch here
     return RTS.get_word_at_index(index)
