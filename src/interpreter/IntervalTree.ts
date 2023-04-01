@@ -17,7 +17,7 @@ export default class IntervalTree {
   }
 
   //right rotate
-  public rightRotate(y: Node): Node | null {
+  public right_rotate(y: Node): Node | null {
     const x: Node | null = y.get_left()
     if (!x) {
       return null
@@ -31,7 +31,7 @@ export default class IntervalTree {
   }
 
   //right rotate
-  public leftRotate(x: Node): Node | null {
+  public left_rotate(x: Node): Node | null {
     const y: Node | null = x.get_right()
     if (!y) {
       return null
@@ -45,7 +45,7 @@ export default class IntervalTree {
   }
 
   // get balance factor of a node
-  public getBalanceFactor(N: Node): number {
+  public get_balance_factor(N: Node): number {
     if (N == null) {
       return 0
     }
@@ -53,16 +53,16 @@ export default class IntervalTree {
   }
 
   // helper function to insert a node
-  public insertNodeHelper(node: Node | null, item: Interval) {
+  public insert_node_helper(node: Node | null, item: Interval) {
     // find the position and insert the node
     if (node === null) {
       return new Node(item)
     }
 
     if (item.compare(node.get_item()) == -1) {
-      node.set_left(this.insertNodeHelper(node.get_left(), item))
+      node.set_left(this.insert_node_helper(node.get_left(), item))
     } else if (item.compare(node.get_item()) == 1) {
-      node.set_right(this.insertNodeHelper(node.get_right(), item))
+      node.set_right(this.insert_node_helper(node.get_right(), item))
     } else {
       return node
     }
@@ -73,16 +73,16 @@ export default class IntervalTree {
       1 + Math.max(this.get_height(node.get_left()), this.get_height(node.get_right()))
     )
 
-    const balanceFactor = this.getBalanceFactor(node)
+    const balanceFactor = this.get_balance_factor(node)
 
     if (balanceFactor > 1) {
       const node_left = node.get_left()
       if (node_left) {
         if (item.compare(node_left.get_item()) == -1) {
-          return this.rightRotate(node)
+          return this.right_rotate(node)
         } else if (item.compare(node_left.get_item()) == 1) {
-          node.set_left(this.leftRotate(node_left))
-          return this.rightRotate(node)
+          node.set_left(this.left_rotate(node_left))
+          return this.right_rotate(node)
         }
       }
     }
@@ -91,10 +91,10 @@ export default class IntervalTree {
       const node_right = node.get_right()
       if (node_right) {
         if (item.compare(node_right.get_item()) == 1) {
-          return this.leftRotate(node)
+          return this.left_rotate(node)
         } else if (item.compare(node_right.get_item()) == -1) {
-          node.set_right(this.rightRotate(node_right))
-          return this.leftRotate(node)
+          node.set_right(this.right_rotate(node_right))
+          return this.left_rotate(node)
         }
       }
     }
@@ -102,13 +102,13 @@ export default class IntervalTree {
   }
 
   // insert a node
-  public insertNode(item: Interval) {
+  public insert_node(item: Interval) {
     // console.log(root);
-    this.root = this.insertNodeHelper(this.root, item)
+    this.root = this.insert_node_helper(this.root, item)
   }
 
   //get node with minimum value
-  public nodeWithMimumValue(node: Node | null) {
+  public node_with_mimum_value(node: Node | null) {
     if (node == null) {
       return null
     }
@@ -122,15 +122,15 @@ export default class IntervalTree {
   }
 
   // delete helper
-  public deleteNodeHelper(root: Node | null, item: Interval) {
+  public delete_node_helper(root: Node | null, item: Interval) {
     // find the node to be deleted and remove it
     if (root == null) {
       return root
     }
     if (item.compare(root.get_item()) == -1) {
-      root.set_left(this.deleteNodeHelper(root.get_left(), item))
+      root.set_left(this.delete_node_helper(root.get_left(), item))
     } else if (item.compare(root.get_item()) == 1) {
-      root.set_right(this.deleteNodeHelper(root.get_right(), item))
+      root.set_right(this.delete_node_helper(root.get_right(), item))
     } else {
       if (root.get_left() === null || root.get_right() === null) {
         let temp: Node | null = null
@@ -147,10 +147,10 @@ export default class IntervalTree {
           root = temp
         }
       } else {
-        const temp = this.nodeWithMimumValue(root.get_right())
+        const temp = this.node_with_mimum_value(root.get_right())
         if (temp) {
           root.set_item(temp.get_item())
-          root.set_right(this.deleteNodeHelper(root.get_right(), temp.get_item()))
+          root.set_right(this.delete_node_helper(root.get_right(), temp.get_item()))
         }
       }
     }
@@ -163,26 +163,26 @@ export default class IntervalTree {
       Math.max(this.get_height(root.get_left()), this.get_height(root.get_right())) + 1
     )
 
-    const balanceFactor = this.getBalanceFactor(root)
+    const balanceFactor = this.get_balance_factor(root)
     if (balanceFactor > 1) {
       const root_left = root.get_left()
       if (root_left) {
-        if (this.getBalanceFactor(root_left) >= 0) {
-          return this.rightRotate(root)
+        if (this.get_balance_factor(root_left) >= 0) {
+          return this.right_rotate(root)
         } else {
-          root.set_left(this.leftRotate(root_left))
-          return this.rightRotate(root)
+          root.set_left(this.left_rotate(root_left))
+          return this.right_rotate(root)
         }
       }
     }
     if (balanceFactor < -1) {
       const root_right = root.get_right()
       if (root_right) {
-        if (this.getBalanceFactor(root_right) <= 0) {
-          return this.leftRotate(root)
+        if (this.get_balance_factor(root_right) <= 0) {
+          return this.left_rotate(root)
         } else {
-          root.set_right(this.rightRotate(root_right))
-          return this.leftRotate(root)
+          root.set_right(this.right_rotate(root_right))
+          return this.left_rotate(root)
         }
       }
     }
@@ -190,37 +190,37 @@ export default class IntervalTree {
   }
 
   //delete a node
-  public deleteNode(item: Interval) {
-    this.root = this.deleteNodeHelper(this.root, item)
+  public delete_node(item: Interval) {
+    this.root = this.delete_node_helper(this.root, item)
   }
 
   // print the tree in pre - order
-  public inOrder() {
-    this.inOrderHelper(this.root)
+  public in_order() {
+    this.in_order_helper(this.root)
   }
 
-  public inOrderHelper(node: Node | null) {
+  public in_order_helper(node: Node | null) {
     if (node) {
-      this.inOrderHelper(node.get_left())
+      this.in_order_helper(node.get_left())
       console.log(node.get_item())
-      this.inOrderHelper(node.get_right())
+      this.in_order_helper(node.get_right())
     }
   }
 
-  public searchSize(size: number): Interval | null {
+  public search_size(size: number): Interval | null {
     if (this.root) {
-      return this.searchSizeHelper(size, this.root)
+      return this.search_size_helper(size, this.root)
     }
     return null
   }
 
-  public searchSizeHelper(size: number, curr: Node | null): Interval | null {
+  public search_size_helper(size: number, curr: Node | null): Interval | null {
     if (curr === null) {
       return null
     }
 
     if (size > curr.get_item().get_size()) {
-      return this.searchSizeHelper(size, curr.get_right())
+      return this.search_size_helper(size, curr.get_right())
     }
 
     const curr_left = curr.get_left()
@@ -228,7 +228,7 @@ export default class IntervalTree {
     if (curr_left === null || curr_left.get_item().get_size() < size) {
       return curr.get_item()
     } else {
-      return this.searchSizeHelper(size, curr.get_left())
+      return this.search_size_helper(size, curr.get_left())
     }
   }
 }
