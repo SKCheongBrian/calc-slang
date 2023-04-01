@@ -174,9 +174,11 @@ const getVar = (context: Context, name: string) => {
     }
     env = env.tail
   }
-  console.log(`FINDING ${name}, ${type}, ${index}, ${RTS.get_word_at_index(index)}`)
+  console.log(`FINDING ${name}, ${type}, ${index}`)
   if (index === -1) {
     return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
+  } else if (isNaN(RTS.get_word_at_index(index))) {
+    return handleRuntimeError(context, new errors.UnassignedVariable(name, context.runtime.nodes[0]))
   } else if (type == 'int' || type == 'function') {
     // TODO maybe use a switch here
     return RTS.get_word_at_index(index)
@@ -532,7 +534,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
       A.push(
         { type: 'Literal', value: undefined },
         { type: 'Pop_i' },
-        { type: 'AssignmentExpression', left: identifier, right: init, operator: '=' }
+        { type: 'InitialAssignmentExpression', left: identifier, right: init, operator: '=' }
       )
     }
   },
@@ -553,9 +555,15 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
-  AssignmentExpression: function* (node: cs.AssignmentExpression, context: Context) {
+  InitialAssignmentExpression: function* (node: any, context: Context) {
     A.push({ type: 'Assignment_i', symbol: node.left })
-    console.log(node.operator)
+    A.push(node.right)
+  },
+
+  AssignmentExpression: function* (node: cs.AssignmentExpression, context: Context) {
+    // this is just a check to make sure that it is properly initialised
+    getVar(context, (node.left as cs.Identifier).name)
+    A.push({ type: 'Assignment_i', symbol: node.left })
 
     switch (node.operator) {
       case '=': {
