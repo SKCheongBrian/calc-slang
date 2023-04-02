@@ -101,8 +101,8 @@ const addFunction = (closure: Closure) => {
 }
 
 const getKind = (type: any) => {
-  let kind: any;
-  let pointerType: any;
+  let kind: any
+  let pointerType: any
   switch (type.kind) {
     case 'primitive':
       switch (type.name) {
@@ -126,7 +126,7 @@ const getKind = (type: any) => {
       throw new Error(`ERROR at makeVar, type unknown ${type?.kind}`)
   }
   if (pointerType) {
-    return kind.concat("/", pointerType)
+    return kind.concat('/', pointerType)
   }
   return kind
 }
@@ -151,9 +151,9 @@ const makeVar = (context: Context, identifier: cs.Identifier, val: any) => {
   // }
   const datatype = identifier.datatype
   const symbol = identifier.name
-  
+
   const type = getKind(datatype)
-  console.log(`logging from makeVar ${type}`);
+  console.log(`logging from makeVar ${type}`)
   Object.defineProperty(env.head, symbol, {
     value: [RTS.free, type],
     writable: true
@@ -179,7 +179,7 @@ const getVar = (context: Context, identifier: cs.Identifier) => {
 
   const env: Environment | null = currEnv(context)
   const index: number = getIndex(name, env)
-  
+
   console.log(`FINDING ${name}, ${type}, ${index}`)
   if (index === -1) {
     return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
@@ -188,9 +188,9 @@ const getVar = (context: Context, identifier: cs.Identifier) => {
       context,
       new errors.UnassignedVariable(name, context.runtime.nodes[0])
     )
-  }  else if (type == 'char') {
+  } else if (type == 'char') {
     return String.fromCharCode(RTS.get_word_at_index(index))
-  } else  {
+  } else {
     // TODO maybe use a switch here
     return RTS.get_word_at_index(index)
   }
@@ -491,11 +491,11 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 
   UnaryExpression: function* (node: cs.UnaryExpression, context: Context) {
     switch (node.operator) {
-      case "&":
-        A.push({type: "Reference_i", node: node.argument as cs.Identifier})
+      case '&':
+        A.push({ type: 'Reference_i', node: node.argument as cs.Identifier })
         return
-      case "*":
-        A.push({type: "Dereference_i", node: node.argument as cs.Identifier})
+      case '*':
+        A.push({ type: 'Dereference_i', node: node.argument as cs.Identifier })
         return
       default:
         A.push({ type: 'UnaryExpression_i', operator: node.operator }, node.argument)
@@ -509,7 +509,10 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     const env: Environment | null = currEnv(context)
     const index: number = getIndex(name, env)
     if (index === -1) {
-      return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
+      return handleRuntimeError(
+        context,
+        new errors.UndefinedVariable(name, context.runtime.nodes[0])
+      )
     } else {
       S.push(index)
       return
@@ -541,7 +544,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 
   UpdateExpression: function* (node: cs.UpdateExpression, context: Context) {
     if (!node.prefix) {
-      const value = getVar(context, (node.argument as cs.Identifier))
+      const value = getVar(context, node.argument as cs.Identifier)
       A.push({ type: 'Pop_i' })
       S.push(value)
     }
@@ -608,7 +611,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 
   AssignmentExpression: function* (node: cs.AssignmentExpression, context: Context) {
     // this is just a check to make sure that it is properly initialised
-    getVar(context, (node.left as cs.Identifier))
+    getVar(context, node.left as cs.Identifier)
     A.push({ type: 'Assignment_i', symbol: node.left })
 
     switch (node.operator) {
