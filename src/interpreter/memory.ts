@@ -37,6 +37,15 @@ class Memory {
   public interpret_word(index: number) {
     return this.memory.getInt32(index * this.WORD_SIZE + 4)
   }
+
+  public toString(): string {
+    const size = this.MEGA / this.WORD_SIZE
+    let str = ""
+    for (let i = 0; i < size; i++) {
+      str += `${i}: ${this.get_word_at_index(i)}\n`
+    }
+    return str
+  }
 }
 
 export class RuntimeStack extends Memory {

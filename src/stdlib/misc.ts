@@ -1,4 +1,5 @@
 import { Context, Value } from '../types'
+import { RTS, H } from '../interpreter/interpreter'
 import { stringify } from '../utils/stringify'
 
 /**
@@ -11,8 +12,22 @@ import { stringify } from '../utils/stringify'
 // export function rawDisplay(value: Value, str: string, _externalContext: any) {
 export function rawDisplay(value: Value) {
   // tslint:disable-next-line:no-console
-  console.log('print', value.toString())
+  console.log('[builtin] print', value.toString())
   return value
+}
+
+export function displayRts() {
+  console.log('[builtin] print RTS\n', RTS.toString())
+}
+
+export function displayHeap() {
+  console.log('[builtin] print heap\n', H.toString())
+}
+
+export function displayAll() {
+  console.log('[builtin] print all (RTS, heap)')
+  displayRts()
+  displayHeap()
 }
 
 export function error_message(value: Value, ...strs: string[]) {
