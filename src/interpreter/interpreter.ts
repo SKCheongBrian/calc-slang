@@ -100,6 +100,37 @@ const addFunction = (closure: Closure) => {
   return functionIndex++
 }
 
+const getKind = (type: any) => {
+  let kind: any;
+  let pointerType: any;
+  switch (type.kind) {
+    case 'primitive':
+      switch (type.name) {
+        case 'int':
+          kind = 'int'
+          break
+        case 'char':
+          kind = 'char'
+          console.log('penis')
+          break
+      }
+      break
+    case 'function':
+      kind = 'function'
+      break
+    case 'pointer':
+      kind = 'pointer'
+      pointerType = getKind(type.type)
+      break
+    default:
+      throw new Error(`ERROR at makeVar, type unknown ${type?.kind}`)
+  }
+  if (pointerType) {
+    return kind.concat("/", pointerType)
+  }
+  return kind
+}
+
 const makeVar = (context: Context, identifier: cs.Identifier, val: any) => {
   const env = currEnv(context)
   console.log('context:-----')
@@ -118,27 +149,11 @@ const makeVar = (context: Context, identifier: cs.Identifier, val: any) => {
   // } else {
   //   throw new Error("Unsupported type")
   // }
-  let type
   const datatype = identifier.datatype
   const symbol = identifier.name
-  switch (datatype?.kind) {
-    case 'primitive':
-      switch (datatype.name) {
-        case 'int':
-          type = 'int'
-          break
-        case 'char':
-          type = 'char'
-          console.log('penis')
-          break
-      }
-      break
-    case 'function':
-      type = 'function'
-      break
-    default:
-      throw new Error(`ERROR at makeVar, type unknown ${datatype?.kind}`)
-  }
+  
+  const type = getKind(datatype)
+  console.log(`logging from makeVar ${type}`);
   Object.defineProperty(env.head, symbol, {
     value: [RTS.free, type],
     writable: true
@@ -153,27 +168,18 @@ const isBuiltin = (context: Context, name: string): boolean => {
 }
 
 // FUCK HERE TOO
-const getVar = (context: Context, name: string) => {
+const getVar = (context: Context, identifier: cs.Identifier) => {
   // if is builtin
 
+  const name = identifier.name
+  const type: String = getKind(identifier.datatype)
   if (isBuiltin(context, name)) {
     return context.nativeStorage.builtins.get(name)
   }
 
-  let env: Environment | null = currEnv(context)
-  let index: number = -1
-  let type: String = ''
-  while (env) {
-    if (env.head.hasOwnProperty(name)) {
-      console.log('from env head(env mappings):-----')
-      console.log(env.head)
-      console.log('-------------------')
-      index = env.head[name][0]
-      type = env.head[name][1]
-      break
-    }
-    env = env.tail
-  }
+  const env: Environment | null = currEnv(context)
+  const index: number = getIndex(name, env)
+  
   console.log(`FINDING ${name}, ${type}, ${index}`)
   if (index === -1) {
     return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
@@ -182,23 +188,20 @@ const getVar = (context: Context, name: string) => {
       context,
       new errors.UnassignedVariable(name, context.runtime.nodes[0])
     )
-  } else if (type == 'int' || type == 'function') {
+  }  else if (type == 'char') {
+    return String.fromCharCode(RTS.get_word_at_index(index))
+  } else  {
     // TODO maybe use a switch here
     return RTS.get_word_at_index(index)
-  } else if (type == 'char') {
-    return String.fromCharCode(RTS.get_word_at_index(index))
   }
 }
 
 // FUCK HERE TOO
 const setVar = (context: Context, identifier: cs.Identifier) => {
-  let env: Environment | null = currEnv(context)
-  let index: number = -1
   const name = identifier.name
   const dataType = identifier.datatype
   let value = S[S.length - 1]
 
-  console.log(`Setting for ${name}, value: ${value}, index: ${index}`)
   switch (dataType?.kind) {
     case 'function':
       value = addFunction(value)
@@ -210,15 +213,9 @@ const setVar = (context: Context, identifier: cs.Identifier) => {
       break
   }
 
-  // look through environment frames
+  const env: Environment | null = currEnv(context)
+  const index: number = getIndex(name, env)
 
-  while (env) {
-    if (env.head.hasOwnProperty(name)) {
-      index = env.head[name][0]
-      break
-    }
-    env = env.tail
-  }
   console.log(`Setting for ${name}, value: ${value}, index: ${index}`)
   return index !== -1
     ? RTS.set_word_at_index(index, value)
@@ -230,6 +227,21 @@ const setVar = (context: Context, identifier: cs.Identifier) => {
 /* -------------------------------------------------------------------------- */
 
 const currEnv = (c: Context) => c.runtime.environments[0]
+
+const getIndex = (name: string, env: Environment | null) => {
+  let index = -1
+  while (env) {
+    if (env.head.hasOwnProperty(name)) {
+      console.log('from env head(env mappings):-----')
+      console.log(env.head)
+      console.log('-------------------')
+      index = env.head[name][0]
+      break
+    }
+    env = env.tail
+  }
+  return index
+}
 
 const popEnvironment = (context: Context) => {
   context.runtime.environments.shift()
@@ -400,7 +412,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   Identifier: function* (node: cs.Identifier, context: Context) {
-    S.push(getVar(context, node.name))
+    S.push(getVar(context, node))
   },
 
   CallExpression: function* (node: cs.CallExpression, context: Context) {
@@ -478,7 +490,38 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   UnaryExpression: function* (node: cs.UnaryExpression, context: Context) {
-    A.push({ type: 'UnaryExpression_i', operator: node.operator }, node.argument)
+    switch (node.operator) {
+      case "&":
+        A.push({type: "Reference_i", node: node.argument as cs.Identifier})
+        return
+      case "*":
+        A.push({type: "Dereference_i", node: node.argument as cs.Identifier})
+        return
+      default:
+        A.push({ type: 'UnaryExpression_i', operator: node.operator }, node.argument)
+        return
+    }
+  },
+
+  Reference_i: function* (instr: any, context: Context) {
+    const node = instr.node
+    const name = node.name
+    const env: Environment | null = currEnv(context)
+    const index: number = getIndex(name, env)
+    if (index === -1) {
+      return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
+    } else {
+      S.push(index)
+      return
+    }
+  },
+
+  Dereference_i: function* (instr: any, context: Context) {
+    const node = instr.node
+    const name = node.name
+    const env: Environment | null = currEnv(context)
+    const index: number = getIndex(name, env)
+    S.push(RTS.get_word_at_index(RTS.get_word_at_index(index)))
   },
 
   UnaryExpression_i: function* (node: any, context: Context) {
@@ -498,7 +541,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 
   UpdateExpression: function* (node: cs.UpdateExpression, context: Context) {
     if (!node.prefix) {
-      const value = getVar(context, (node.argument as cs.Identifier).name)
+      const value = getVar(context, (node.argument as cs.Identifier))
       A.push({ type: 'Pop_i' })
       S.push(value)
     }
@@ -565,7 +608,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 
   AssignmentExpression: function* (node: cs.AssignmentExpression, context: Context) {
     // this is just a check to make sure that it is properly initialised
-    getVar(context, (node.left as cs.Identifier).name)
+    getVar(context, (node.left as cs.Identifier))
     A.push({ type: 'Assignment_i', symbol: node.left })
 
     switch (node.operator) {
