@@ -211,7 +211,7 @@ const derefByIndex = (index: number) => {
 }
 
 const derefFindName = (node: any) => {
-  while (node.type === "UnaryExpression") {
+  while (node.type === 'UnaryExpression') {
     node = node.argument
   }
   return node.name
@@ -509,7 +509,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     const name: string = derefFindName(node)
     const env: Environment | null = currEnv(context)
     let index: number = getIndex(name, env)
-    while (node.type === "UnaryExpression") {
+    while (node.type === 'UnaryExpression') {
       console.log(node)
       index = RTS.get_word_at_index(index)
       node = node.argument
