@@ -111,7 +111,6 @@ const getKind = (type: any) => {
           break
         case 'char':
           kind = 'char'
-          console.log('penis')
           break
       }
       break
@@ -139,21 +138,10 @@ const makeVar = (context: Context, identifier: cs.Identifier, val: any) => {
   console.log('env:---------')
   console.log(env)
   console.log('-------------')
-  // FUCK MADE HERE
-  // let type: Type;
-  // if (Number.isInteger(val)) {
-  //   type = Type.Int
-  // } else if (typeof val === 'string' || val instanceof String) {
-  //   type = Type.Char
-  //   val = String.prototype.charCodeAt(0)
-  // } else {
-  //   throw new Error("Unsupported type")
-  // }
   const datatype = identifier.datatype
   const symbol = identifier.name
 
   const type = getKind(datatype)
-  console.log(`logging from makeVar ${type}`)
   Object.defineProperty(env.head, symbol, {
     value: [RTS.free, type],
     writable: true
@@ -167,10 +155,7 @@ const isBuiltin = (context: Context, name: string): boolean => {
   return builtins.has(name)
 }
 
-// FUCK HERE TOO
 const getVar = (context: Context, identifier: cs.Identifier) => {
-  // if is builtin
-
   const name = identifier.name
   const type: String = getKind(identifier.datatype)
   if (isBuiltin(context, name)) {
@@ -196,7 +181,6 @@ const getVar = (context: Context, identifier: cs.Identifier) => {
   }
 }
 
-// FUCK HERE TOO
 const setVar = (context: Context, identifier: cs.Identifier) => {
   const name = identifier.name
   const dataType = identifier.datatype
@@ -220,6 +204,17 @@ const setVar = (context: Context, identifier: cs.Identifier) => {
   return index !== -1
     ? RTS.set_word_at_index(index, value)
     : handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
+}
+
+const derefByIndex = (index: number) => {
+  return RTS.get_word_at_index(RTS.get_word_at_index(index))
+}
+
+const derefFindName = (node: any) => {
+  while (node.type === "UnaryExpression") {
+    node = node.argument
+  }
+  return node.name
 }
 
 /* -------------------------------------------------------------------------- */
@@ -425,14 +420,6 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
       A.push(node.arguments[i])
     }
     A.push(node.callee)
-    // RTS
-    // console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>> EXTENDING FRAME >>>>>>>>>>>>>>>>>>>")
-    // RTS.extend_frame()
-    // console.log(RTS)
-    // const parameters = node.arguments
-    // for (let i = 0; i < parameters.length; i++) {
-    //   RTS.allocate(parameters[i])
-    // }
   },
 
   ReturnStatement: function* (node: cs.ReturnStatement, context: Context) {
@@ -456,8 +443,6 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     } else {
       A.push(node)
     }
-    // RTS.tear_down()
-    // console.log(">>>>>>>>>>>>>>>>>>>>>> TEAR DOWN >>>>>>>>>>>>>>>>>>>>>>>>>>")
   },
 
   Call_i: function* (node: any, context: Context) {
@@ -520,11 +505,16 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   Dereference_i: function* (instr: any, context: Context) {
-    const node = instr.node
-    const name = node.name
+    let node = instr.node
+    const name: string = derefFindName(node)
     const env: Environment | null = currEnv(context)
-    const index: number = getIndex(name, env)
-    S.push(RTS.get_word_at_index(RTS.get_word_at_index(index)))
+    let index: number = getIndex(name, env)
+    while (node.type === "UnaryExpression") {
+      console.log(node)
+      index = RTS.get_word_at_index(index)
+      node = node.argument
+    }
+    S.push(derefByIndex(index))
   },
 
   UnaryExpression_i: function* (node: any, context: Context) {
@@ -648,17 +638,9 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   Assignment_i: function* (node: any, context: Context) {
-    console.log('FIND ME LSKDFJOEIWFJOSJFKL AWOIDJWOQIDJLEFJLSKDJF')
     console.log(node)
     const identifier = node.symbol as cs.Identifier
     setVar(context, identifier)
-    // TODO remove if i am successful
-    // if (is_number(S[S.length - 1])) {
-    //   setVar(context, node.symbol.name, S[S.length - 1])
-    // } else {
-    //   const index = addFunction(S[S.length - 1])
-    //   setVar(context, node.symbol.name, index)
-    // }
   },
 
   FunctionDeclaration: function* (node: cs.FunctionDeclaration, context: Context) {
