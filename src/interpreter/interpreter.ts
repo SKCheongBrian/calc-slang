@@ -169,7 +169,6 @@ const isBuiltin = (context: Context, name: string): boolean => {
 
 // FUCK HERE TOO
 const getVar = (context: Context, identifier: cs.Identifier) => {
-
   const name = identifier.name
   // if is builtin
   if (isBuiltin(context, name)) {

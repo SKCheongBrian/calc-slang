@@ -1,5 +1,5 @@
+import { H, RTS } from '../interpreter/interpreter'
 import { Context, Value } from '../types'
-import { RTS, H } from '../interpreter/interpreter'
 import { stringify } from '../utils/stringify'
 
 /**

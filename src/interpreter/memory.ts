@@ -40,7 +40,7 @@ class Memory {
 
   public toString(): string {
     const size = this.MEGA / this.WORD_SIZE
-    let str = ""
+    let str = ''
     for (let i = 0; i < size; i++) {
       str += `${i}: ${this.get_word_at_index(i)}\n`
     }
