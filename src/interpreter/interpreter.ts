@@ -37,7 +37,7 @@ let A: any[]
 let S: any[]
 let global_context: Context
 
-let RTS: RuntimeStack
+export let RTS: RuntimeStack
 export let H: Heap
 
 let functions: any[]
@@ -157,11 +157,12 @@ const isBuiltin = (context: Context, name: string): boolean => {
 
 const getVar = (context: Context, identifier: cs.Identifier) => {
   const name = identifier.name
-  const type: String = getKind(identifier.datatype)
+  // if is builtin
   if (isBuiltin(context, name)) {
     return context.nativeStorage.builtins.get(name)
   }
 
+  const type: String = getKind(identifier.datatype)
   const env: Environment | null = currEnv(context)
   const index: number = getIndex(name, env)
 

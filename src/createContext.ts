@@ -184,6 +184,9 @@ export const importBuiltins = (context: Context, externalBuiltIns: CustomBuiltIn
 
   // defineBuiltin(context, 'display(val, prepend = undefined)', display, 1)
   defineBuiltin(context, 'print(str)', rawDisplay, 1)
+  defineBuiltin(context, 'print_rts()', misc.displayRts, 0)
+  defineBuiltin(context, 'print_heap()', misc.displayHeap, 0)
+  defineBuiltin(context, 'print_all()', misc.displayAll, 0)
   defineBuiltin(context, 'malloc(size)', memory.malloc, 1)
   defineBuiltin(context, 'free(index)', memory.free, 1)
 }
