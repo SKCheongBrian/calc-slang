@@ -103,6 +103,7 @@ const addFunction = (closure: Closure) => {
 const getKind = (type: any) => {
   let kind: any
   let pointerType: any
+  let arrayType: any
   switch (type.kind) {
     case 'primitive':
       switch (type.name) {
@@ -121,11 +122,17 @@ const getKind = (type: any) => {
       kind = 'pointer'
       pointerType = getKind(type.type)
       break
+    case 'array':
+      kind = 'array'
+      arrayType = getKind(type.elementType)
     default:
       throw new Error(`ERROR at makeVar, type unknown ${type?.kind}`)
   }
   if (pointerType) {
     return kind.concat('/', pointerType)
+  }
+  if (arrayType) {
+    return kind.concat('/', arrayType)
   }
   return kind
 }
