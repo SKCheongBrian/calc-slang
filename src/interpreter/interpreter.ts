@@ -610,7 +610,9 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 
   AssignmentExpression: function* (node: cs.AssignmentExpression, context: Context) {
     // this is just a check to make sure that it is properly initialised
-    getVar(context, node.left as cs.Identifier)
+    if (node.left.type === "Identifier") {
+      getVar(context, node.left as cs.Identifier)
+    }
     A.push({ type: 'Assignment_i', symbol: node.left })
 
     switch (node.operator) {
