@@ -33,6 +33,8 @@ enum Location {
   Heap
 }
 
+let malloc_count = 0
+let list_of_malloc_var : string[] = [] 
 let A: any[]
 let S: any[]
 export let global_context: Context
@@ -140,10 +142,11 @@ const makeVar = (context: Context, identifier: cs.Identifier, val: any) => {
   console.log('-------------')
   const datatype = identifier.datatype
   const symbol = identifier.name
+  const is_stack = true;
 
   const type = getKind(datatype)
   Object.defineProperty(env.head, symbol, {
-    value: [RTS.free, type],
+    value: [is_stack, RTS.free, type],
     writable: true,
     enumerable: true
   })
@@ -157,34 +160,52 @@ const isBuiltin = (context: Context, name: string): boolean => {
 }
 
 const getVar = (context: Context, identifier: cs.Identifier) => {
-  const name = identifier.name
+  let name = identifier.name
   // if is builtin
   if (isBuiltin(context, name)) {
     return context.nativeStorage.builtins.get(name)
   }
 
+  // if it's pointer
+  if (identifier["argument"]) {
+    if (identifier["argument"].datatype.kind == "pointer") {
+      name = identifier["argument"].name
+    }
+  }
+
   const type: String = getKind(identifier.datatype)
   const env: Environment | null = currEnv(context)
   const index: number = getIndex(name, env)
+  const is_stack : Boolean = env.head[name][0]
 
   console.log(`FINDING ${name}, ${type}, ${index}`)
   if (index === -1) {
     return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
-  } else if (isNaN(RTS.get_word_at_index(index))) {
+  } else if (is_stack ? isNaN(RTS.get_word_at_index(index)) : isNaN(H.get_word_at_index(index))) {
     return handleRuntimeError(
       context,
       new errors.UnassignedVariable(name, context.runtime.nodes[0])
     )
   } else if (type == 'char') {
-    return String.fromCharCode(RTS.get_word_at_index(index))
+    const is_stack : Boolean = env.head[name][0]
+    return is_stack
+    ? String.fromCharCode(RTS.get_word_at_index(index))
+    : String.fromCharCode(H.get_word_at_index(index))
   } else {
     // TODO maybe use a switch here
-    return RTS.get_word_at_index(index)
+    return is_stack 
+    ? RTS.get_word_at_index(index)
+    : H.get_word_at_index(index)
   }
 }
 
 const setVar = (context: Context, identifier: cs.Identifier) => {
-  const name = identifier.name
+  let name = identifier.name
+  if (identifier["argument"]) {
+    if (identifier["argument"].datatype.kind == "pointer") {
+      name = identifier["argument"].name
+    }
+  }
   const dataType = identifier.datatype
   let value = S[S.length - 1]
 
@@ -202,14 +223,21 @@ const setVar = (context: Context, identifier: cs.Identifier) => {
   const env: Environment | null = currEnv(context)
   const index: number = getIndex(name, env)
 
+  const is_stack : Boolean = env.head[name][0]
+
   console.log(`Setting for ${name}, value: ${value}, index: ${index}`)
-  return index !== -1
-    ? RTS.set_word_at_index(index, value)
+  // console.log("done with setvar")
+  return index !== -1 
+    ? is_stack 
+    ? RTS.set_word_at_index(index, value) 
+    : H.set_word_at_index(index, value)
     : handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
 }
 
-const derefByIndex = (index: number) => {
-  return RTS.get_word_at_index(RTS.get_word_at_index(index))
+const derefByIndex = (index: number, is_stack: boolean) => {
+  return is_stack 
+  ? RTS.get_word_at_index(RTS.get_word_at_index(index))
+  : H.get_word_at_index(H.get_word_at_index(index))
 }
 
 const derefFindName = (node: any) => {
@@ -225,6 +253,20 @@ const derefFindName = (node: any) => {
 
 export const currEnv = (c: Context) => c.runtime.environments[0]
 
+const find_malloc_vars = (env: Environment) => {
+  let res : string[] = []
+  // alphabetical order 
+  let l = env.head
+  let o = Object.keys(env.head)
+  for (let i = 0; i < o.length; i ++) {
+    let curr_type = l[o[i]][2]
+    if (curr_type.includes("pointer")) {
+      res.push(o[i])
+    }
+  }
+  return res
+}
+
 const getIndex = (name: string, env: Environment | null) => {
   let index = -1
   while (env) {
@@ -232,7 +274,7 @@ const getIndex = (name: string, env: Environment | null) => {
       console.log('from env head(env mappings):-----')
       console.log(env.head)
       console.log('-------------------')
-      index = env.head[name][0]
+      index = env.head[name][1]
       break
     }
     env = env.tail
@@ -426,10 +468,20 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 
   ReturnStatement: function* (node: cs.ReturnStatement, context: Context) {
     if (node.argument) {
-      A.push(
+      // to somehow take care of the case where you return *x
+      if (node.argument["argument"]) {
+        A.push(
+        { type: 'Reset_i' },
+        node.argument["argument"] // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
+      )
+
+      }
+      else {
+        A.push(
         { type: 'Reset_i' },
         node.argument // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
       )
+        }
     } else {
       A.push({ type: 'Reset_i' })
     }
@@ -457,7 +509,36 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     console.log(`fun is ${fun}`)
 
     if (fun.tag === 'builtin') {
-      S.push(fun(...args))
+      const malloc_res = fun(...args) 
+      S.push(malloc_res)
+      if (fun.name == "malloc") {
+        const curr_env = currEnv(context)
+
+        if (malloc_count == 0) {
+          list_of_malloc_var = find_malloc_vars(curr_env)
+        }
+        console.log("good malloc var list", list_of_malloc_var)
+        console.log("good env", curr_env)
+        const var_name = list_of_malloc_var[malloc_count] 
+        const index = getIndex(var_name, curr_env) 
+        const var_type = curr_env.head[var_name][2]
+        console.log("good", curr_env, Object.keys(curr_env.head), index, var_name, var_type)
+
+        Object.defineProperty(curr_env.head, var_name, {
+          value: [false, malloc_res, var_type],
+          writable: true,
+          enumerable: true
+        })
+        console.log("AFTER CHANGING MALLOC ENV good", currEnv(context))
+        malloc_count++ 
+      } 
+      else if (fun.name == "free") {
+        // hard coded y because i'm not sure how to get the x in free(x)
+        const curr_env = currEnv(context)
+        const index = getIndex("y", curr_env)
+        H.set_word_at_index(index, 0)
+      }
+    // console.log("high", S.slice(0))
       return
     }
     const sf: Closure | Value = functions[fun]
@@ -511,12 +592,13 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     const name: string = derefFindName(node)
     const env: Environment | null = currEnv(context)
     let index: number = getIndex(name, env)
+    const is_stack : boolean = env.head[name][0]
     while (node.type === 'UnaryExpression') {
       console.log(node)
-      index = RTS.get_word_at_index(index)
+      index = is_stack ? RTS.get_word_at_index(index) : H.get_word_at_index(index)
       node = node.argument
     }
-    S.push(derefByIndex(index))
+    S.push(derefByIndex(index, is_stack))
   },
 
   UnaryExpression_i: function* (node: any, context: Context) {
@@ -761,19 +843,16 @@ export function* evaluate(node: cs.Node, context: Context) {
   let i: number = 0
   while (i < step_limit) {
     if (A.length === 0) break
-    console.log('A before popping')
-    console.log(A.slice(0))
+    console.log('A before popping', A.slice(0))
     const cmd = A.pop()
-    console.log('A after popping')
-    console.log(A.slice(0))
+    console.log('A after popping', A.slice(0))
     console.log('the command V')
     console.log(cmd)
     console.log(i)
     console.log(S.slice(0))
     if (evaluators.hasOwnProperty(cmd.type)) yield* evaluators[cmd.type](cmd, global_context)
     else throw new Error(`unknown command ${JSON.stringify(cmd.type)}`)
-    console.log('A after executing command')
-    console.log(A.slice(0))
+    console.log('A after executing command', A.slice(0))
     console.log('---------------')
     i++
   }
