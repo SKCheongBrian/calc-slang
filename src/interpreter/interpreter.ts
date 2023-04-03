@@ -105,6 +105,7 @@ const addFunction = (closure: Closure) => {
 const getKind = (type: any) => {
   let kind: any
   let pointerType: any
+  let arrayType: any
   switch (type.kind) {
     case 'primitive':
       switch (type.name) {
@@ -123,11 +124,17 @@ const getKind = (type: any) => {
       kind = 'pointer'
       pointerType = getKind(type.type)
       break
+    case 'array':
+      kind = 'array'
+      arrayType = getKind(type.elementType)
     default:
       throw new Error(`ERROR at makeVar, type unknown ${type?.kind}`)
   }
   if (pointerType) {
     return kind.concat('/', pointerType)
+  }
+  if (arrayType) {
+    return kind.concat('/', arrayType)
   }
   return kind
 }
@@ -680,7 +687,9 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 
   AssignmentExpression: function* (node: cs.AssignmentExpression, context: Context) {
     // this is just a check to make sure that it is properly initialised
-    getVar(context, node.left as cs.Identifier)
+    if (node.left.type === 'Identifier') {
+      getVar(context, node.left as cs.Identifier)
+    }
     A.push({ type: 'Assignment_i', symbol: node.left })
 
     switch (node.operator) {

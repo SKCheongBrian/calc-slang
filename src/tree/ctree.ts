@@ -345,7 +345,7 @@ export interface BinaryExpression extends BaseExpression {
 export interface AssignmentExpression extends BaseExpression {
   type: 'AssignmentExpression'
   operator: AssignmentOperator
-  left: Pattern | MemberExpression
+  left: Pattern | MemberExpression | UnaryExpression
   right: Expression
 }
 
