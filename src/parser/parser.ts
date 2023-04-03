@@ -306,15 +306,22 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
       }
     }
 
-    // Parse body
-    const body: cs.BlockStatement = this.visit(ctx._body) as cs.BlockStatement
-
     // Type logic
+    const pointers = ctx._decl._pointers
+    let retType = this.typeGenerator.resolveType(ctx._declSpec.text)
+    if (pointers) {
+      for (let i = 0; i < pointers.childCount; i++) {
+        retType = this.typeGenerator.pointer(retType)
+      }
+    }
     const datatype: FunctionType = this.typeGenerator.functionType(
       params.map(p => p.datatype!),
-      body.datatype!
+      retType
     )
     this.typeGenerator.addFunction(dirDecl._id.text!, datatype)
+
+    // Parse body
+    const body: cs.BlockStatement = this.visit(ctx._body) as cs.BlockStatement
 
     // Parse id
     const id: cs.Identifier = {
@@ -364,12 +371,14 @@ class StatementGenerator implements CalcVisitor<cs.Statement> {
 
   visitIfStatement(ctx: IfStatementContext): cs.Statement {
     const exprGenerator: ExpressionGenerator = new ExpressionGenerator(this.typeGenerator)
+    const consequent = this.visit(ctx._cons)
+    const alternate = ctx._alt ? this.visit(ctx._alt) : undefined
     return {
       type: 'IfStatement',
       test: ctx._test.accept(exprGenerator),
-      consequent: this.visit(ctx._cons),
-      alternate: ctx._alt ? this.visit(ctx._alt) : undefined
-      // TODO datatype:
+      consequent,
+      alternate,
+      datatype: consequent.datatype
     }
   }
 
