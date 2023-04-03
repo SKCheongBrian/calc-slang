@@ -8,10 +8,10 @@ import { Value } from '../types'
  */
 export function malloc(size: Value) {
   // tslint:disable-next-line:no-console
-  console.log('H before malloc', H)
+  console.log('H before malloc', JSON.parse(JSON.stringify(H)))
   const index: number = H.allocate(size)
   console.log('[builtin] malloc', size.toString())
-  console.log('H after malloc', H)
+  console.log('H after malloc', JSON.parse(JSON.stringify(H)))
   return index
 }
 
@@ -22,9 +22,9 @@ export function malloc(size: Value) {
  */
 export function free(index: Value) {
   // tslint:disable-next-line:no-console
-  console.log('H before free', H)
+  console.log('H before free', JSON.parse(JSON.stringify(H)))
   H.deallocate(index)
   console.log('[builtin] free', index.toString())
-  console.log('H after free', H)
+  console.log('H after free', JSON.parse(JSON.stringify(H)))
   return index
 }
