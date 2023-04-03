@@ -1197,7 +1197,7 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
     return {
       type: 'AssignmentExpression',
       operator: '=',
-      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression,
+      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression | cs.UnaryExpression,
       right: this.visit(ctx._right),
       datatype: this.typeGenerator.getTypeFromName(ctx._left.text),
       loc: contextToLocation(ctx)
@@ -1208,7 +1208,7 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
     return {
       type: 'AssignmentExpression',
       operator: '+=',
-      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression,
+      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression | cs.UnaryExpression,
       right: this.visit(ctx._right),
       datatype: this.typeGenerator.getTypeFromName(ctx._left.text),
       loc: contextToLocation(ctx)
@@ -1219,7 +1219,7 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
     return {
       type: 'AssignmentExpression',
       operator: '-=',
-      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression,
+      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression | cs.UnaryExpression,
       right: this.visit(ctx._right),
       datatype: this.typeGenerator.getTypeFromName(ctx._left.text),
       loc: contextToLocation(ctx)
@@ -1230,7 +1230,7 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
     return {
       type: 'AssignmentExpression',
       operator: '*=',
-      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression,
+      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression | cs.UnaryExpression,
       right: this.visit(ctx._right),
       datatype: this.typeGenerator.getTypeFromName(ctx._left.text),
       loc: contextToLocation(ctx)
@@ -1241,7 +1241,7 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
     return {
       type: 'AssignmentExpression',
       operator: '/=',
-      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression,
+      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression | cs.UnaryExpression,
       right: this.visit(ctx._right),
       datatype: this.typeGenerator.getTypeFromName(ctx._left.text),
       loc: contextToLocation(ctx)
@@ -1252,7 +1252,7 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
     return {
       type: 'AssignmentExpression',
       operator: '%=',
-      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression,
+      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression | cs.UnaryExpression,
       right: this.visit(ctx._right),
       datatype: this.typeGenerator.getTypeFromName(ctx._left.text),
       loc: contextToLocation(ctx)
@@ -1263,7 +1263,7 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
     return {
       type: 'AssignmentExpression',
       operator: '<<=',
-      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression,
+      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression | cs.UnaryExpression,
       right: this.visit(ctx._right),
       datatype: this.typeGenerator.getTypeFromName(ctx._left.text),
       loc: contextToLocation(ctx)
@@ -1274,7 +1274,7 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
     return {
       type: 'AssignmentExpression',
       operator: '>>=',
-      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression,
+      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression | cs.UnaryExpression,
       right: this.visit(ctx._right),
       datatype: this.typeGenerator.getTypeFromName(ctx._left.text),
       loc: contextToLocation(ctx)
@@ -1285,7 +1285,7 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
     return {
       type: 'AssignmentExpression',
       operator: '|=',
-      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression,
+      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression | cs.UnaryExpression,
       right: this.visit(ctx._right),
       datatype: this.typeGenerator.getTypeFromName(ctx._left.text),
       loc: contextToLocation(ctx)
@@ -1296,7 +1296,7 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
     return {
       type: 'AssignmentExpression',
       operator: '^=',
-      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression,
+      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression | cs.UnaryExpression,
       right: this.visit(ctx._right),
       datatype: this.typeGenerator.getTypeFromName(ctx._left.text),
       loc: contextToLocation(ctx)
@@ -1307,7 +1307,7 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
     return {
       type: 'AssignmentExpression',
       operator: '&=',
-      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression,
+      left: this.visit(ctx._left) as cs.Identifier | cs.MemberExpression | cs.UnaryExpression,
       right: this.visit(ctx._right),
       datatype: this.typeGenerator.getTypeFromName(ctx._left.text),
       loc: contextToLocation(ctx)

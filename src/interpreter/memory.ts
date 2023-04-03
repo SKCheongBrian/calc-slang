@@ -120,5 +120,6 @@ export class Heap extends Memory {
     }
     this.list.add(restoredInterval)
     this.tree.insert_node(restoredInterval)
+    delete this.indexToSize[index]
   }
 }
