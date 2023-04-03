@@ -35,7 +35,7 @@ enum Location {
 
 let A: any[]
 let S: any[]
-let global_context: Context
+export let global_context: Context
 
 export let RTS: RuntimeStack
 export let H: Heap
@@ -156,7 +156,8 @@ const makeVar = (context: Context, identifier: cs.Identifier, val: any) => {
   console.log(`logging from makeVar ${type}`)
   Object.defineProperty(env.head, symbol, {
     value: [RTS.free, type],
-    writable: true
+    writable: true,
+    enumerable: true
   })
   env.lastUsed = RTS.free
   RTS.allocate(val)
@@ -225,7 +226,7 @@ const setVar = (context: Context, identifier: cs.Identifier) => {
 /*                                 Environment                                */
 /* -------------------------------------------------------------------------- */
 
-const currEnv = (c: Context) => c.runtime.environments[0]
+export const currEnv = (c: Context) => c.runtime.environments[0]
 
 const getIndex = (name: string, env: Environment | null) => {
   let index = -1

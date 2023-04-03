@@ -1,6 +1,7 @@
-import { H, RTS } from '../interpreter/interpreter'
-import { Context, Value } from '../types'
+import { currEnv, global_context, H, RTS } from '../interpreter/interpreter'
+import { Context, Value, Environment } from '../types'
 import { stringify } from '../utils/stringify'
+import _ from 'lodash'
 
 /**
  * A function that displays to console.log by default (for a REPL).
@@ -16,6 +17,21 @@ export function rawDisplay(value: Value) {
   return value
 }
 
+export function displayMappings() {
+  let str = ''
+  let env: Environment | null = currEnv(global_context)
+  while (env) {
+    let frame = env.head
+    str += '-------------\n'
+    for (const [name, value] of Object.entries(frame)) {
+      str += `${name}: ${value[0]}\n`
+    }
+    env = env.tail
+  }
+  str += '-------------\n'
+  console.log('[builtin] print mappings\n', str)
+}
+
 export function displayRts() {
   console.log('[builtin] print RTS\n', RTS.toString())
 }
@@ -25,7 +41,8 @@ export function displayHeap() {
 }
 
 export function displayAll() {
-  console.log('[builtin] print all (RTS, heap)')
+  console.log('[builtin] print all (mappings, RTS, heap)')
+  displayMappings()
   displayRts()
   displayHeap()
 }
