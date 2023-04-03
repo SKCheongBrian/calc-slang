@@ -672,7 +672,13 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   Conditional_i: function* (node: any, context: Context) {
-    A.push(S.pop() !== 0 ? node.cons : node.alt)
+    A.push(
+      S.pop() !== 0
+        ? node.cons
+        : isUndefined(node.alt)
+        ? { type: 'Literal', value: undefined }
+        : node.alt
+    )
   },
 
   ExpressionStatement: function* (node: cs.ExpressionStatement, context: Context) {
