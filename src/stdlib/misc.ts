@@ -1,7 +1,6 @@
 import { currEnv, global_context, H, RTS } from '../interpreter/interpreter'
-import { Context, Value, Environment } from '../types'
+import { Context, Environment, Value } from '../types'
 import { stringify } from '../utils/stringify'
-import _ from 'lodash'
 
 /**
  * A function that displays to console.log by default (for a REPL).
@@ -21,7 +20,7 @@ export function displayMappings() {
   let str = ''
   let env: Environment | null = currEnv(global_context)
   while (env) {
-    let frame = env.head
+    const frame = env.head
     str += '-------------\n'
     for (const [name, value] of Object.entries(frame)) {
       str += `${name}: ${value[0]}\n`
