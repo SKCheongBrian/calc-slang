@@ -33,14 +33,14 @@ enum Location {
   Heap
 }
 
-let malloc_count = 0
-let list_of_malloc_var: string[] = []
+const malloc_count = 0
+const list_of_malloc_var: string[] = []
 let A: any[]
 let S: any[]
 export let global_context: Context
 
 export let RTS: RuntimeStack
-let RTS_LAST_INDEX : number
+let RTS_LAST_INDEX: number
 export let H: Heap
 
 let functions: any[]
@@ -167,7 +167,7 @@ const isBuiltin = (context: Context, name: string): boolean => {
 }
 
 const getVar = (context: Context, identifier: cs.Identifier) => {
-  let name = identifier.name
+  const name = identifier.name
   // if is builtin
   if (isBuiltin(context, name)) {
     return context.nativeStorage.builtins.get(name)
@@ -182,7 +182,7 @@ const getVar = (context: Context, identifier: cs.Identifier) => {
   console.log(`FINDING ${name}, ${type}, ${index}`)
   if (index === -1) {
     return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
-  } else if (isNaN(memory_get_word_at_index(index)) ) {
+  } else if (isNaN(memory_get_word_at_index(index))) {
     return handleRuntimeError(
       context,
       new errors.UnassignedVariable(name, context.runtime.nodes[0])
@@ -192,7 +192,7 @@ const getVar = (context: Context, identifier: cs.Identifier) => {
     return String.fromCharCode(memory_get_word_at_index(index))
   } else {
     // TODO maybe use a switch here
-    return memory_get_word_at_index(index) 
+    return memory_get_word_at_index(index)
   }
 }
 
@@ -205,18 +205,18 @@ const setVarByIndex = (index: number, isStack: boolean, kind: string) => {
       break
   }
 
-  console.log("snow", isStack)
+  console.log('snow', isStack)
 
-  console.log("can", index)
-  return index !== -1 ? 
-  isStack
-  ? RTS.set_word_at_index(index, value) 
-  : H.set_word_at_index(index- RTS_LAST_INDEX - 1, value) 
-  : new Error(`Error at setVarByIndex`)
+  console.log('can', index)
+  return index !== -1
+    ? isStack
+      ? RTS.set_word_at_index(index, value)
+      : H.set_word_at_index(index - RTS_LAST_INDEX - 1, value)
+    : new Error(`Error at setVarByIndex`)
 }
 
 const setVar = (context: Context, identifier: cs.Identifier) => {
-  let name = identifier.name
+  const name = identifier.name
   const dataType = identifier.datatype
   let value = S[S.length - 1]
 
@@ -241,15 +241,15 @@ const setVar = (context: Context, identifier: cs.Identifier) => {
   return index !== -1
     ? is_stack
       ? RTS.set_word_at_index(index, value)
-      : H.set_word_at_index(index- RTS_LAST_INDEX - 1, value)
+      : H.set_word_at_index(index - RTS_LAST_INDEX - 1, value)
     : handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
 }
 
 const derefByIndex = (index: number, is_stack: boolean, type: string) => {
-  console.log("yep", index, is_stack)
+  console.log('yep', index, is_stack)
   return type === 'char'
-      ? String.fromCharCode(memory_get_word_at_index(memory_get_word_at_index((index))))
-      : memory_get_word_at_index(memory_get_word_at_index(index))
+    ? String.fromCharCode(memory_get_word_at_index(memory_get_word_at_index(index)))
+    : memory_get_word_at_index(memory_get_word_at_index(index))
 }
 
 const memory_get_word_at_index = (index: number) => {
@@ -495,10 +495,10 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
       //     node.argument['argument'] // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
       //   )
       // } else {
-        A.push(
-          { type: 'Reset_i' },
-          node.argument // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
-        )
+      A.push(
+        { type: 'Reset_i' },
+        node.argument // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
+      )
       // }
     } else {
       A.push({ type: 'Reset_i' })
@@ -529,8 +529,8 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     if (fun.tag === 'builtin') {
       if (fun.name == 'malloc') {
         const malloc_res = fun(...args)
-        console.log("malloc res", malloc_res)
-        console.log("malloc res", RTS_LAST_INDEX)
+        console.log('malloc res', malloc_res)
+        console.log('malloc res', RTS_LAST_INDEX)
         S.push(malloc_res + RTS_LAST_INDEX + 1)
       } else if (fun.name == 'free') {
         args[0] = args[0] - RTS_LAST_INDEX - 1
@@ -598,7 +598,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     console.log('h after malloc THIS IS THE ENV', env)
     let index: number = getIndex(name, env)
     while (node.type === 'UnaryExpression') {
-      console.log("identify", index)
+      console.log('identify', index)
       index = memory_get_word_at_index(index)
       node = node.argument
     }
@@ -697,13 +697,18 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     while (node.type === 'UnaryExpression') {
       console.log(node)
       // index = is_stack ? RTS.get_word_at_index(index) : H.get_word_at_index(index)
-      index = memory_get_word_at_index(index) 
+      index = memory_get_word_at_index(index)
       node = node.argument
     }
 
-    console.log("ah ", index, RTS_LAST_INDEX)
+    console.log('ah ', index, RTS_LAST_INDEX)
     const is_stack: boolean = index <= RTS_LAST_INDEX
-    A.push({ type: 'AsstExprDerefSet_i', index: index, pointerType: pointerType, is_stack: is_stack})
+    A.push({
+      type: 'AsstExprDerefSet_i',
+      index: index,
+      pointerType: pointerType,
+      is_stack: is_stack
+    })
   },
 
   AsstExprDerefSet_i: function* (instr: any, context: Context) {
@@ -889,7 +894,7 @@ export function* evaluate(node: cs.Node, context: Context) {
     console.log('the command V')
     console.log(cmd)
     console.log(i)
-    console.log("slice", S.slice(0))
+    console.log('slice', S.slice(0))
     if (evaluators.hasOwnProperty(cmd.type)) yield* evaluators[cmd.type](cmd, global_context)
     else throw new Error(`unknown command ${JSON.stringify(cmd.type)}`)
     console.log('A after executing command', A.slice(0))
