@@ -829,7 +829,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 }
 // tslint:enable:object-literal-shorthand
 
-const step_limit = 100
+const step_limit = 100000
 export function* evaluate(node: cs.Node, context: Context) {
   context.numberOfOuterEnvironments++
   const env = createGlobalEnvironment()
