@@ -184,6 +184,7 @@ const getVar = (context: Context, identifier: cs.Identifier) => {
   const env: Environment | null = currEnv(context)
   const index: number = getIndex(name, env)
   const is_stack: Boolean = env.head[name][0]
+  console.log("GOOD OR NOT GOOD", env, is_stack)
 
   console.log(`FINDING ${name}, ${type}, ${index}`)
   if (index === -1) {
@@ -512,9 +513,9 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     console.log(`fun is ${fun}`)
 
     if (fun.tag === 'builtin') {
-      const malloc_res = fun(...args)
-      S.push(malloc_res)
       if (fun.name == 'malloc') {
+        const malloc_res = fun(...args)
+        S.push(malloc_res)
         const curr_env = currEnv(context)
 
         if (malloc_count == 0) {
@@ -534,13 +535,13 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
         })
         console.log('AFTER CHANGING MALLOC ENV good', currEnv(context))
         malloc_count++
-      } else if (fun.name == 'free') {
-        // hard coded y because i'm not sure how to get the x in free(x)
-        const curr_env = currEnv(context)
-        const index = getIndex('y', curr_env)
-        H.set_word_at_index(index, 0)
+      // } else if (fun.name == 'free') {
+      //   const free_res = fun(...args)
+      //   S.push(free_res)
+      //   console.log("ziyi freeing")
+      } else {
+        S.push(fun(...args))
       }
-      // console.log("high", S.slice(0))
       return
     }
     const sf: Closure | Value = functions[fun]
@@ -593,6 +594,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     let node = instr.node
     const name: string = derefFindName(node)
     const env: Environment | null = currEnv(context)
+    console.log("h after malloc THIS IS THE ENV", env)
     let index: number = getIndex(name, env)
     const is_stack: boolean = env.head[name][0]
     while (node.type === 'UnaryExpression') {
