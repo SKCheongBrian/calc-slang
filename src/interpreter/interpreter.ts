@@ -253,8 +253,12 @@ const setVar = (context: Context, identifier: cs.Identifier) => {
 
 const derefByIndex = (index: number, is_stack: boolean, type: string) => {
   return is_stack
-    ? (type === 'char') ? String.fromCharCode(RTS.get_word_at_index(RTS.get_word_at_index(index))) : RTS.get_word_at_index(RTS.get_word_at_index(index))
-    : (type === 'char') ? String.fromCharCode(H.get_word_at_index(H.get_word_at_index(index))) : H.get_word_at_index(H.get_word_at_index(index))
+    ? type === 'char'
+      ? String.fromCharCode(RTS.get_word_at_index(RTS.get_word_at_index(index)))
+      : RTS.get_word_at_index(RTS.get_word_at_index(index))
+    : type === 'char'
+    ? String.fromCharCode(H.get_word_at_index(H.get_word_at_index(index)))
+    : H.get_word_at_index(H.get_word_at_index(index))
 }
 
 const derefFindName = (node: any) => {
