@@ -184,7 +184,7 @@ const getVar = (context: Context, identifier: cs.Identifier) => {
   const env: Environment | null = currEnv(context)
   const index: number = getIndex(name, env)
   const is_stack: Boolean = env.head[name][0]
-  console.log("GOOD OR NOT GOOD", env, is_stack)
+  console.log('GOOD OR NOT GOOD', env, is_stack)
 
   console.log(`FINDING ${name}, ${type}, ${index}`)
   if (index === -1) {
@@ -535,10 +535,10 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
         })
         console.log('AFTER CHANGING MALLOC ENV good', currEnv(context))
         malloc_count++
-      // } else if (fun.name == 'free') {
-      //   const free_res = fun(...args)
-      //   S.push(free_res)
-      //   console.log("ziyi freeing")
+        // } else if (fun.name == 'free') {
+        //   const free_res = fun(...args)
+        //   S.push(free_res)
+        //   console.log("ziyi freeing")
       } else {
         S.push(fun(...args))
       }
@@ -594,7 +594,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     let node = instr.node
     const name: string = derefFindName(node)
     const env: Environment | null = currEnv(context)
-    console.log("h after malloc THIS IS THE ENV", env)
+    console.log('h after malloc THIS IS THE ENV', env)
     let index: number = getIndex(name, env)
     const is_stack: boolean = env.head[name][0]
     while (node.type === 'UnaryExpression') {
