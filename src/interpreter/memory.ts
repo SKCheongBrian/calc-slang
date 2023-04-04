@@ -69,7 +69,7 @@ export class Heap extends Memory {
   constructor(size: number) {
     super(size)
     this.indexToSize = {}
-    const startingInterval: Interval = new Interval(0, 2 ** 17 - 1)
+    const startingInterval: Interval = new Interval(0, size * 2 ** 17 - 1)
     this.tree = new IntervalTree()
     this.tree.insert_node(startingInterval)
     this.list = new IntervalList()

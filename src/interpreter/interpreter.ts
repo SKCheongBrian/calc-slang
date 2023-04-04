@@ -40,6 +40,7 @@ let S: any[]
 export let global_context: Context
 
 export let RTS: RuntimeStack
+let RTS_LAST_INDEX : number
 export let H: Heap
 
 let functions: any[]
@@ -149,11 +150,10 @@ const makeVar = (context: Context, identifier: cs.Identifier, val: any) => {
   console.log('-------------')
   const datatype = identifier.datatype
   const symbol = identifier.name
-  const is_stack = true
 
   const type = getKind(datatype)
   Object.defineProperty(env.head, symbol, {
-    value: [is_stack, RTS.free, type],
+    value: [RTS.free, type],
     writable: true,
     enumerable: true
   })
@@ -173,35 +173,26 @@ const getVar = (context: Context, identifier: cs.Identifier) => {
     return context.nativeStorage.builtins.get(name)
   }
 
-  // if it's pointer
-  if (identifier['argument']) {
-    if (identifier['argument'].datatype.kind == 'pointer') {
-      name = identifier['argument'].name
-    }
-  }
-
   const type: String = getKind(identifier.datatype)
   const env: Environment | null = currEnv(context)
   const index: number = getIndex(name, env)
-  const is_stack: Boolean = env.head[name][0]
+  const is_stack: boolean = index <= RTS_LAST_INDEX
   console.log('GOOD OR NOT GOOD', env, is_stack)
 
   console.log(`FINDING ${name}, ${type}, ${index}`)
   if (index === -1) {
     return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
-  } else if (is_stack ? isNaN(RTS.get_word_at_index(index)) : isNaN(H.get_word_at_index(index))) {
+  } else if (isNaN(memory_get_word_at_index(index)) ) {
     return handleRuntimeError(
       context,
       new errors.UnassignedVariable(name, context.runtime.nodes[0])
     )
   } else if (type == 'char') {
-    const is_stack: Boolean = env.head[name][0]
-    return is_stack
-      ? String.fromCharCode(RTS.get_word_at_index(index))
-      : String.fromCharCode(H.get_word_at_index(index))
+    const is_stack: boolean = index <= RTS_LAST_INDEX
+    return String.fromCharCode(memory_get_word_at_index(index))
   } else {
     // TODO maybe use a switch here
-    return is_stack ? RTS.get_word_at_index(index) : H.get_word_at_index(index)
+    return memory_get_word_at_index(index) 
   }
 }
 
@@ -214,16 +205,18 @@ const setVarByIndex = (index: number, isStack: boolean, kind: string) => {
       break
   }
 
-  return index !== -1 ? RTS.set_word_at_index(index, value) : new Error(`Error at setVarByIndex`)
+  console.log("snow", isStack)
+
+  console.log("can", index)
+  return index !== -1 ? 
+  isStack
+  ? RTS.set_word_at_index(index, value) 
+  : H.set_word_at_index(index- RTS_LAST_INDEX - 1, value) 
+  : new Error(`Error at setVarByIndex`)
 }
 
 const setVar = (context: Context, identifier: cs.Identifier) => {
   let name = identifier.name
-  if (identifier['argument']) {
-    if (identifier['argument'].datatype.kind == 'pointer') {
-      name = identifier['argument'].name
-    }
-  }
   const dataType = identifier.datatype
   let value = S[S.length - 1]
 
@@ -241,25 +234,30 @@ const setVar = (context: Context, identifier: cs.Identifier) => {
   const env: Environment | null = currEnv(context)
   const index: number = getIndex(name, env)
 
-  const is_stack: Boolean = env.head[name][0]
+  const is_stack: boolean = index <= RTS_LAST_INDEX
 
   console.log(`Setting for ${name}, value: ${value}, index: ${index}`)
   // console.log("done with setvar")
   return index !== -1
     ? is_stack
       ? RTS.set_word_at_index(index, value)
-      : H.set_word_at_index(index, value)
+      : H.set_word_at_index(index- RTS_LAST_INDEX - 1, value)
     : handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
 }
 
 const derefByIndex = (index: number, is_stack: boolean, type: string) => {
-  return is_stack
-    ? type === 'char'
-      ? String.fromCharCode(RTS.get_word_at_index(RTS.get_word_at_index(index)))
-      : RTS.get_word_at_index(RTS.get_word_at_index(index))
-    : type === 'char'
-    ? String.fromCharCode(H.get_word_at_index(H.get_word_at_index(index)))
-    : H.get_word_at_index(H.get_word_at_index(index))
+  console.log("yep", index, is_stack)
+  return type === 'char'
+      ? String.fromCharCode(memory_get_word_at_index(memory_get_word_at_index((index))))
+      : memory_get_word_at_index(memory_get_word_at_index(index))
+}
+
+const memory_get_word_at_index = (index: number) => {
+  if (index <= RTS_LAST_INDEX - 1) {
+    return RTS.get_word_at_index(index)
+  } else {
+    return H.get_word_at_index(index - RTS_LAST_INDEX - 1)
+  }
 }
 
 const derefFindName = (node: any) => {
@@ -296,7 +294,7 @@ const getIndex = (name: string, env: Environment | null) => {
       console.log('from env head(env mappings):-----')
       console.log(env.head)
       console.log('-------------------')
-      index = env.head[name][1]
+      index = env.head[name][0]
       break
     }
     env = env.tail
@@ -491,17 +489,17 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   ReturnStatement: function* (node: cs.ReturnStatement, context: Context) {
     if (node.argument) {
       // to somehow take care of the case where you return *x
-      if (node.argument['argument']) {
-        A.push(
-          { type: 'Reset_i' },
-          node.argument['argument'] // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
-        )
-      } else {
+      // if (node.argument['argument']) {
+      //   A.push(
+      //     { type: 'Reset_i' },
+      //     node.argument['argument'] // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
+      //   )
+      // } else {
         A.push(
           { type: 'Reset_i' },
           node.argument // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
         )
-      }
+      // }
     } else {
       A.push({ type: 'Reset_i' })
     }
@@ -531,30 +529,12 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     if (fun.tag === 'builtin') {
       if (fun.name == 'malloc') {
         const malloc_res = fun(...args)
-        S.push(malloc_res)
-        const curr_env = currEnv(context)
-
-        if (malloc_count == 0) {
-          list_of_malloc_var = find_malloc_vars(curr_env)
-        }
-        console.log('good malloc var list', list_of_malloc_var)
-        console.log('good env', curr_env)
-        const var_name = list_of_malloc_var[malloc_count]
-        const index = getIndex(var_name, curr_env)
-        const var_type = curr_env.head[var_name][2]
-        console.log('good', curr_env, Object.keys(curr_env.head), index, var_name, var_type)
-
-        Object.defineProperty(curr_env.head, var_name, {
-          value: [false, malloc_res, var_type],
-          writable: true,
-          enumerable: true
-        })
-        console.log('AFTER CHANGING MALLOC ENV good', currEnv(context))
-        malloc_count++
-        // } else if (fun.name == 'free') {
-        //   const free_res = fun(...args)
-        //   S.push(free_res)
-        //   console.log("ziyi freeing")
+        console.log("malloc res", malloc_res)
+        console.log("malloc res", RTS_LAST_INDEX)
+        S.push(malloc_res + RTS_LAST_INDEX + 1)
+      } else if (fun.name == 'free') {
+        args[0] = args[0] - RTS_LAST_INDEX - 1
+        S.push(fun(...args))
       } else {
         S.push(fun(...args))
       }
@@ -617,13 +597,12 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     const env: Environment | null = currEnv(context)
     console.log('h after malloc THIS IS THE ENV', env)
     let index: number = getIndex(name, env)
-    const is_stack: boolean = env.head[name][0]
     while (node.type === 'UnaryExpression') {
-      console.log(node)
-      index = is_stack ? RTS.get_word_at_index(index) : H.get_word_at_index(index)
+      console.log("identify", index)
+      index = memory_get_word_at_index(index)
       node = node.argument
     }
-
+    const is_stack: boolean = index <= RTS_LAST_INDEX
     S.push(derefByIndex(index, is_stack, instr.pointerType))
   },
 
@@ -717,15 +696,18 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     let index: number = getIndex(name, env)
     while (node.type === 'UnaryExpression') {
       console.log(node)
-      index = RTS.get_word_at_index(index)
+      // index = is_stack ? RTS.get_word_at_index(index) : H.get_word_at_index(index)
+      index = memory_get_word_at_index(index) 
       node = node.argument
     }
 
-    A.push({ type: 'AsstExprDerefSet_i', index: index, pointerType: pointerType })
+    console.log("ah ", index, RTS_LAST_INDEX)
+    const is_stack: boolean = index <= RTS_LAST_INDEX
+    A.push({ type: 'AsstExprDerefSet_i', index: index, pointerType: pointerType, is_stack: is_stack})
   },
 
   AsstExprDerefSet_i: function* (instr: any, context: Context) {
-    setVarByIndex(instr.index, false, instr.pointerType)
+    setVarByIndex(instr.index, instr.is_stack, instr.pointerType)
   },
 
   AssignmentExpression: function* (node: cs.AssignmentExpression, context: Context) {
@@ -893,6 +875,7 @@ export function* evaluate(node: cs.Node, context: Context) {
   console.log(A.slice(0))
   S = []
   RTS = new RuntimeStack(10)
+  RTS_LAST_INDEX = 10 * 2 ** 17 - 1
   H = new Heap(10)
   functions = []
   functionIndex = 0
@@ -906,7 +889,7 @@ export function* evaluate(node: cs.Node, context: Context) {
     console.log('the command V')
     console.log(cmd)
     console.log(i)
-    console.log(S.slice(0))
+    console.log("slice", S.slice(0))
     if (evaluators.hasOwnProperty(cmd.type)) yield* evaluators[cmd.type](cmd, global_context)
     else throw new Error(`unknown command ${JSON.stringify(cmd.type)}`)
     console.log('A after executing command', A.slice(0))
