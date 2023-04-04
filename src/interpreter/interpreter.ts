@@ -94,7 +94,7 @@ function* leave(context: Context) {
 // }
 
 /* -------------------------------------------------------------------------- */
-/*                                  Variable                                  */
+/*                                  Variables                                 */
 /* -------------------------------------------------------------------------- */
 
 const addFunction = (closure: Closure) => {
@@ -205,6 +205,18 @@ const getVar = (context: Context, identifier: cs.Identifier) => {
   }
 }
 
+const setVarByIndex = (index: number, isStack: boolean, kind: string) => {
+  let value = S[S.length - 1]
+
+  switch (kind) {
+    case 'char':
+      value = value.charCodeAt(1)
+      break
+  }
+
+  return index !== -1 ? RTS.set_word_at_index(index, value) : new Error(`Error at setVarByIndex`)
+}
+
 const setVar = (context: Context, identifier: cs.Identifier) => {
   let name = identifier.name
   if (identifier['argument']) {
@@ -240,9 +252,13 @@ const setVar = (context: Context, identifier: cs.Identifier) => {
     : handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
 }
 
-const derefByIndex = (index: number, is_stack: boolean) => {
+const derefByIndex = (index: number, is_stack: boolean, type: string) => {
   return is_stack
-    ? RTS.get_word_at_index(RTS.get_word_at_index(index))
+    ? type === 'char'
+      ? String.fromCharCode(RTS.get_word_at_index(RTS.get_word_at_index(index)))
+      : RTS.get_word_at_index(RTS.get_word_at_index(index))
+    : type === 'char'
+    ? String.fromCharCode(H.get_word_at_index(H.get_word_at_index(index)))
     : H.get_word_at_index(H.get_word_at_index(index))
 }
 
@@ -566,7 +582,12 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
         A.push({ type: 'Reference_i', node: node.argument as cs.Identifier })
         return
       case '*':
-        A.push({ type: 'Dereference_i', node: node.argument as cs.Identifier })
+        const pointerType = getKind(node.datatype)
+        A.push({
+          type: 'Dereference_i',
+          node: node.argument as cs.Identifier,
+          pointerType: pointerType
+        })
         return
       default:
         A.push({ type: 'UnaryExpression_i', operator: node.operator }, node.argument)
@@ -602,7 +623,8 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
       index = is_stack ? RTS.get_word_at_index(index) : H.get_word_at_index(index)
       node = node.argument
     }
-    S.push(derefByIndex(index, is_stack))
+
+    S.push(derefByIndex(index, is_stack, instr.pointerType))
   },
 
   UnaryExpression_i: function* (node: any, context: Context) {
@@ -687,12 +709,41 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     A.push(node.right)
   },
 
+  AsstExprDeref_i: function* (instr: any, context: Context) {
+    let node = instr.node
+    const pointerType = getKind(node.datatype)
+    const name = derefFindName(node)
+    const env: Environment | null = currEnv(context)
+    let index: number = getIndex(name, env)
+    while (node.type === 'UnaryExpression') {
+      console.log(node)
+      index = RTS.get_word_at_index(index)
+      node = node.argument
+    }
+
+    A.push({ type: 'AsstExprDerefSet_i', index: index, pointerType: pointerType })
+  },
+
+  AsstExprDerefSet_i: function* (instr: any, context: Context) {
+    setVarByIndex(instr.index, false, instr.pointerType)
+  },
+
   AssignmentExpression: function* (node: cs.AssignmentExpression, context: Context) {
     // this is just a check to make sure that it is properly initialised
-    if (node.left.type === 'Identifier') {
+    if (node.left.type === 'UnaryExpression') {
+      A.push({ type: 'AsstExprDeref_i', node: node.left })
+      // const name = derefFindName(node.left)
+      // const env: Environment | null = currEnv(context)
+      // let index: number = getIndex(name, env)
+      // while (node.type === 'UnaryExpression') {
+      //   console.log(node)
+      //   index = RTS.get_word_at_index(index)
+      //   node = node.argument
+      // }
+    } else {
       getVar(context, node.left as cs.Identifier)
+      A.push({ type: 'Assignment_i', symbol: node.left })
     }
-    A.push({ type: 'Assignment_i', symbol: node.left })
 
     switch (node.operator) {
       case '=': {
