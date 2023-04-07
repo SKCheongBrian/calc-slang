@@ -44,11 +44,14 @@ LOGICAL_OR: '||';
 SHL: '<<';
 SHR: '>>';
 
-OPEN_PARENTHESIS: '(';
-CLOSED_PARENTHESIS: ')';
-LEFT_BRACE: '{';
-RIGHT_BRACE: '}';
+LPAREN: '(';
+RPAREN: ')';
+LSQUARE: '[';
+RSQUARE: ']';
+LBRACE: '{';
+RBRACE: '}';
 COMMA: ',';
+APROS: '\'';
 QUESTION: '?';
 EXCLAM: '!';
 COLON: ':';
@@ -57,6 +60,7 @@ SEMI: ';';
 // Types
 INT: 'int';
 VOID: 'void';
+CHAR: 'char';
 
 // Keywords
 CASE: 'case';
@@ -77,12 +81,16 @@ WHITESPACE: [ \r\n\t]+ -> skip;
 IDENTIFIER:
 	IDENTIFIER_NON_DIGIT (IDENTIFIER_NON_DIGIT | DIGIT)*;
 
+CHARACTER: APROS (~['\\\r\n] | ESCAPE_SEQUENCE) APROS;
+
 fragment IDENTIFIER_NON_DIGIT:
 	NON_DIGIT; //|   // other implementation-defined characters...
 
 fragment NON_DIGIT: [a-zA-Z_];
 
 fragment DIGIT: [0-9];
+
+fragment ESCAPE_SEQUENCE: '\\' [n0];
 
 /*
  * Productions
@@ -106,7 +114,8 @@ functionDefinition:
 parameterList:
 	parameterDeclaration (COMMA parameterDeclaration)*;
 
-parameterDeclaration: declarationSpecifier decl = declarator;
+parameterDeclaration:
+	declSpec = declarationSpecifier decl = declarator;
 
 // Labeled statement =======================================
 
@@ -117,8 +126,7 @@ labeledStatement:
 
 // Compound statement =======================================
 
-compoundStatement:
-	LEFT_BRACE blockItems = blockItemList? RIGHT_BRACE;
+compoundStatement: LBRACE blockItems = blockItemList? RBRACE;
 
 blockItemList: statement+;
 
@@ -129,18 +137,20 @@ declaration:
 
 declarationSpecifier: typeSpec = typeSpecifier;
 
-typeSpecifier: type = (VOID | INT);
+typeSpecifier: type = (VOID | INT | CHAR);
 
 initDeclaratorList: initDeclarator (COMMA initDeclarator)*;
 
 initDeclarator: decl = declarator (ASSIGN init = initializer)?;
 
-declarator: dirDecl = directDeclarator;
+declarator: pointers = pointer? dirDecl = directDeclarator;
+
+pointer: MUL+;
 
 directDeclarator:
-	id = IDENTIFIER
-	// Function definition
-	| dirDecl = directDeclarator OPEN_PARENTHESIS params = parameterList? CLOSED_PARENTHESIS;
+	id = IDENTIFIER											# VariableDeclarator
+	| id = IDENTIFIER LPAREN params = parameterList? RPAREN	# FunctionDeclarator
+	| id = IDENTIFIER (LSQUARE RSQUARE)+					# ArrayDeclarator;
 
 initializer: assignExpr = assignmentExpression;
 
@@ -151,18 +161,29 @@ assignmentExpression: expr = expression;
 expressionStatement: expression SEMI;
 
 expression:
-	NUMBER														# Number
-	| IDENTIFIER												# Identifier
-	| OPEN_PARENTHESIS inner = expression CLOSED_PARENTHESIS	# Parentheses
+	NUMBER								# Number
+	| CHARACTER							# Character
+	| IDENTIFIER						# Identifier
+	| LPAREN inner = expression RPAREN	# Parentheses
+
+	// Array initialisation
+	| LBRACE elem = expression (COMMA elem = expression)* RBRACE # ArrayInitialisation
 
 	// (Function) call expression
-	| id = IDENTIFIER OPEN_PARENTHESIS args = argumentExpressionList? CLOSED_PARENTHESIS # Call
+	| id = IDENTIFIER LPAREN args = argumentExpressionList? RPAREN # Call
+
+	// Array member
+	| object = expression LSQUARE property = expression RSQUARE # ArrayMember
 
 	// Update expressions
 	| argument = expression operator = INC	# IncrementPostfix
 	| argument = expression operator = DEC	# DecrementPostfix
 	| operator = INC argument = expression	# IncrementPrefix
 	| operator = DEC argument = expression	# DecrementPrefix
+
+	// Pointer expressions
+	| operator = MUL argument = expression			# Dereference
+	| operator = BITWISE_AND argument = expression	# Reference
 
 	// (Unary) arithmetic expressions
 	| operator = ADD argument = expression	# Positive
@@ -206,38 +227,36 @@ expression:
 	| test = expression QUESTION cons = expression COLON alt = expression # Conditional
 
 	// Assignment expressions
-	| left = IDENTIFIER operator = ASSIGN right = expression		# Assignment
-	| left = IDENTIFIER operator = ASSIGN_ADD right = expression	# AdditionAssignment
-	| left = IDENTIFIER operator = ASSIGN_SUB right = expression	# SubtractionAssignment
-	| left = IDENTIFIER operator = ASSIGN_MUL right = expression	# MultiplicationAssignment
-	| left = IDENTIFIER operator = ASSIGN_DIV right = expression	# DivisionAssignment
-	| left = IDENTIFIER operator = ASSIGN_MOD right = expression	# ModuloAssignment
-	| left = IDENTIFIER operator = ASSIGN_SHL right = expression	# ShiftLeftAssignment
-	| left = IDENTIFIER operator = ASSIGN_SHR right = expression	# ShiftRightAssignment
-	| left = IDENTIFIER operator = ASSIGN_OR right = expression		# BitwiseOrAssignment
-	| left = IDENTIFIER operator = ASSIGN_XOR right = expression	# BitwiseXorAssignment
-	| left = IDENTIFIER operator = ASSIGN_AND right = expression	# BitwiseAndAssignment;
+	| left = expression operator = ASSIGN right = expression		# Assignment
+	| left = expression operator = ASSIGN_ADD right = expression	# AdditionAssignment
+	| left = expression operator = ASSIGN_SUB right = expression	# SubtractionAssignment
+	| left = expression operator = ASSIGN_MUL right = expression	# MultiplicationAssignment
+	| left = expression operator = ASSIGN_DIV right = expression	# DivisionAssignment
+	| left = expression operator = ASSIGN_MOD right = expression	# ModuloAssignment
+	| left = expression operator = ASSIGN_SHL right = expression	# ShiftLeftAssignment
+	| left = expression operator = ASSIGN_SHR right = expression	# ShiftRightAssignment
+	| left = expression operator = ASSIGN_OR right = expression		# BitwiseOrAssignment
+	| left = expression operator = ASSIGN_XOR right = expression	# BitwiseXorAssignment
+	| left = expression operator = ASSIGN_AND right = expression	# BitwiseAndAssignment;
 
 argumentExpressionList: expression (COMMA expression)*;
 
 // Selection statements =======================================
 
 selectionStatement:
-	IF OPEN_PARENTHESIS test = expression CLOSED_PARENTHESIS cons = statement (
+	IF LPAREN test = expression RPAREN cons = statement (
 		ELSE alt = statement
 	)? # IfStatement
 	// TODO
-	| SWITCH OPEN_PARENTHESIS disc = expression CLOSED_PARENTHESIS cases = statement #
-		SwitchCaseStatement;
+	| SWITCH LPAREN disc = expression RPAREN cases = statement # SwitchCaseStatement;
 
 // Iteration statements =======================================
 
 iterationStatement:
-	WHILE OPEN_PARENTHESIS test = expression CLOSED_PARENTHESIS body = statement			# WhileStatement
-	| DO body = statement WHILE OPEN_PARENTHESIS test = expression CLOSED_PARENTHESIS SEMI	#
-		DoWhileStatement
+	WHILE LPAREN test = expression RPAREN body = statement				# WhileStatement
+	| DO body = statement WHILE LPAREN test = expression RPAREN SEMI	# DoWhileStatement
 	// TODO
-	| FOR OPEN_PARENTHESIS SEMI SEMI CLOSED_PARENTHESIS body = statement # ForStatement;
+	| FOR LPAREN SEMI SEMI RPAREN body = statement # ForStatement;
 
 // Jump statements =======================================
 

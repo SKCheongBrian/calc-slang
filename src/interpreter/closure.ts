@@ -1,23 +1,17 @@
-import * as es from 'estree'
+// import * as cs from 'estree'
+import { cloneDeep } from 'lodash'
 
-import { Context, Environment } from './../types'
-import { blockStatement } from './../utils/astCreator'
+import * as cs from '../tree/ctree'
+import { Context } from './../types'
 
 export default class Closure {
-  public closure_params: es.Identifier[]
-  public closure_body: es.BlockStatement
-  public current_environment: Environment
+  public closure_params: cs.Identifier[]
+  public closure_body: cs.BlockStatement
   public closure_context: Context
 
-  constructor(
-    public params: es.Identifier[],
-    public body: es.BlockStatement,
-    public environment: Environment,
-    context: Context
-  ) {
+  constructor(public params: cs.Identifier[], public body: cs.BlockStatement, context: Context) {
     this.closure_params = params
     this.closure_body = body
-    this.current_environment = environment
-    this.closure_context = context
+    this.closure_context = cloneDeep(context)
   }
 }

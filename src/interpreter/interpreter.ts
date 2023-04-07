@@ -1,58 +1,71 @@
-import { Identifier } from 'estree'
 /* tslint:disable:max-classes-per-file */
-import * as es from 'estree'
-import { isUndefined, reduce, uniqueId } from 'lodash'
+import { isUndefined, uniqueId } from 'lodash'
 
 import { createGlobalEnvironment } from '../createContext'
 import * as errors from '../errors/errors'
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
-import { is_undefined } from '../stdlib/misc'
+import { is_number } from '../stdlib/misc'
+/* tslint:disable:max-classes-per-file */
+import * as cs from '../tree/ctree'
 import { Context, Environment, Frame, Value } from '../types'
-import {
-  evaluateBinaryExpression,
-  evaluateUnaryExpression,
-  evaluateUpdateExpression
-} from '../utils/operators'
-import * as rttc from '../utils/rttc'
-import { UndefinedVariable } from './../errors/errors'
-import { DoWhileStatementContext } from './../lang/CalcParser'
+import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
+import { Identifier } from './../tree/ctree'
+import { identifier } from './../utils/astCreator'
 import Closure from './closure'
+import { Heap, RuntimeStack } from './memory'
 
 class Thunk {
   public value: Value
   public isMemoized: boolean
-  constructor(public exp: es.Node, public env: Environment) {
+  constructor(public exp: cs.Node, public env: Environment) {
     this.isMemoized = false
     this.value = null
   }
 }
 
-class BreakValue {}
-
-function* forceIt(val: any, context: Context): Value {
-  if (val instanceof Thunk) {
-    if (val.isMemoized) return val.value
-
-    pushEnvironment(context, val.env)
-    const evalRes = yield* actualValue(val.exp, context)
-    popEnvironment(context)
-    val.value = evalRes
-    val.isMemoized = true
-    return evalRes
-  } else return val
+enum Type {
+  Int,
+  Char
 }
 
-function isFalse(v: any) {
-  return v === 0
+enum Location {
+  Stack,
+  Heap
 }
 
-export function* actualValue(exp: es.Node, context: Context): Value {
-  const evalResult = yield* evaluate(exp, context)
-  const forced = yield* forceIt(evalResult, context)
-  console.log('-------------------')
-  console.log('actual Value: ' + forced)
-  return forced
-}
+const malloc_count = 0
+const list_of_malloc_var: string[] = []
+let A: any[]
+let S: any[]
+export let global_context: Context
+
+export let RTS: RuntimeStack
+let RTS_LAST_INDEX: number
+export let H: Heap
+
+let functions: any[]
+let functionIndex: number
+
+// ? Commenting out since it calls evaluate
+// function* forceIt(val: any, context: Context): Value {
+//   if (val instanceof Thunk) {
+//     if (val.isMemoized) return val.value
+
+//     pushEnvironment(context, val.env)
+//     const evalRes = yield* actualValue(val.exp, context)
+//     popEnvironment(context)
+//     val.value = evalRes
+//     val.isMemoized = true
+//     return evalRes
+//   } else return val
+// }
+
+// ? Commenting out since it calls evaluate
+// export function* actualValue(exp: es.Node, context: Context): Value {
+//   const evalResult = yield* evaluate(exp, context)
+//   const forced = yield* forceIt(evalResult, context)
+//   return forced
+// }
 
 const handleRuntimeError = (context: Context, error: RuntimeSourceError): never => {
   context.errors.push(error)
@@ -62,17 +75,9 @@ const handleRuntimeError = (context: Context, error: RuntimeSourceError): never 
   throw error
 }
 
-function* visit(context: Context, node: es.Node) {
+function* visit(context: Context, node: cs.Node) {
   context.runtime.nodes.unshift(node)
   yield context
-}
-
-function* reduceIf(
-  node: es.IfStatement | es.ConditionalExpression,
-  context: Context
-): IterableIterator<null | es.Node> {
-  const test = yield* actualValue(node.test, context)
-  return isFalse(test) ? node.alternate : node.consequent
 }
 
 function* leave(context: Context) {
@@ -81,11 +86,61 @@ function* leave(context: Context) {
   yield context
 }
 
+// function* evaluateBlockSatement(context: Context, node: es.BlockStatement) {
+//   let result
+//   for (const statement of node.body) {
+//     result = yield* evaluate(statement, context)
+//   }
+//   return result
+// }
+
 /* -------------------------------------------------------------------------- */
-/*                                  Variable                                  */
+/*                                  Variables                                 */
 /* -------------------------------------------------------------------------- */
 
-const makeVar = (context: Context, symbol: string, val: any) => {
+const addFunction = (closure: Closure) => {
+  functions[functionIndex] = closure
+  return functionIndex++
+}
+
+const getKind = (type: any) => {
+  let kind: any
+  let pointerType: any
+  let arrayType: any
+  switch (type.kind) {
+    case 'primitive':
+      switch (type.name) {
+        case 'int':
+          kind = 'int'
+          break
+        case 'char':
+          kind = 'char'
+          break
+      }
+      break
+    case 'function':
+      kind = 'function'
+      break
+    case 'pointer':
+      kind = 'pointer'
+      pointerType = getKind(type.type)
+      break
+    case 'array':
+      kind = 'array'
+      arrayType = getKind(type.elementType)
+    default:
+      throw new Error(`ERROR at makeVar, type unknown ${type?.kind}`)
+  }
+  if (pointerType) {
+    return kind.concat('/', pointerType)
+  }
+  if (arrayType) {
+    return kind.concat('/', arrayType)
+  }
+  return kind
+}
+
+const makeVar = (context: Context, identifier: cs.Identifier, val: any) => {
   const env = currEnv(context)
   console.log('context:-----')
   console.log(context)
@@ -93,46 +148,165 @@ const makeVar = (context: Context, symbol: string, val: any) => {
   console.log('env:---------')
   console.log(env)
   console.log('-------------')
-  // TODO: map name to address instead value
+  const datatype = identifier.datatype
+  const symbol = identifier.name
+
+  const type = getKind(datatype)
   Object.defineProperty(env.head, symbol, {
-    value: val,
-    writable: true
+    value: [RTS.free, type],
+    writable: true,
+    enumerable: true
   })
+  env.lastUsed = RTS.free
+  RTS.allocate(val)
 }
 
-const getVar = (context: Context, name: string) => {
-  let env: Environment | null = currEnv(context)
-  while (env) {
-    if (env.head.hasOwnProperty(name)) {
-      console.log('from env head(env mappings):-----')
-      console.log(env.head)
-      console.log('-------------------')
-      // TODO change to heap look up address
-      return env.head[name]
-    }
-    env = env.tail
+const isBuiltin = (context: Context, name: string): boolean => {
+  const builtins: Map<string, Value> = context.nativeStorage.builtins
+  return builtins.has(name)
+}
+
+const getVar = (context: Context, identifier: cs.Identifier) => {
+  const name = identifier.name
+  // if is builtin
+  if (isBuiltin(context, name)) {
+    return context.nativeStorage.builtins.get(name)
+  }
+
+  const type: String = getKind(identifier.datatype)
+  const env: Environment | null = currEnv(context)
+  const index: number = getIndex(name, env)
+  const is_stack: boolean = index <= RTS_LAST_INDEX
+  console.log('GOOD OR NOT GOOD', env, is_stack)
+
+  console.log(`FINDING ${name}, ${type}, ${index}`)
+  if (index === -1) {
+    return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
+  } else if (isNaN(memory_get_word_at_index(index))) {
+    return handleRuntimeError(
+      context,
+      new errors.UnassignedVariable(name, context.runtime.nodes[0])
+    )
+  } else if (type == 'char') {
+    const is_stack: boolean = index <= RTS_LAST_INDEX
+    return String.fromCharCode(memory_get_word_at_index(index))
+  } else {
+    // TODO maybe use a switch here
+    return memory_get_word_at_index(index)
   }
 }
 
-const setVar = (context: Context, name: string, value: any) => {
-  let env: Environment | null = currEnv(context)
-  // look through environment frames
-  while (env) {
-    if (env.head.hasOwnProperty(name)) {
-      env.head[name] = value
-      return undefined
-    }
-    env = env.tail
+const setVarByIndex = (index: number, isStack: boolean, kind: string) => {
+  let value = S[S.length - 1]
+
+  switch (kind) {
+    case 'char':
+      value = value.charCodeAt(1)
+      break
   }
-  return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
+
+  console.log('snow', isStack)
+
+  console.log('can', index)
+  return index !== -1
+    ? isStack
+      ? RTS.set_word_at_index(index, value)
+      : H.set_word_at_index(index - RTS_LAST_INDEX - 1, value)
+    : new Error(`Error at setVarByIndex`)
+}
+
+const setVar = (context: Context, identifier: cs.Identifier) => {
+  const name = identifier.name
+  const dataType = identifier.datatype
+  let value = S[S.length - 1]
+
+  switch (dataType?.kind) {
+    case 'function':
+      value = addFunction(value)
+      break
+    case 'primitive':
+      if (dataType.name == 'char') {
+        value = value.charCodeAt(1)
+      }
+      break
+  }
+
+  const env: Environment | null = currEnv(context)
+  const index: number = getIndex(name, env)
+
+  const is_stack: boolean = index <= RTS_LAST_INDEX
+
+  console.log(`Setting for ${name}, value: ${value}, index: ${index}`)
+  // console.log("done with setvar")
+  return index !== -1
+    ? is_stack
+      ? RTS.set_word_at_index(index, value)
+      : H.set_word_at_index(index - RTS_LAST_INDEX - 1, value)
+    : handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
+}
+
+const derefByIndex = (index: number, is_stack: boolean, type: string) => {
+  console.log('yep', index, is_stack)
+  return type === 'char'
+    ? String.fromCharCode(memory_get_word_at_index(memory_get_word_at_index(index)))
+    : memory_get_word_at_index(memory_get_word_at_index(index))
+}
+
+const memory_get_word_at_index = (index: number) => {
+  if (index <= RTS_LAST_INDEX - 1) {
+    return RTS.get_word_at_index(index)
+  } else {
+    return H.get_word_at_index(index - RTS_LAST_INDEX - 1)
+  }
+}
+
+const derefFindName = (node: any) => {
+  while (node.type === 'UnaryExpression') {
+    node = node.argument
+  }
+  return node.name
 }
 
 /* -------------------------------------------------------------------------- */
 /*                                 Environment                                */
 /* -------------------------------------------------------------------------- */
 
-const currEnv = (c: Context) => c.runtime.environments[0]
-const popEnvironment = (context: Context) => context.runtime.environments.shift()
+export const currEnv = (c: Context) => c.runtime.environments[0]
+
+const find_malloc_vars = (env: Environment) => {
+  const res: string[] = []
+  // alphabetical order
+  const l = env.head
+  const o = Object.keys(env.head)
+  for (let i = 0; i < o.length; i++) {
+    const curr_type = l[o[i]][2]
+    if (curr_type.includes('pointer')) {
+      res.push(o[i])
+    }
+  }
+  return res
+}
+
+const getIndex = (name: string, env: Environment | null) => {
+  let index = -1
+  while (env) {
+    if (env.head.hasOwnProperty(name)) {
+      console.log('from env head(env mappings):-----')
+      console.log(env.head)
+      console.log('-------------------')
+      index = env.head[name][0]
+      break
+    }
+    env = env.tail
+  }
+  return index
+}
+
+const popEnvironment = (context: Context) => {
+  context.runtime.environments.shift()
+  RTS.free = currEnv(context).lastUsed + 1
+}
+
 export const pushEnvironment = (context: Context, environment: Environment) => {
   context.runtime.environments.unshift(environment)
   context.runtime.environmentTree.insert(environment)
@@ -147,18 +321,65 @@ export const createBlockEnv = (
     name,
     tail: currEnv(context),
     head,
-    id: uniqueId()
+    id: uniqueId(),
+    lastUsed: RTS.free - 1
   }
 }
 
-export type Evaluator<T extends es.Node> = (node: T, context: Context) => IterableIterator<Value>
+export type Evaluator<T extends cs.Node> = (node: T, context: Context) => IterableIterator<Value>
 
-function* evaluateBlockSatement(context: Context, node: es.BlockStatement) {
-  let result
-  for (const statement of node.body) {
-    result = yield* evaluate(statement, context)
+// TODO: prolly need to change this too
+const UNASSIGNED = 0
+
+const create_unassigned = (locals: cs.Identifier[], context: Context) => {
+  const env = currEnv(context)
+  for (let i = 0; i < locals.length; i++) {
+    const currIdentifier: cs.Identifier = locals[i]
+    makeVar(context, currIdentifier, NaN)
   }
-  return result
+}
+
+const extend = (names: cs.Identifier[], values: any[], context: Context) => {
+  const env = createBlockEnv(context)
+  pushEnvironment(context, env)
+  for (let i = 0; i < names.length; i++) {
+    makeVar(context, names[i], values[i])
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                    Body                                    */
+/* -------------------------------------------------------------------------- */
+
+const scan = (body_arr: any) => {
+  const res: any[] = []
+  for (let i = 0; i < body_arr.length; i++) {
+    const statement: any = body_arr[i]
+    if (statement.type === 'VariableDeclaration') {
+      const len = statement.declarations.length
+      for (let i = 0; i < len; i++) {
+        const declaration = statement.declarations[i]
+        const identifier = declaration.id as cs.Identifier
+        res.push(identifier)
+      }
+    } else if (statement.type === 'FunctionDeclaration') {
+      res.push(statement.id as cs.Identifier)
+    }
+  }
+  return res
+}
+
+const handle_body = (body: any) => {
+  if (body.length === 0) {
+    return [{ type: 'Literal', value: undefined }]
+  }
+  const res: any[] = []
+  let first = true
+  for (const cmd of body) {
+    first ? (first = false) : res.push({ type: 'Pop_i' })
+    res.push(cmd)
+  }
+  return res.reverse()
 }
 
 /**
@@ -173,253 +394,516 @@ function* evaluateBlockSatement(context: Context, node: es.BlockStatement) {
  */
 // tslint:disable:object-literal-shorthand
 // prettier-ignore
-export const evaluators: { [nodeType: string]: Evaluator<es.Node> } = {
-  /** Simple Values */
-  Literal: function* (node: es.Literal, _context: Context) {
-    return node.value
+
+/* -------------------------------------------------------------------------- */
+/*                                  Microcode                                 */
+/* -------------------------------------------------------------------------- */
+
+const create_main = (): cs.ExpressionStatement => {
+    const callee: cs.Identifier = {
+      type: 'Identifier',
+      name: 'main', 
+      datatype: {
+        kind: "function", 
+        parameterTypes: [],
+        returnType: {
+          kind: 'primitive', 
+          name: 'int'
+        }
+      } 
+    }
+
+    // Parse args
+    const args: cs.Expression[] = []
+
+    return {
+      type: "ExpressionStatement", 
+      expression: { 
+        type: 'CallExpression',
+        optional: false,
+        callee,
+        arguments: args,
+        datatype: {
+          kind: 'primitive', 
+          name: 'int'
+        } 
+      },
+      datatype: {
+        kind: 'primitive', 
+        name: 'int'
+      }
+    }
+}
+
+export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
+  Pop_i: function* (node: any, _context: Context) {
+    S.pop()
   },
 
-  TemplateLiteral: function* (node: es.TemplateLiteral) {
+  Pop_env: function* (node: any, context: Context) {
+    popEnvironment(context)
+  },
+
+  /** Simple Values */
+  Literal: function* (node: cs.Literal, _context: Context) {
+    S.push(node.value)
+  },
+
+  TemplateLiteral: function* (node: cs.TemplateLiteral) {
     // Expressions like `${1}` are not allowed, so no processing needed
     return node.quasis[0].value.cooked
   },
 
-  ThisExpression: function* (node: es.ThisExpression, context: Context) {
+  ThisExpression: function* (node: cs.ThisExpression, context: Context) {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
-  ArrayExpression: function* (node: es.ArrayExpression, context: Context) {
+  ArrayExpression: function* (node: cs.ArrayExpression, context: Context) {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
-
-  FunctionExpression: function* (node: es.FunctionExpression, context: Context) {
+  FunctionExpression: function* (node: cs.FunctionExpression, context: Context) {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
-  ArrowFunctionExpression: function* (node: es.ArrowFunctionExpression, context: Context) {
+  ArrowFunctionExpression: function* (node: cs.ArrowFunctionExpression, context: Context) {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
-  Identifier: function* (node: es.Identifier, context: Context) {
+  Identifier: function* (node: cs.Identifier, context: Context) {
+    S.push(getVar(context, node))
+  },
+
+  CallExpression: function* (node: cs.CallExpression, context: Context) {
+    A.push({
+      type: 'Call_i',
+      arity: node.arguments.length
+    })
+    for (let i = node.arguments.length - 1; i >= 0; i--) {
+      // not reversed unlike hw3 so we need to reverse it
+      A.push(node.arguments[i])
+    }
+    A.push(node.callee)
+  },
+
+  ReturnStatement: function* (node: cs.ReturnStatement, context: Context) {
+    if (node.argument) {
+      // to somehow take care of the case where you return *x
+      // if (node.argument['argument']) {
+      //   A.push(
+      //     { type: 'Reset_i' },
+      //     node.argument['argument'] // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
+      //   )
+      // } else {
+      A.push(
+        { type: 'Reset_i' },
+        node.argument // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
+      )
+      // }
+    } else {
+      A.push({ type: 'Reset_i' })
+    }
+  },
+  Env_i: function* (node: any, context: Context) {
+    global_context = node.context
+  },
+
+  Reset_i: function* (node: any, context: Context) {
+    if (A.pop().type === 'Mark_i') {
+      console.log('look for me plz')
+      return
+    } else {
+      A.push(node)
+    }
+  },
+
+  Call_i: function* (node: any, context: Context) {
+    const arity = node.arity
+    const args: any[] = []
+    for (let i = arity - 1; i >= 0; i--) {
+      args[i] = S.pop()
+    }
+    const fun = S.pop()
+    console.log(`fun is ${fun}`)
+
+    if (fun.tag === 'builtin') {
+      if (fun.name == 'malloc') {
+        const malloc_res = fun(...args)
+        console.log('malloc res', malloc_res)
+        console.log('malloc res', RTS_LAST_INDEX)
+        S.push(malloc_res + RTS_LAST_INDEX + 1)
+      } else if (fun.name == 'free') {
+        args[0] = args[0] - RTS_LAST_INDEX - 1
+        S.push(fun(...args))
+      } else {
+        S.push(fun(...args))
+      }
+      return
+    }
+    const sf: Closure | Value = functions[fun]
+    if (A.length === 0 || A[A.length - 1].type === 'Env_i') {
+      A.push({ type: 'Mark_i' })
+    } else if (A[A.length - 1].type === 'Reset_i') {
+      A.pop()
+    } else {
+      A.push({ type: 'Env_i', context: context }, { type: 'Mark_i' })
+    }
+    A.push(sf.body)
+    extend(sf.params, args, context)
+  },
+
+  NewExpression: function* (node: cs.NewExpression, context: Context) {
+    throw new Error(`not supported yet: ${node.type}`)
+  },
+
+  UnaryExpression: function* (node: cs.UnaryExpression, context: Context) {
+    switch (node.operator) {
+      case '&':
+        A.push({ type: 'Reference_i', node: node.argument as cs.Identifier })
+        return
+      case '*':
+        const pointerType = getKind(node.datatype)
+        A.push({
+          type: 'Dereference_i',
+          node: node.argument as cs.Identifier,
+          pointerType: pointerType
+        })
+        return
+      default:
+        A.push({ type: 'UnaryExpression_i', operator: node.operator }, node.argument)
+        return
+    }
+  },
+
+  Reference_i: function* (instr: any, context: Context) {
+    const node = instr.node
     const name = node.name
-    return getVar(context, name)
+    const env: Environment | null = currEnv(context)
+    const index: number = getIndex(name, env)
+    if (index === -1) {
+      return handleRuntimeError(
+        context,
+        new errors.UndefinedVariable(name, context.runtime.nodes[0])
+      )
+    } else {
+      S.push(index)
+      return
+    }
   },
 
-  CallExpression: function* (node: es.CallExpression, context: Context) {
+  Dereference_i: function* (instr: any, context: Context) {
+    let node = instr.node
+    const name: string = derefFindName(node)
+    const env: Environment | null = currEnv(context)
+    console.log('h after malloc THIS IS THE ENV', env)
+    let index: number = getIndex(name, env)
+    while (node.type === 'UnaryExpression') {
+      console.log('identify', index)
+      index = memory_get_word_at_index(index)
+      node = node.argument
+    }
+    const is_stack: boolean = index <= RTS_LAST_INDEX
+    S.push(derefByIndex(index, is_stack, instr.pointerType))
+  },
+
+  UnaryExpression_i: function* (node: any, context: Context) {
+    const result = evaluateUnaryExpression(node.operator, S.pop())
+    S.push(result)
+  },
+
+  BinaryExpression: function* (node: cs.BinaryExpression, context: Context) {
+    A.push({ type: 'BinaryExpression_i', operator: node.operator }, node.left, node.right)
+  },
+
+  BinaryExpression_i: function* (node: any, context: Context) {
+    const result = evaluateBinaryExpression(node.operator, S.pop(), S.pop())
+    console.log('result: ' + result)
+    S.push(result)
+  },
+
+  UpdateExpression: function* (node: cs.UpdateExpression, context: Context) {
+    if (!node.prefix) {
+      const value = getVar(context, node.argument as cs.Identifier)
+      A.push({ type: 'Pop_i' })
+      S.push(value)
+    }
+    A.push({
+      type: 'AssignmentExpression',
+      operator: '=',
+      left: node.argument,
+      right: {
+        type: 'BinaryExpression',
+        operator: node.operator.charAt(0),
+        left: node.argument,
+        right: {
+          type: 'Literal',
+          value: 1
+        }
+      }
+    })
+  },
+
+  ConditionalExpression: function* (node: cs.ConditionalExpression, context: Context) {
+    A.push({ type: 'Conditional_i', cons: node.consequent, alt: node.alternate }, node.test)
+  },
+
+  LogicalExpression: function* (node: cs.LogicalExpression, context: Context) {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
-  NewExpression: function* (node: es.NewExpression, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
-  },
-
-  UnaryExpression: function* (node: es.UnaryExpression, context: Context) {
-    const value = yield* actualValue(node.argument, context)
-
-    const error = rttc.checkUnaryExpression(node, node.operator, value)
-    if (error) {
-      return handleRuntimeError(context, error)
-    }
-    return evaluateUnaryExpression(node.operator, value)
-  },
-
-  /**
-   * Will return the new updated value if prefix is true else will return the old value
-   * currently only used for "++" and "--" operators
-   * @param node the update expression node
-   * @param context current context
-   * @returns value after applying the operator
-   */
-  UpdateExpression: function* (node: es.UpdateExpression, context: Context) {
-    const value = yield* actualValue(node.argument, context)
-    console.log("------------------------")
-    console.log("value " + value)
-    console.log("------------------------")
-
-    const error = rttc.checkUpdateExpression(node, node.operator, value)
-    if (error) {
-      return handleRuntimeError(context, error)
-    }
-    const final_value = evaluateUpdateExpression(node.operator, value)
-    console.log("------------------------")
-    console.log("final_value " + final_value)
-    console.log("------------------------")
-    setVar(context, (node.argument as es.Identifier).name, final_value)
-    return node.prefix ? final_value : value
-  },
-
-  BinaryExpression: function* (node: es.BinaryExpression, context: Context) {
-    const left = yield* actualValue(node.left, context)
-    const right = yield* actualValue(node.right, context)
-    const error = rttc.checkBinaryExpression(node, node.operator, left, right)
-    if (error) {
-      return handleRuntimeError(context, error)
-    }
-    return evaluateBinaryExpression(node.operator, left, right)
-  },
-
-  ConditionalExpression: function* (node: es.ConditionalExpression, context: Context) {
-    return yield* this.IfStatement(node, context)
-  },
-
-  LogicalExpression: function* (node: es.LogicalExpression, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
-  },
-
-  VariableDeclaration: function* (node: es.VariableDeclaration, context: Context) {
+  VariableDeclaration: function* (node: cs.VariableDeclaration, context: Context) {
     const len = node.declarations.length
     for (let i = 0; i < len; i++) {
       const declaration = node.declarations[i]
-      const identifier = declaration.id as es.Identifier
-      const symbol = identifier.name
-      const init = (declaration.init == null || isUndefined(declaration.init))
-          ? undefined
-          : yield* actualValue(declaration.init, context)
-      makeVar(context, symbol, init)
+      const identifier = declaration.id as cs.Identifier
+      // const symbol = identifier.name
+      const init =
+        declaration.init == null || isUndefined(declaration.init) ? undefined : declaration.init
+      A.push(
+        { type: 'Literal', value: undefined },
+        { type: 'Pop_i' },
+        { type: 'InitialAssignmentExpression', left: identifier, right: init, operator: '=' }
+      )
     }
-    return undefined
   },
 
-  ContinueStatement: function* (_node: es.ContinueStatement, _context: Context) {
+  VarDec_i: function* (node: any, context: Context) {
+    makeVar(context, node.symbol, S[S.length - 1])
+  },
+
+  ContinueStatement: function* (_node: cs.ContinueStatement, _context: Context) {
     throw new Error(`not supported yet: ${_node.type}`)
   },
 
-  BreakStatement: function* (_node: es.BreakStatement, _context: Context) {
+  BreakStatement: function* (_node: cs.BreakStatement, _context: Context) {
     throw new Error(`not supported yet: ${_node.type}`)
   },
 
-  ForStatement: function* (node: es.ForStatement, context: Context) {
+  ForStatement: function* (node: cs.ForStatement, context: Context) {
     throw new Error(`not supported yet: ${node.type}`)
   },
 
+  InitialAssignmentExpression: function* (node: any, context: Context) {
+    A.push({ type: 'Assignment_i', symbol: node.left })
+    A.push(node.right)
+  },
 
-  AssignmentExpression: function* (node: es.AssignmentExpression, context: Context) {
-    if (node.left.type === "Identifier") {
-      const id = node.left as es.Identifier
-      const name = id.name
-      const value = yield* evaluate(node.right, context)
-      switch (node.operator) {
-        case "=": {
-          setVar(context, name, value)
-          return value
-        }
-        case "+=": {
-          const currVal = getVar(context, name)
-          const newVal = evaluateBinaryExpression("+", currVal, value)
-          setVar(context, name, newVal)
-          return newVal
-        }
-        case "-=": {
-          const currVal = getVar(context, name)
-          const newVal = evaluateBinaryExpression("-", currVal, value)
-          setVar(context, name, newVal)
-          return newVal
-        }
-        case "*=": {
-          const currVal = getVar(context, name)
-          const newVal = evaluateBinaryExpression("*", currVal, value)
-          setVar(context, name, newVal)
-          return newVal
-        }
-        case "/=": {
-          const currVal = getVar(context, name)
-          const newVal = evaluateBinaryExpression("/", currVal, value)
-          setVar(context, name, newVal)
-          return newVal
-        }
-        case "%=": {
-          const currVal = getVar(context, name)
-          const newVal = evaluateBinaryExpression("%", currVal, value)
-          setVar(context, name, newVal)
-          return newVal
-        }
-        // TODO add more of the assignment stuff
-        default: {
-          // ! not sure if this is correctly set
-          return undefined
-        }
+  AsstExprDeref_i: function* (instr: any, context: Context) {
+    let node = instr.node
+    const pointerType = getKind(node.datatype)
+    const name = derefFindName(node)
+    const env: Environment | null = currEnv(context)
+    let index: number = getIndex(name, env)
+    while (node.type === 'UnaryExpression') {
+      console.log(node)
+      // index = is_stack ? RTS.get_word_at_index(index) : H.get_word_at_index(index)
+      index = memory_get_word_at_index(index)
+      node = node.argument
+    }
+
+    console.log('ah ', index, RTS_LAST_INDEX)
+    const is_stack: boolean = index <= RTS_LAST_INDEX
+    A.push({
+      type: 'AsstExprDerefSet_i',
+      index: index,
+      pointerType: pointerType,
+      is_stack: is_stack
+    })
+  },
+
+  AsstExprDerefSet_i: function* (instr: any, context: Context) {
+    setVarByIndex(instr.index, instr.is_stack, instr.pointerType)
+  },
+
+  AssignmentExpression: function* (node: cs.AssignmentExpression, context: Context) {
+    // this is just a check to make sure that it is properly initialised
+    if (node.left.type === 'UnaryExpression') {
+      A.push({ type: 'AsstExprDeref_i', node: node.left })
+      // const name = derefFindName(node.left)
+      // const env: Environment | null = currEnv(context)
+      // let index: number = getIndex(name, env)
+      // while (node.type === 'UnaryExpression') {
+      //   console.log(node)
+      //   index = RTS.get_word_at_index(index)
+      //   node = node.argument
+      // }
+    } else {
+      getVar(context, node.left as cs.Identifier)
+      A.push({ type: 'Assignment_i', symbol: node.left })
+    }
+
+    switch (node.operator) {
+      case '=': {
+        A.push(node.right)
+        break
+      }
+      case '+=': {
+        A.push({ type: 'BinaryExpression', operator: '+', left: node.left, right: node.right })
+        break
+      }
+      case '-=': {
+        A.push({ type: 'BinaryExpression', operator: '-', left: node.left, right: node.right })
+        break
+      }
+      case '*=': {
+        A.push({ type: 'BinaryExpression', operator: '*', left: node.left, right: node.right })
+        break
+      }
+      case '/=': {
+        A.push({ type: 'BinaryExpression', operator: '/', left: node.left, right: node.right })
+        break
+      }
+      case '%=': {
+        A.push({ type: 'BinaryExpression', operator: '%', left: node.left, right: node.right })
+        break
+      }
+      default: {
+        // ! not sure if this is correctly set
+        throw new Error(`yo there not such thing amigo`)
+        break
       }
     }
   },
 
-  FunctionDeclaration: function* (node: es.FunctionDeclaration, context: Context) {
+  Assignment_i: function* (node: any, context: Context) {
+    console.log(node)
+    const identifier = node.symbol as cs.Identifier
+    setVar(context, identifier)
+  },
+
+  FunctionDeclaration: function* (node: cs.FunctionDeclaration, context: Context) {
     const id = node.id
-    if (id === null) {
-      throw new Error("This should have been caught during parsing.")
-    }
-    const closure = new Closure(node.params as Identifier[], node.body, currEnv(context), context)
-    makeVar(context, id.name, closure)
+    A.push({
+      type: 'VariableDeclaration',
+      kind: 'const', // cant change what a function is after
+      declarations: [
+        {
+          type: 'VariableDeclarator',
+          id: id,
+          init: {
+            type: 'Closure',
+            params: node.params,
+            body: node.body
+          }
+        }
+      ]
+    })
   },
 
-  IfStatement: function* (node: es.IfStatement | es.ConditionalExpression, context: Context) {
-    const result = yield* reduceIf(node, context)
-    if (result === null) {
-      return undefined
-    }
-    return yield* evaluate(result, context)
+  Closure: function* (node: any, context: Context) {
+    S.push(new Closure(node.params as cs.Identifier[], node.body, context))
   },
 
-  ExpressionStatement: function* (node: es.ExpressionStatement, context: Context) {
-    return yield* evaluate(node.expression, context)
+  IfStatement: function* (node: cs.IfStatement | cs.ConditionalExpression, context: Context) {
+    A.push({ type: 'Conditional_i', cons: node.consequent, alt: node.alternate }, node.test)
   },
 
-  ReturnStatement: function* (node: es.ReturnStatement, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+  Conditional_i: function* (node: any, context: Context) {
+    A.push(
+      S.pop() !== 0
+        ? node.cons
+        : isUndefined(node.alt)
+        ? { type: 'Literal', value: undefined }
+        : node.alt
+    )
   },
 
-  WhileStatement: function* (node: es.WhileStatement, context: Context) {
-    let value: any
-    while (
-      ((yield* actualValue(node.test, context)) !== 0) &&
-      !(value instanceof BreakValue)
-    ) {
-      value = yield* actualValue(node.body, context)
-    }
-    if (value instanceof BreakValue) {
-      return undefined
-    }
-    return value
+  ExpressionStatement: function* (node: cs.ExpressionStatement, context: Context) {
+    A.push(node.expression)
   },
 
-  DoWhileStatement: function* (node: es.DoWhileStatement, context: Context) {
-    let value: any
-    value = yield* actualValue(node.body, context)
-    while (
-      ((yield* actualValue(node.test, context)) !== 0) &&
-      !(value instanceof BreakValue)
-    ) {
-      value = yield* actualValue(node.body, context)
-    }
-    if (value instanceof BreakValue) {
-      return undefined
-    }
-    return value
+  WhileStatement: function* (node: cs.WhileStatement, context: Context) {
+    A.push(
+      { type: 'Literal', value: undefined },
+      { type: 'While_i', test: node.test, body: node.body },
+      node.test
+    )
   },
 
-  BlockStatement: function* (node: es.BlockStatement, context: Context) {
+  While_i: function* (node: any, context: Context) {
+    const test = S.pop()
+    if (test > 0) {
+      A.push(
+        node, // push node back onto agenda
+        node.test,
+        { type: 'Pop_i' }, // pop result of body
+        node.body
+      )
+    }
+  },
+
+  DoWhileStatement: function* (node: cs.DoWhileStatement, context: Context) {
+    A.push(
+      { type: 'WhileStatement', test: node.test, body: node.body },
+      { type: 'Pop_i' }, // pop result of body
+      node.body // execute body one time before doing check
+    )
+  },
+
+  BlockStatement: function* (node: cs.BlockStatement, context: Context) {
     const env = createBlockEnv(context, 'blockEnvironment')
     pushEnvironment(context, env)
-    const result = yield* evaluateBlockSatement(context, node)
-    popEnvironment(context)
-    return result
+    const locals = scan(node.body)
+    // for (let i = 0; i < locals.length; i++) {
+    //   RTS.allocate(locals[i])
+    // }
+    console.log('LOCALS:-----------------------')
+    console.log(locals)
+    create_unassigned(locals, context)
+    A.push({ type: 'Pop_env' })
+    A.push(...handle_body(node.body))
   },
 
-  Program: function* (node: es.BlockStatement, context: Context) {
-    context.numberOfOuterEnvironments++
-    const env = createGlobalEnvironment()
+  Program: function* (node: cs.BlockStatement, context: Context) {
+    const env = createBlockEnv(context, 'programEnvironment')
     pushEnvironment(context, env)
-    const result = yield* forceIt(yield* evaluateBlockSatement(context, node), context);
-    return result;
+    const locals = scan(node.body)
+    console.log('LOCALS:-----------------------')
+    console.log(locals)
+    node.body.push(create_main())
+    create_unassigned(locals, context)
+    A.push(...handle_body(node.body))
+    // A.push({type: "ExpressionStatement", expression: {arguments: [], callee: {name: "main"}, datatype: {name: 'int'}}})
+    // A.push({type: "CallExpression", callee: {type: 'Identifier', name: "main", datatype: {}}, datatype: {kind: 'primitive', name: 'int'}})
   }
 }
 // tslint:enable:object-literal-shorthand
 
-export function* evaluate(node: es.Node, context: Context) {
-  console.log('current node:--------')
-  console.log(node)
-  console.log('---------------------')
-  const result = yield* evaluators[node.type](node, context)
-  yield* leave(context)
-  return result
+const step_limit = 100000
+export function* evaluate(node: cs.Node, context: Context) {
+  context.numberOfOuterEnvironments++
+  const env = createGlobalEnvironment()
+  pushEnvironment(context, env)
+  console.log('PRINTING CONTEXT', context)
+  global_context = context
+  A = [node]
+  console.log(A.slice(0))
+  S = []
+  RTS = new RuntimeStack(10)
+  RTS_LAST_INDEX = 10 * 2 ** 17 - 1
+  H = new Heap(10)
+  functions = []
+  functionIndex = 0
+  // HEAP = new ArrayBuffer(10 * MEGA)
+  let i: number = 0
+  while (i < step_limit) {
+    if (A.length === 0) break
+    console.log('A before popping', A.slice(0))
+    const cmd = A.pop()
+    console.log('A after popping', A.slice(0))
+    console.log('the command V')
+    console.log(cmd)
+    console.log(i)
+    console.log('slice', S.slice(0))
+    if (evaluators.hasOwnProperty(cmd.type)) yield* evaluators[cmd.type](cmd, global_context)
+    else throw new Error(`unknown command ${JSON.stringify(cmd.type)}`)
+    console.log('A after executing command', A.slice(0))
+    console.log('---------------')
+    i++
+  }
+  if (i === step_limit) {
+    throw new Error('step limit exceeded')
+  }
+  console.log(S.slice(0))
+  return S[0]
 }

@@ -1,3 +1,14 @@
+// import {
+//   ArrowFunctionExpression,
+//   BlockStatement,
+//   ForStatement,
+//   FunctionDeclaration,
+//   Identifier,
+//   ImportSpecifier,
+//   Node,
+//   SourceLocation,
+//   VariableDeclarator
+// } from 'estree'
 import {
   ArrowFunctionExpression,
   BlockStatement,
@@ -8,8 +19,7 @@ import {
   Node,
   SourceLocation,
   VariableDeclarator
-} from 'estree'
-
+} from './tree/ctree'
 import { Context } from './types'
 import {
   ancestor,

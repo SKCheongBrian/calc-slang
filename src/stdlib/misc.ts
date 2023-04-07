@@ -1,4 +1,5 @@
-import { Context, Value } from '../types'
+import { currEnv, global_context, H, RTS } from '../interpreter/interpreter'
+import { Context, Environment, Value } from '../types'
 import { stringify } from '../utils/stringify'
 
 /**
@@ -8,10 +9,41 @@ import { stringify } from '../utils/stringify'
  * @param externalContext a property of Context that can hold
  *   any information required for external use (optional).
  */
-export function rawDisplay(value: Value, str: string, _externalContext: any) {
+// export function rawDisplay(value: Value, str: string, _externalContext: any) {
+export function rawDisplay(value: Value) {
   // tslint:disable-next-line:no-console
-  console.log((str === undefined ? '' : str + ' ') + value.toString())
+  console.log('[builtin] print', value.toString())
   return value
+}
+
+export function displayMappings() {
+  let str = ''
+  let env: Environment | null = currEnv(global_context)
+  while (env) {
+    const frame = env.head
+    str += '-------------\n'
+    for (const [name, value] of Object.entries(frame)) {
+      str += `${name}: ${value[0]}\n`
+    }
+    env = env.tail
+  }
+  str += '-------------\n'
+  console.log('[builtin] print mappings\n', str)
+}
+
+export function displayRts() {
+  console.log('[builtin] print RTS\n', RTS.toString())
+}
+
+export function displayHeap() {
+  console.log('[builtin] print heap\n', H.toString())
+}
+
+export function displayAll() {
+  console.log('[builtin] print all (mappings, RTS, heap)')
+  displayMappings()
+  displayRts()
+  displayHeap()
 }
 
 export function error_message(value: Value, ...strs: string[]) {

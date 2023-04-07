@@ -1,5 +1,5 @@
-import es from 'estree'
-
+// import cs from 'estree'
+import * as cs from '../../tree/ctree'
 import { ancestor } from '../../utils/walkers'
 import { isDeclaration } from '../typeGuards'
 
@@ -13,13 +13,13 @@ import { isDeclaration } from '../typeGuards'
  *
  * @param program The AST which should be stripped of export-related nodes.
  */
-export const removeExports = (program: es.Program): void => {
+export const removeExports = (program: cs.Program): void => {
   ancestor(program, {
     // TODO: Handle other export AST nodes.
     ExportNamedDeclaration(
-      node: es.ExportNamedDeclaration,
-      _state: es.Node[],
-      ancestors: es.Node[]
+      node: cs.ExportNamedDeclaration,
+      _state: cs.Node[],
+      ancestors: cs.Node[]
     ) {
       // The ancestors array contains the current node, meaning that the
       // parent node is the second last node of the array.
@@ -39,9 +39,9 @@ export const removeExports = (program: es.Program): void => {
       }
     },
     ExportDefaultDeclaration(
-      node: es.ExportDefaultDeclaration,
-      _state: es.Node[],
-      ancestors: es.Node[]
+      node: cs.ExportDefaultDeclaration,
+      _state: cs.Node[],
+      ancestors: cs.Node[]
     ) {
       // The ancestors array contains the current node, meaning that the
       // parent node is the second last node of the array.

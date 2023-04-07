@@ -6,20 +6,19 @@
 /* tslint:disable:max-classes-per-file */
 
 import { SourceLocation } from 'acorn'
-import * as es from 'estree'
 
+// import * as cs from 'estree'
 import { EnvTree } from './createContext'
+import * as cs from './tree/ctree'
 
 /**
  * Defines functions that act as built-ins, but might rely on
  * different implementations. e.g display() in a web application.
  */
 export interface CustomBuiltIns {
-  rawDisplay: (value: Value, str: string, externalContext: any) => Value
-  prompt: (value: Value, str: string, externalContext: any) => string | null
-  alert: (value: Value, str: string, externalContext: any) => void
-  /* Used for list visualisation. See #12 */
-  visualiseList: (list: any, externalContext: any) => void
+  rawDisplay: (value: Value) => Value
+  // prompt: (value: Value, str: string, externalContext: any) => string | null
+  // alert: (value: Value, str: string, externalContext: any) => void
 }
 
 export enum ErrorType {
@@ -37,16 +36,16 @@ export enum ErrorSeverity {
 export interface SourceError {
   type: ErrorType
   severity: ErrorSeverity
-  location: es.SourceLocation
+  location: cs.SourceLocation
   explain(): string
   elaborate(): string
 }
 
-export interface Rule<T extends es.Node> {
+export interface Rule<T extends cs.Node> {
   name: string
   disableForVariants?: Variant[]
   checkers: {
-    [name: string]: (node: T, ancestors: es.Node[]) => SourceError[]
+    [name: string]: (node: T, ancestors: cs.Node[]) => SourceError[]
   }
 }
 
@@ -86,6 +85,10 @@ export interface ConstWrapper {
   getValue: () => Value
 }
 
+export interface NativeStorage {
+  builtins: Map<string, Value>
+}
+
 export interface Context<T = any> {
   /** The external symbols that exist in the Context. */
   externalSymbols: string[]
@@ -100,7 +103,7 @@ export interface Context<T = any> {
     isRunning: boolean
     environmentTree: EnvTree
     environments: Environment[]
-    nodes: es.Node[]
+    nodes: cs.Node[]
   }
 
   numberOfOuterEnvironments: number
@@ -113,6 +116,8 @@ export interface Context<T = any> {
    * context for use in your own built-in functions (like `display(a)`)
    */
   externalContext?: T
+
+  nativeStorage: NativeStorage
 
   /**
    * Describes the language processor to be used for evaluation
@@ -151,18 +156,18 @@ export type ModuleContext = {
 export interface BlockFrame {
   type: string
   // loc refers to the block defined by every pair of curly braces
-  loc?: es.SourceLocation | null
+  loc?: cs.SourceLocation | null
   // For certain type of BlockFrames, we also want to take into account
   // the code directly outside the curly braces as there
   // may be variables declared there as well, such as in function definitions or for loops
-  enclosingLoc?: es.SourceLocation | null
+  enclosingLoc?: cs.SourceLocation | null
   children: (DefinitionNode | BlockFrame)[]
 }
 
 export interface DefinitionNode {
   name: string
   type: string
-  loc?: es.SourceLocation | null
+  loc?: cs.SourceLocation | null
 }
 
 // tslint:disable:no-any
@@ -178,8 +183,9 @@ export interface Environment {
   id: string
   name: string
   tail: Environment | null
-  callExpression?: es.CallExpression
+  callExpression?: cs.CallExpression
   head: Frame
+  lastUsed: number
   thisContext?: Value
 }
 
@@ -220,18 +226,18 @@ export interface Scheduler {
 	Although the ESTree specifications supposedly provide a Directive interface, the index file does not seem to export it.
 	As such this interface was created here to fulfil the same purpose.
  */
-export interface Directive extends es.ExpressionStatement {
+export interface Directive extends cs.ExpressionStatement {
   type: 'ExpressionStatement'
-  expression: es.Literal
+  expression: cs.Literal
   directive: string
 }
 
 /** For use in the substituter, to differentiate between a function declaration in the expression position,
  * which has an id, as opposed to function expressions.
  */
-export interface FunctionDeclarationExpression extends es.FunctionExpression {
-  id: es.Identifier
-  body: es.BlockStatement
+export interface FunctionDeclarationExpression extends cs.FunctionExpression {
+  id: cs.Identifier
+  body: cs.BlockStatement
 }
 
 /**
@@ -239,14 +245,14 @@ export interface FunctionDeclarationExpression extends es.FunctionExpression {
  * only contains a single return statement; or a block, but has to be in the expression position.
  * This is NOT compliant with the ES specifications, just as an intermediate step during substitutions.
  */
-export interface BlockExpression extends es.BaseExpression {
+export interface BlockExpression extends cs.BaseExpression {
   type: 'BlockExpression'
-  body: es.Statement[]
+  body: cs.Statement[]
 }
 
-export type substituterNodes = es.Node | BlockExpression
+export type substituterNodes = cs.Node | BlockExpression
 
-export type ContiguousArrayElementExpression = Exclude<es.ArrayExpression['elements'][0], null>
+export type ContiguousArrayElementExpression = Exclude<cs.ArrayExpression['elements'][0], null>
 
 export type ContiguousArrayElements = ContiguousArrayElementExpression[]
 
@@ -254,7 +260,7 @@ export type ContiguousArrayElements = ContiguousArrayElementExpression[]
 // Types used in type checker for type inference/type error checker for Source Typed variant
 // =======================================
 
-export type PrimitiveType = 'boolean' | 'null' | 'number' | 'string' | 'undefined'
+export type PrimitiveType = 'int' | 'void' | 'char'
 
 export type TSAllowedTypes = 'any' | 'void'
 
@@ -266,9 +272,9 @@ export type TSDisallowedTypes = typeof disallowedTypes[number]
 export type TSBasicType = PrimitiveType | TSAllowedTypes | TSDisallowedTypes
 
 // Types for nodes used in type inference
-export type NodeWithInferredType<T extends es.Node> = InferredType & T
+export type NodeWithInferredType<T extends cs.Node> = InferredType & T
 
-export type FuncDeclWithInferredTypeAnnotation = NodeWithInferredType<es.FunctionDeclaration> &
+export type FuncDeclWithInferredTypeAnnotation = NodeWithInferredType<cs.FunctionDeclaration> &
   TypedFuncDecl
 
 export type InferredType = Untypable | Typed | NotYetTyped
@@ -298,8 +304,9 @@ export type Constraint = 'none' | 'addable'
 // Types used by both type inferencer and Source Typed
 export type Type =
   | Primitive
-  | Variable
+  // | Variable
   | FunctionType
+  | Pointer
   | List
   | Pair
   | SArray
@@ -308,15 +315,20 @@ export type Type =
 
 export interface Primitive {
   kind: 'primitive'
-  name: PrimitiveType | TSAllowedTypes
-  // Value is needed for Source Typed type error checker due to existence of literal types
-  value?: string | number | boolean
+  name: PrimitiveType
+  // name: PrimitiveType | TSAllowedTypes
 }
 
-export interface Variable {
-  kind: 'variable'
-  name: string
-  constraint: Constraint
+// export interface Variable {
+//   kind: 'variable'
+//   type: Type
+//   name: string
+//   // constraint: Constraint
+// }
+
+export interface Pointer {
+  kind: 'pointer'
+  type: Type
 }
 
 // cannot name Function, conflicts with TS
@@ -366,7 +378,7 @@ export interface PredicateType {
 }
 
 export type PredicateTest = {
-  node: NodeWithInferredType<es.CallExpression>
+  node: NodeWithInferredType<cs.CallExpression>
   ifTrueType: Type | ForAll
   argVarName: string
 }

@@ -1,12 +1,12 @@
-import * as es from 'estree'
-
+// import * as cs from 'estree'
+import * as cs from '../tree/ctree'
 import { ErrorSeverity, ErrorType, SourceError } from '../types'
 
 export class NoAssignmentToForVariable implements SourceError {
   public type = ErrorType.SYNTAX
   public severity = ErrorSeverity.ERROR
 
-  constructor(public node: es.AssignmentExpression) {}
+  constructor(public node: cs.AssignmentExpression) {}
 
   get location() {
     return this.node.loc!

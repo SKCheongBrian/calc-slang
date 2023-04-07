@@ -1,6 +1,8 @@
 // Variable determining chapter of Source is contained in this file.
 
-import { Context, Environment, Variant } from './types'
+import * as memory from './stdlib/memory'
+import * as misc from './stdlib/misc'
+import { Context, CustomBuiltIns, Environment, NativeStorage, Value, Variant } from './types'
 
 export class LazyBuiltIn {
   func: (...arg0: any) => any
@@ -84,7 +86,12 @@ export const createGlobalEnvironment = (): Environment => ({
   tail: null,
   name: 'global',
   head: {},
-  id: '-1'
+  id: '-1',
+  lastUsed: 0
+})
+
+const createNativeStorage = (): NativeStorage => ({
+  builtins: new Map()
 })
 
 export const createEmptyContext = <T>(
@@ -98,6 +105,7 @@ export const createEmptyContext = <T>(
     externalContext,
     runtime: createEmptyRuntime(),
     numberOfOuterEnvironments: 1,
+    nativeStorage: createNativeStorage(),
     prelude: null,
     executionMethod: 'auto',
     variant,
@@ -124,13 +132,79 @@ export const ensureGlobalEnvironmentExist = (context: Context) => {
   }
 }
 
+export const defineSymbol = (context: Context, name: string, value: Value) => {
+  const globalEnvironment = context.runtime.environments[0]
+  Object.defineProperty(globalEnvironment.head, name, {
+    value,
+    writable: false,
+    enumerable: true
+  })
+  context.nativeStorage.builtins.set(name, value)
+}
+
+export function defineBuiltin(
+  context: Context,
+  name: string, // enforce minArgsNeeded
+  value: Value,
+  minArgsNeeded: number
+): void
+export function defineBuiltin(
+  context: Context,
+  name: string,
+  value: Value,
+  minArgsNeeded?: number
+): void
+// Defines a builtin in the given context
+// If the builtin is a function, wrap it such that its toString hides the implementation
+export function defineBuiltin(
+  context: Context,
+  name: string,
+  value: Value,
+  minArgsNeeded: undefined | number = undefined
+) {
+  if (typeof value === 'function') {
+    const funName = name.split('(')[0].trim()
+    const repr = `function ${name} {\n\t[implementation hidden]\n}`
+    value.tag = 'builtin'
+    value.toString = () => repr
+    value.minArgsNeeded = minArgsNeeded
+
+    defineSymbol(context, funName, value)
+  } else {
+    defineSymbol(context, name, value)
+  }
+}
+
+/**
+ * Imports builtins from standard and external libraries.
+ */
+export const importBuiltins = (context: Context, externalBuiltIns: CustomBuiltIns) => {
+  ensureGlobalEnvironmentExist(context)
+  const rawDisplay = (v: Value) => externalBuiltIns.rawDisplay(v)
+
+  // defineBuiltin(context, 'display(val, prepend = undefined)', display, 1)
+  defineBuiltin(context, 'print(str)', rawDisplay, 1)
+  defineBuiltin(context, 'print_mappings()', misc.displayMappings, 0)
+  defineBuiltin(context, 'print_rts()', misc.displayRts, 0)
+  defineBuiltin(context, 'print_heap()', misc.displayHeap, 0)
+  defineBuiltin(context, 'print_all()', misc.displayAll, 0)
+  defineBuiltin(context, 'malloc(size)', memory.malloc, 1)
+  defineBuiltin(context, 'free(index)', memory.free, 1)
+}
+
+const defaultBuiltIns: CustomBuiltIns = {
+  rawDisplay: misc.rawDisplay
+}
+
 const createContext = <T>(
   variant: Variant = Variant.DEFAULT,
   externalSymbols: string[] = [],
-  externalContext?: T
+  externalContext?: T,
+  externalBuiltIns: CustomBuiltIns = defaultBuiltIns
 ): Context => {
   const context = createEmptyContext(variant, externalSymbols, externalContext)
 
+  importBuiltins(context, externalBuiltIns)
   return context
 }
 
