@@ -609,10 +609,13 @@ class DirectDeclaratorGenerator implements CalcVisitor<cs.Identifier> {
 
   visitArrayDeclarator(ctx: ArrayDeclaratorContext): cs.Identifier {
     const name: string = ctx._id.text as string
-    const arrLength: number = Math.floor((ctx.childCount - 1) / 2)
+    const arrLevel: number = Math.floor((ctx.childCount - 1) / 3)
+    let expressionGenerator = new ExpressionGenerator(this.typeGenerator)
     let datatype = this.datatype
-    for (let i = 0; i < arrLength; i++) {
-      datatype = this.typeGenerator.array(datatype)
+    for (let i = arrLevel - 1; i >= 0; i--) {
+      let lengthIndex = 2 + 3 * i
+      let length = ctx.getChild(lengthIndex).accept(expressionGenerator)
+      datatype = this.typeGenerator.array(datatype, length)
     }
     return {
       type: 'Identifier',
@@ -745,15 +748,17 @@ class ExpressionGenerator implements CalcVisitor<cs.Expression> {
     for (let i = 1; i < ctx.childCount - 1; i += 2) {
       elements.push(ctx.getChild(i).accept(this))
     }
+    const length: cs.Expression = {
+      type: 'Literal',
+      value: elements.length,
+      datatype: this.typeGenerator.int()
+    }
     return {
       type: 'ArrayExpression',
       elements,
-      length: {
-        type: 'Literal',
-        value: elements.length
-      },
+      length,
       // Assume datatype is uniform across array elements
-      datatype: this.typeGenerator.array(elements[0]?.datatype!),
+      datatype: this.typeGenerator.array(elements[0]?.datatype!, length),
       loc: contextToLocation(ctx)
     }
   }
@@ -1395,10 +1400,11 @@ class TypeGenerator implements CalcVisitor<Type> {
     }
   }
 
-  array(elementType: Type): SArray {
+  array(elementType: Type, length: cs.Expression): SArray {
     return {
       kind: 'array',
-      elementType
+      elementType,
+      length
     }
   }
 

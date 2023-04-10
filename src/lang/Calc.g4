@@ -148,9 +148,9 @@ declarator: pointers = pointer? dirDecl = directDeclarator;
 pointer: MUL+;
 
 directDeclarator:
-	id = IDENTIFIER											# VariableDeclarator
-	| id = IDENTIFIER LPAREN params = parameterList? RPAREN	# FunctionDeclarator
-	| id = IDENTIFIER (LSQUARE RSQUARE)+					# ArrayDeclarator;
+	id = IDENTIFIER												# VariableDeclarator
+	| id = IDENTIFIER LPAREN params = parameterList? RPAREN		# FunctionDeclarator
+	| id = IDENTIFIER (LSQUARE length = expression RSQUARE)+	# ArrayDeclarator;
 
 initializer: assignExpr = assignmentExpression;
 
