@@ -610,11 +610,11 @@ class DirectDeclaratorGenerator implements CalcVisitor<cs.Identifier> {
   visitArrayDeclarator(ctx: ArrayDeclaratorContext): cs.Identifier {
     const name: string = ctx._id.text as string
     const arrLevel: number = Math.floor((ctx.childCount - 1) / 3)
-    let expressionGenerator = new ExpressionGenerator(this.typeGenerator)
+    const expressionGenerator = new ExpressionGenerator(this.typeGenerator)
     let datatype = this.datatype
     for (let i = arrLevel - 1; i >= 0; i--) {
-      let lengthIndex = 2 + 3 * i
-      let length = ctx.getChild(lengthIndex).accept(expressionGenerator)
+      const lengthIndex = 2 + 3 * i
+      const length = ctx.getChild(lengthIndex).accept(expressionGenerator)
       datatype = this.typeGenerator.array(datatype, length)
     }
     return {
