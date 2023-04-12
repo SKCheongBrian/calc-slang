@@ -13,6 +13,7 @@ import { Identifier } from './../tree/ctree'
 import { identifier } from './../utils/astCreator'
 import Closure from './closure'
 import { Heap, RuntimeStack } from './memory'
+import { log } from 'console'
 
 class Thunk {
   public value: Value
@@ -128,6 +129,7 @@ const getKind = (type: any) => {
     case 'array':
       kind = 'array'
       arrayType = getKind(type.elementType)
+      break
     default:
       throw new Error(`ERROR at makeVar, type unknown ${type?.kind}`)
   }
@@ -150,6 +152,9 @@ const makeVar = (context: Context, identifier: cs.Identifier, val: any) => {
   console.log('-------------')
   const datatype = identifier.datatype
   const symbol = identifier.name
+
+  console.log('$$$$$$$$$$$$$$$$$$')
+  console.log(datatype)
 
   const type = getKind(datatype)
   Object.defineProperty(env.head, symbol, {
@@ -459,7 +464,35 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   ArrayExpression: function* (node: cs.ArrayExpression, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
+    console.log('^^^^^^^^^^^^^^')
+
+    console.log(node)
+    A.push({ type: 'Array_i', datatype: node.datatype })
+    A.push(node.length)
+    A.push(...node.elements)
+  },
+
+  // TODO fill this shit in
+  Array_i: function* (node: any, context: Context) {
+    const length = S.pop()
+    console.log(`length: ${length}`)
+    const firstIndex = RTS.free
+    const env = currEnv(context)
+    if (length == 0) {
+      env.lastUsed++
+      RTS.allocate(0)
+    } else {
+      for (let i = 0; i < length; i++) {
+        let currElement = S.pop()
+        env.lastUsed++
+        if (node.datatype.elementType.kind === "primitive" && node.datatype.elementType.name === "char") {
+          currElement = currElement.charCodeAt(1)
+        }
+        console.log(`currElement: ${currElement}`);
+        RTS.allocate(currElement)
+      }
+    }
+    S.push(firstIndex)
   },
 
   FunctionExpression: function* (node: cs.FunctionExpression, context: Context) {
@@ -573,6 +606,26 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
         A.push({ type: 'UnaryExpression_i', operator: node.operator }, node.argument)
         return
     }
+  },
+
+  MemberExpression: function* (node: cs.MemberExpression, context: Context) {
+    A.push({ type: 'Member_i', dataType: node.datatype })
+    A.push(node.object)
+    A.push(node.property)
+  },
+
+  Member_i: function* (instr: any, context: Context) {
+    const address = S.pop()
+    const offset = S.pop()
+    console.log(`offset: ${offset}`)
+    console.log(`address: ${address}`)
+    const newAddress = address + offset
+    console.log(`thedataType: ${JSON.stringify(instr)}`)
+    const result =
+      instr.dataType?.name === 'char'
+        ? String.fromCharCode(memory_get_word_at_index(newAddress))
+        : memory_get_word_at_index(newAddress)
+    S.push(result)
   },
 
   Reference_i: function* (instr: any, context: Context) {
