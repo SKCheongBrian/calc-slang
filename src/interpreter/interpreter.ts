@@ -1,4 +1,5 @@
 /* tslint:disable:max-classes-per-file */
+import { log } from 'console'
 import { isUndefined, uniqueId } from 'lodash'
 
 import { createGlobalEnvironment } from '../createContext'
@@ -13,7 +14,6 @@ import { Identifier } from './../tree/ctree'
 import { identifier } from './../utils/astCreator'
 import Closure from './closure'
 import { Heap, RuntimeStack } from './memory'
-import { log } from 'console'
 
 class Thunk {
   public value: Value
@@ -485,10 +485,13 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
       for (let i = 0; i < length; i++) {
         let currElement = S.pop()
         env.lastUsed++
-        if (node.datatype.elementType.kind === "primitive" && node.datatype.elementType.name === "char") {
+        if (
+          node.datatype.elementType.kind === 'primitive' &&
+          node.datatype.elementType.name === 'char'
+        ) {
           currElement = currElement.charCodeAt(1)
         }
-        console.log(`currElement: ${currElement}`);
+        console.log(`currElement: ${currElement}`)
         RTS.allocate(currElement)
       }
     }
