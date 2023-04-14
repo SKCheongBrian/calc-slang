@@ -1,5 +1,6 @@
 /* tslint:disable:max-classes-per-file */
 import { isUndefined, uniqueId } from 'lodash'
+import { cloneDeep } from 'lodash'
 
 import { createGlobalEnvironment } from '../createContext'
 import * as errors from '../errors/errors'
@@ -347,6 +348,9 @@ const extend = (names: cs.Identifier[], values: any[], context: Context) => {
   for (let i = 0; i < names.length; i++) {
     makeVar(context, names[i], values[i])
   }
+  global_context = context
+  console.log(`globaclalsdkfj:`)
+  console.log(currEnv(global_context))
 }
 
 /* -------------------------------------------------------------------------- */
@@ -537,6 +541,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
       A.push({ type: 'Reset_i' })
     }
   },
+
   Env_i: function* (node: any, context: Context) {
     global_context = node.context
   },
@@ -579,10 +584,10 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     } else if (A[A.length - 1].type === 'Reset_i') {
       A.pop()
     } else {
-      A.push({ type: 'Env_i', context: context }, { type: 'Mark_i' })
+      A.push({ type: 'Env_i', context: cloneDeep(context) }, { type: 'Mark_i' })
     }
     A.push(sf.body)
-    extend(sf.params, args, context)
+    extend(sf.params, args, sf.closure_context)
   },
 
   NewExpression: function* (node: cs.NewExpression, context: Context) {
