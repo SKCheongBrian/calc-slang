@@ -1,5 +1,5 @@
+import { MemberExpression } from './../tree/ctree';
 /* tslint:disable:max-classes-per-file */
-import { log } from 'console'
 import { isUndefined, uniqueId } from 'lodash'
 
 import { createGlobalEnvironment } from '../createContext'
@@ -204,15 +204,12 @@ const getVar = (context: Context, identifier: cs.Identifier) => {
 const setVarByIndex = (index: number, isStack: boolean, kind: string) => {
   let value = S[S.length - 1]
 
+  console.log(`the kind here is: ${kind}`)
   switch (kind) {
     case 'char':
       value = value.charCodeAt(1)
       break
   }
-
-  console.log('snow', isStack)
-
-  console.log('can', index)
   return index !== -1
     ? isStack
       ? RTS.set_word_at_index(index, value)
@@ -771,18 +768,37 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     setVarByIndex(instr.index, instr.is_stack, instr.pointerType)
   },
 
+  AsstMem_i: function* (instr: any, context: Context) {
+    const node = instr.node;
+    A.push({ type: "Mem_i_set", arrayType: getKind(node.datatype) })
+    A.push({ type: "Mem_i_helper" })
+    A.push(node.object)
+    A.push(node.property)
+  },
+
+  Mem_i_helper: function* (instr: any, context: Context) {
+    const index = S.pop();
+    const offset = S.pop();
+
+    console.log(`helper pushing: ${index + offset}`);
+    console.log(index);
+    console.log(offset);
+    
+    S.push(index + offset)
+  },
+
+  Mem_i_set: function* (instr: any, context: Context) {
+    const index_to_set = S.pop()
+    const is_stack: boolean = index_to_set <= RTS_LAST_INDEX
+    setVarByIndex(index_to_set, is_stack, instr.arrayType)
+  },
+
   AssignmentExpression: function* (node: cs.AssignmentExpression, context: Context) {
     // this is just a check to make sure that it is properly initialised
     if (node.left.type === 'UnaryExpression') {
       A.push({ type: 'AsstExprDeref_i', node: node.left })
-      // const name = derefFindName(node.left)
-      // const env: Environment | null = currEnv(context)
-      // let index: number = getIndex(name, env)
-      // while (node.type === 'UnaryExpression') {
-      //   console.log(node)
-      //   index = RTS.get_word_at_index(index)
-      //   node = node.argument
-      // }
+    } else if (node.left.type === "MemberExpression") {
+      A.push({ type: 'AsstMem_i', node: node.left })
     } else {
       getVar(context, node.left as cs.Identifier)
       A.push({ type: 'Assignment_i', symbol: node.left })
@@ -816,7 +832,6 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
       default: {
         // ! not sure if this is correctly set
         throw new Error(`yo there not such thing amigo`)
-        break
       }
     }
   },
