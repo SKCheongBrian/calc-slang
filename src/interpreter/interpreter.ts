@@ -1,4 +1,3 @@
-import { MemberExpression } from './../tree/ctree';
 /* tslint:disable:max-classes-per-file */
 import { isUndefined, uniqueId } from 'lodash'
 
@@ -10,6 +9,7 @@ import { is_number } from '../stdlib/misc'
 import * as cs from '../tree/ctree'
 import { Context, Environment, Frame, Value } from '../types'
 import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
+import { MemberExpression } from './../tree/ctree'
 import { Identifier } from './../tree/ctree'
 import { identifier } from './../utils/astCreator'
 import Closure from './closure'
@@ -769,21 +769,21 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   AsstMem_i: function* (instr: any, context: Context) {
-    const node = instr.node;
-    A.push({ type: "Mem_i_set", arrayType: getKind(node.datatype) })
-    A.push({ type: "Mem_i_helper" })
+    const node = instr.node
+    A.push({ type: 'Mem_i_set', arrayType: getKind(node.datatype) })
+    A.push({ type: 'Mem_i_helper' })
     A.push(node.object)
     A.push(node.property)
   },
 
   Mem_i_helper: function* (instr: any, context: Context) {
-    const index = S.pop();
-    const offset = S.pop();
+    const index = S.pop()
+    const offset = S.pop()
 
-    console.log(`helper pushing: ${index + offset}`);
-    console.log(index);
-    console.log(offset);
-    
+    console.log(`helper pushing: ${index + offset}`)
+    console.log(index)
+    console.log(offset)
+
     S.push(index + offset)
   },
 
@@ -797,7 +797,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     // this is just a check to make sure that it is properly initialised
     if (node.left.type === 'UnaryExpression') {
       A.push({ type: 'AsstExprDeref_i', node: node.left })
-    } else if (node.left.type === "MemberExpression") {
+    } else if (node.left.type === 'MemberExpression') {
       A.push({ type: 'AsstMem_i', node: node.left })
     } else {
       getVar(context, node.left as cs.Identifier)
