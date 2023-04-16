@@ -31,10 +31,10 @@ export default class Interval {
       return null
     }
     if (index > this.end) {
-      throw new Error('noob index cannot be more than end')
+      throw new Error('Index cannot be more than end')
     }
     if (index <= this.begin) {
-      throw new Error('Noob index cannot be less than or equal to begin')
+      throw new Error('Index cannot be less than or equal to begin')
     }
     return new Interval(index, this.end)
   }
@@ -52,10 +52,6 @@ export default class Interval {
       throw new Error('The size allocated is bigger than the interval :(')
     }
     return this.allocate_to(this.begin + size)
-  }
-
-  public can_merge(other: Interval): boolean {
-    return other.begin == this.end + 1 || other.end == this.end - 1
   }
 
   public merge(other: Interval): Interval {

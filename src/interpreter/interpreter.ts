@@ -5,38 +5,14 @@ import { cloneDeep } from 'lodash'
 import { createGlobalEnvironment } from '../createContext'
 import * as errors from '../errors/errors'
 import { RuntimeSourceError } from '../errors/runtimeSourceError'
-import { is_number } from '../stdlib/misc'
 /* tslint:disable:max-classes-per-file */
 import * as cs from '../tree/ctree'
 import { Context, Environment, Frame, Value } from '../types'
 import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/operators'
-import { MemberExpression } from './../tree/ctree'
-import { Identifier } from './../tree/ctree'
-import { identifier } from './../utils/astCreator'
 import Closure from './closure'
 import { Heap, RuntimeStack } from './memory'
 
-class Thunk {
-  public value: Value
-  public isMemoized: boolean
-  constructor(public exp: cs.Node, public env: Environment) {
-    this.isMemoized = false
-    this.value = null
-  }
-}
 
-enum Type {
-  Int,
-  Char
-}
-
-enum Location {
-  Stack,
-  Heap
-}
-
-const malloc_count = 0
-const list_of_malloc_var: string[] = []
 let A: any[]
 let S: any[]
 export let global_context: Context
@@ -48,26 +24,6 @@ export let H: Heap
 let functions: any[]
 let functionIndex: number
 
-// ? Commenting out since it calls evaluate
-// function* forceIt(val: any, context: Context): Value {
-//   if (val instanceof Thunk) {
-//     if (val.isMemoized) return val.value
-
-//     pushEnvironment(context, val.env)
-//     const evalRes = yield* actualValue(val.exp, context)
-//     popEnvironment(context)
-//     val.value = evalRes
-//     val.isMemoized = true
-//     return evalRes
-//   } else return val
-// }
-
-// ? Commenting out since it calls evaluate
-// export function* actualValue(exp: es.Node, context: Context): Value {
-//   const evalResult = yield* evaluate(exp, context)
-//   const forced = yield* forceIt(evalResult, context)
-//   return forced
-// }
 
 const handleRuntimeError = (context: Context, error: RuntimeSourceError): never => {
   context.errors.push(error)
@@ -77,24 +33,6 @@ const handleRuntimeError = (context: Context, error: RuntimeSourceError): never 
   throw error
 }
 
-function* visit(context: Context, node: cs.Node) {
-  context.runtime.nodes.unshift(node)
-  yield context
-}
-
-function* leave(context: Context) {
-  context.runtime.break = false
-  context.runtime.nodes.shift()
-  yield context
-}
-
-// function* evaluateBlockSatement(context: Context, node: es.BlockStatement) {
-//   let result
-//   for (const statement of node.body) {
-//     result = yield* evaluate(statement, context)
-//   }
-//   return result
-// }
 
 /* -------------------------------------------------------------------------- */
 /*                                  Variables                                 */
@@ -154,8 +92,6 @@ const makeVar = (context: Context, identifier: cs.Identifier, val: any) => {
   const datatype = identifier.datatype
   const symbol = identifier.name
 
-  console.log('$$$$$$$$$$$$$$$$$$')
-  console.log(datatype)
 
   const type = getKind(datatype)
   Object.defineProperty(env.head, symbol, {
@@ -183,9 +119,7 @@ const getVar = (context: Context, identifier: cs.Identifier) => {
   const env: Environment | null = currEnv(context)
   const index: number = getIndex(name, env)
   const is_stack: boolean = index <= RTS_LAST_INDEX
-  console.log('GOOD OR NOT GOOD', env, is_stack)
 
-  console.log(`FINDING ${name}, ${type}, ${index}`)
   if (index === -1) {
     return handleRuntimeError(context, new errors.UndefinedVariable(name, context.runtime.nodes[0]))
   } else if (isNaN(memory_get_word_at_index(index))) {
@@ -197,7 +131,6 @@ const getVar = (context: Context, identifier: cs.Identifier) => {
     const is_stack: boolean = index <= RTS_LAST_INDEX
     return String.fromCharCode(memory_get_word_at_index(index))
   } else {
-    // TODO maybe use a switch here
     return memory_get_word_at_index(index)
   }
 }
@@ -205,7 +138,6 @@ const getVar = (context: Context, identifier: cs.Identifier) => {
 const setVarByIndex = (index: number, isStack: boolean, kind: string) => {
   let value = S[S.length - 1]
 
-  console.log(`the kind here is: ${kind}`)
   switch (kind) {
     case 'char':
       value = value.charCodeAt(1)
@@ -239,8 +171,6 @@ const setVar = (context: Context, identifier: cs.Identifier) => {
 
   const is_stack: boolean = index <= RTS_LAST_INDEX
 
-  console.log(`Setting for ${name}, value: ${value}, index: ${index}`)
-  // console.log("done with setvar")
   return index !== -1
     ? is_stack
       ? RTS.set_word_at_index(index, value)
@@ -249,7 +179,6 @@ const setVar = (context: Context, identifier: cs.Identifier) => {
 }
 
 const derefByIndex = (index: number, is_stack: boolean, type: string) => {
-  console.log('yep', index, is_stack)
   return type === 'char'
     ? String.fromCharCode(memory_get_word_at_index(memory_get_word_at_index(index)))
     : memory_get_word_at_index(memory_get_word_at_index(index))
@@ -331,11 +260,8 @@ export const createBlockEnv = (
 
 export type Evaluator<T extends cs.Node> = (node: T, context: Context) => IterableIterator<Value>
 
-// TODO: prolly need to change this too
-const UNASSIGNED = 0
 
 const create_unassigned = (locals: cs.Identifier[], context: Context) => {
-  const env = currEnv(context)
   for (let i = 0; i < locals.length; i++) {
     const currIdentifier: cs.Identifier = locals[i]
     makeVar(context, currIdentifier, NaN)
@@ -349,7 +275,6 @@ const extend = (names: cs.Identifier[], values: any[], context: Context) => {
     makeVar(context, names[i], values[i])
   }
   global_context = context
-  console.log(`globaclalsdkfj:`)
   console.log(currEnv(global_context))
 }
 
@@ -465,18 +390,13 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   ArrayExpression: function* (node: cs.ArrayExpression, context: Context) {
-    console.log('^^^^^^^^^^^^^^')
-
-    console.log(node)
     A.push({ type: 'Array_i', datatype: node.datatype })
     A.push(node.length)
     A.push(...node.elements)
   },
 
-  // TODO fill this shit in
   Array_i: function* (node: any, context: Context) {
     const length = S.pop()
-    console.log(`length: ${length}`)
     const firstIndex = RTS.free
     const env = currEnv(context)
     if (length == 0) {
@@ -492,19 +412,10 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
         ) {
           currElement = currElement.charCodeAt(1)
         }
-        console.log(`currElement: ${currElement}`)
         RTS.allocate(currElement)
       }
     }
     S.push(firstIndex)
-  },
-
-  FunctionExpression: function* (node: cs.FunctionExpression, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
-  },
-
-  ArrowFunctionExpression: function* (node: cs.ArrowFunctionExpression, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
   },
 
   Identifier: function* (node: cs.Identifier, context: Context) {
@@ -525,16 +436,9 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 
   ReturnStatement: function* (node: cs.ReturnStatement, context: Context) {
     if (node.argument) {
-      // to somehow take care of the case where you return *x
-      // if (node.argument['argument']) {
-      //   A.push(
-      //     { type: 'Reset_i' },
-      //     node.argument['argument'] // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
-      //   )
-      // } else {
       A.push(
         { type: 'Reset_i' },
-        node.argument // TODO NOTE SURE IF THIS WILL AFFECT RETURNING NOTHING
+        node.argument
       )
       // }
     } else {
@@ -548,7 +452,6 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 
   Reset_i: function* (node: any, context: Context) {
     if (A.pop().type === 'Mark_i') {
-      console.log('look for me plz')
       return
     } else {
       A.push(node)
@@ -562,13 +465,10 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
       args[i] = S.pop()
     }
     const fun = S.pop()
-    console.log(`fun is ${fun}`)
 
     if (fun.tag === 'builtin') {
       if (fun.name == 'malloc') {
         const malloc_res = fun(...args)
-        console.log('malloc res', malloc_res)
-        console.log('malloc res', RTS_LAST_INDEX)
         S.push(malloc_res + RTS_LAST_INDEX + 1)
       } else if (fun.name == 'free') {
         args[0] = args[0] - RTS_LAST_INDEX - 1
@@ -622,10 +522,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   Member_i: function* (instr: any, context: Context) {
     const address = S.pop()
     const offset = S.pop()
-    console.log(`offset: ${offset}`)
-    console.log(`address: ${address}`)
     const newAddress = address + offset
-    console.log(`thedataType: ${JSON.stringify(instr)}`)
     const result =
       instr.dataType?.name === 'char'
         ? String.fromCharCode(memory_get_word_at_index(newAddress))
@@ -653,10 +550,8 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     let node = instr.node
     const name: string = derefFindName(node)
     const env: Environment | null = currEnv(context)
-    console.log('h after malloc THIS IS THE ENV', env)
     let index: number = getIndex(name, env)
     while (node.type === 'UnaryExpression') {
-      console.log('identify', index)
       index = memory_get_word_at_index(index)
       node = node.argument
     }
@@ -675,7 +570,6 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 
   BinaryExpression_i: function* (node: any, context: Context) {
     const result = evaluateBinaryExpression(node.operator, S.pop(), S.pop())
-    console.log('result: ' + result)
     S.push(result)
   },
 
@@ -705,10 +599,6 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     A.push({ type: 'Conditional_i', cons: node.consequent, alt: node.alternate }, node.test)
   },
 
-  LogicalExpression: function* (node: cs.LogicalExpression, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
-  },
-
   VariableDeclaration: function* (node: cs.VariableDeclaration, context: Context) {
     const len = node.declarations.length
     for (let i = 0; i < len; i++) {
@@ -729,18 +619,6 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     makeVar(context, node.symbol, S[S.length - 1])
   },
 
-  ContinueStatement: function* (_node: cs.ContinueStatement, _context: Context) {
-    throw new Error(`not supported yet: ${_node.type}`)
-  },
-
-  BreakStatement: function* (_node: cs.BreakStatement, _context: Context) {
-    throw new Error(`not supported yet: ${_node.type}`)
-  },
-
-  ForStatement: function* (node: cs.ForStatement, context: Context) {
-    throw new Error(`not supported yet: ${node.type}`)
-  },
-
   InitialAssignmentExpression: function* (node: any, context: Context) {
     A.push({ type: 'Assignment_i', symbol: node.left })
     A.push(node.right)
@@ -753,13 +631,10 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
     const env: Environment | null = currEnv(context)
     let index: number = getIndex(name, env)
     while (node.type === 'UnaryExpression') {
-      console.log(node)
-      // index = is_stack ? RTS.get_word_at_index(index) : H.get_word_at_index(index)
       index = memory_get_word_at_index(index)
       node = node.argument
     }
 
-    console.log('ah ', index, RTS_LAST_INDEX)
     const is_stack: boolean = index <= RTS_LAST_INDEX
     A.push({
       type: 'AsstExprDerefSet_i',
@@ -784,10 +659,6 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   Mem_i_helper: function* (instr: any, context: Context) {
     const index = S.pop()
     const offset = S.pop()
-
-    console.log(`helper pushing: ${index + offset}`)
-    console.log(index)
-    console.log(offset)
 
     S.push(index + offset)
   },
@@ -842,7 +713,6 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
   },
 
   Assignment_i: function* (node: any, context: Context) {
-    console.log(node)
     const identifier = node.symbol as cs.Identifier
     setVar(context, identifier)
   },
