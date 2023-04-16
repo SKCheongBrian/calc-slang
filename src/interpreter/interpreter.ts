@@ -12,7 +12,6 @@ import { evaluateBinaryExpression, evaluateUnaryExpression } from '../utils/oper
 import Closure from './closure'
 import { Heap, RuntimeStack } from './memory'
 
-
 let A: any[]
 let S: any[]
 export let global_context: Context
@@ -24,7 +23,6 @@ export let H: Heap
 let functions: any[]
 let functionIndex: number
 
-
 const handleRuntimeError = (context: Context, error: RuntimeSourceError): never => {
   context.errors.push(error)
   context.runtime.environments = context.runtime.environments.slice(
@@ -32,7 +30,6 @@ const handleRuntimeError = (context: Context, error: RuntimeSourceError): never 
   )
   throw error
 }
-
 
 /* -------------------------------------------------------------------------- */
 /*                                  Variables                                 */
@@ -91,7 +88,6 @@ const makeVar = (context: Context, identifier: cs.Identifier, val: any) => {
   console.log('-------------')
   const datatype = identifier.datatype
   const symbol = identifier.name
-
 
   const type = getKind(datatype)
   Object.defineProperty(env.head, symbol, {
@@ -259,7 +255,6 @@ export const createBlockEnv = (
 }
 
 export type Evaluator<T extends cs.Node> = (node: T, context: Context) => IterableIterator<Value>
-
 
 const create_unassigned = (locals: cs.Identifier[], context: Context) => {
   for (let i = 0; i < locals.length; i++) {
@@ -436,10 +431,7 @@ export const evaluators: { [nodeType: string]: Evaluator<cs.Node> } = {
 
   ReturnStatement: function* (node: cs.ReturnStatement, context: Context) {
     if (node.argument) {
-      A.push(
-        { type: 'Reset_i' },
-        node.argument
-      )
+      A.push({ type: 'Reset_i' }, node.argument)
       // }
     } else {
       A.push({ type: 'Reset_i' })
