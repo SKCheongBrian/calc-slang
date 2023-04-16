@@ -12,6 +12,9 @@ Calculator language modified from js-slang.
 
 # Table of Contents
 
+- [calc-slang](#calc-slang)
+  - [Possible Issues (and manual solutions)](#possible-issues-and-manual-solutions)
+- [Table of Contents](#table-of-contents)
 - [Requirements](#requirements)
 - [Usage](#usage)
 - [Documentation](#documentation)
@@ -31,7 +34,7 @@ Calculator language modified from js-slang.
 To build,
 
 ```{.}
-$ git clone https://github.com/yangdinglou/calc-slang
+$ git clone https://github.com/SKCheongBrian/calc-slang
 $ cd calc-slang
 $ yarn
 $ yarn build

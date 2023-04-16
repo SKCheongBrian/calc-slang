@@ -352,6 +352,7 @@ export interface Pair {
 export interface SArray {
   kind: 'array'
   elementType: Type
+  length: cs.Expression
 }
 
 // Union types and literal types are only used in Source Typed for typechecking
